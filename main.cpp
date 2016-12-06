@@ -15,82 +15,58 @@
 #include <algorithm>
 #include <functional>
 #include <vector>
+#include <chrono>
+#include <iostream>
+#include <valarray>
+
+typedef std::valarray<double> vectype;
 
 class ChebyshevExpansion {
 private:
-    std::vector<double> m_c;
-
-    void add_coeffs(const std::vector<double>&c1, const std::vector<double>&c2, std::vector<double> &out) const{
-        const std::size_t N1 = c1.size(), N2 = c2.size();
-        const std::size_t N = std::max(N1, N2), Nend = std::min(N1, N2);
-        out.resize(N);
-        
-        // Add together all the indices that overlap
-        std::transform(c1.begin(), c1.begin() + Nend, c2.begin(), out.begin(), std::plus<double>());
-
-        // Copy the indices that DO NOT overlap
-        if (N1 > N2) {
-            std::copy(c1.begin() + Nend, c1.begin() + N, out.begin() + Nend);
-        }
-        else if (N2 > N1) {
-            std::copy(c2.begin() + Nend, c2.begin() + N, out.begin() + Nend);
-        }
-        // Nothing more to be done if N1 == N2
-    }
-    const std::vector<double> mult_coeffs_by_double(std::vector<double>c, double val) const {
-        // See http://stackoverflow.com/a/3885136
-        std::transform(c.begin(), c.end(), c.begin(), std::bind1st(std::multiplies<double>(), val));
-        return c;
-    }
-    void mult_coeffs_by_double_inplace(std::vector<double> &c, double val) {
-        // See http://stackoverflow.com/a/3885136
-        std::transform(c.begin(), c.end(), c.begin(), std::bind1st(std::multiplies<double>(), val));
-    }
-
+     vectype m_c;
 public:
-    ChebyshevExpansion(const std::vector<double> &c) : m_c(c) { };
+    ChebyshevExpansion(const vectype &c) : m_c(c) { };
+
+    ChebyshevExpansion(const std::vector<double> &c) : m_c(&(c[0]), c.size()) { };
 
 #if defined(CHEBTOOLS_CPP11)
     // Move constructor (C++11 only)
-    ChebyshevExpansion(const std::vector<double> &&c) : m_c(c) { };
+    ChebyshevExpansion(const vectype &&c) : m_c(c) { };
 #endif
     
 public:
     ChebyshevExpansion operator+(const ChebyshevExpansion &ce2) const {
-        const std::vector<double> &c2 = ce2.coef(); 
-        std::vector<double> c;
-        add_coeffs(m_c, c2, c);
 #if defined(CHEBTOOLS_CPP11) 
-        return ChebyshevExpansion(std::move(c));
+        return ChebyshevExpansion(std::move(ce2.coef()+m_c));
 #else
         return ChebyshevExpansion(c);
 #endif
     };
     ChebyshevExpansion& operator+=(const ChebyshevExpansion &ce2) {
-        add_coeffs(m_c, ce2.coef(), m_c);
+        m_c += ce2.coef();
         return *this;
     }
     ChebyshevExpansion operator*(double value) const { 
 #if defined(CHEBTOOLS_CPP11) 
-        return ChebyshevExpansion(std::move(mult_coeffs_by_double(m_c, value)));
+        return ChebyshevExpansion(std::move(m_c*value));
 #else
-        return ChebyshevExpansion(mult_coeffs_by_double(c, value));
+        return ChebyshevExpansion(m_c*value);
 #endif
     }
     ChebyshevExpansion& operator*=(double value) {
-        mult_coeffs_by_double_inplace(m_c, value);
+        m_c *= value;
         return *this; 
     }
     /// Friend function that allows for pre-multiplication by a constant value
     friend ChebyshevExpansion operator*(double value, const ChebyshevExpansion &ce) {
 #if defined(CHEBTOOLS_CPP11) 
-        return ChebyshevExpansion(std::move(ce.mult_coeffs_by_double(ce.coef(), value)));
+        return ChebyshevExpansion(std::move(ce.coef()*value));
 #else
         return ChebyshevExpansion(mult_coeffs_by_double(ce.coef(), value));
 #endif
     }
 
-    const std::vector<double> &coef() const { 
+    const vectype &coef() const {
         return m_c; 
     };
 
@@ -98,6 +74,29 @@ public:
     //    return "[" + std::to_string(x) + ", " + std::to_string(y) + "]";
     //}
 };
+
+double plus_by_inplace(ChebyshevExpansion &ce, const ChebyshevExpansion &ce2, int N) {
+    for (std::size_t i = 0; i < N; ++i) {
+        ce += ce2;
+    }
+    return ce.coef()[0];
+}
+
+double mult_by_inplace(ChebyshevExpansion &ce, double val, int N) {
+    for (std::size_t i = 0; i < N; ++i) {
+        ce *= val;
+    }
+    return ce.coef()[0];
+}
+
+void mult_by(ChebyshevExpansion &ce, double val, int N) {
+    ChebyshevExpansion ce2({ 1,0 });
+    for (std::size_t i = 0; i < N; ++i) {
+        ce2 = ce*val;
+    }
+    //return ce2;
+}
+
 
 #if defined(PYBIND11)
 
@@ -108,6 +107,9 @@ namespace py = pybind11;
 
 PYBIND11_PLUGIN(ChebTools) {
     py::module m("ChebTools", "C++ tools for working with Chebyshev expansions");
+
+    m.def("mult_by", &mult_by);
+    m.def("mult_by_inplace", &mult_by_inplace);
 
     py::class_<ChebyshevExpansion>(m, "ChebyshevExpansion")
         .def(py::init<const std::vector<double> &>())
@@ -124,5 +126,28 @@ PYBIND11_PLUGIN(ChebTools) {
 #else
 
 // Monolithic build
+int main(){
 
+    long N = 10000000;
+    ChebyshevExpansion ce({0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20});
+    auto startTime = std::chrono::system_clock::now();
+        mult_by_inplace(ce, 1.001, N);
+    auto endTime = std::chrono::system_clock::now();
+    auto elap_us = std::chrono::duration<double>(endTime - startTime).count()/N*1e6;
+    std::cout << elap_us << " us/call (mult inplace)\n";
+    
+    startTime = std::chrono::system_clock::now();
+    plus_by_inplace(ce, ce, N);
+    endTime = std::chrono::system_clock::now();
+    elap_us = std::chrono::duration<double>(endTime - startTime).count() / N*1e6;
+    std::cout << elap_us << " us/call (plus by inplace)\n";
+
+    startTime = std::chrono::system_clock::now();
+        mult_by(ce, 1.001, N);
+    endTime = std::chrono::system_clock::now();
+    elap_us = std::chrono::duration<double>(endTime - startTime).count() / N*1e6;
+    std::cout << elap_us << " us/call (mult)\n";
+
+    return EXIT_SUCCESS;
+}
 #endif
