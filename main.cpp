@@ -36,6 +36,8 @@ public:
     
 public:
     ChebyshevExpansion operator+(const ChebyshevExpansion &ce2) const {
+        // TODO: when m_c and ce2.coef() not the same size, resize shorter one and pad the longer one
+        if (m_c.size() != ce2.coef().size()) { throw std::exception("lengths not the same"); }
 #if defined(CHEBTOOLS_CPP11) 
         return ChebyshevExpansion(std::move(ce2.coef()+m_c));
 #else
@@ -43,6 +45,8 @@ public:
 #endif
     };
     ChebyshevExpansion& operator+=(const ChebyshevExpansion &ce2) {
+        // TODO: when m_c and ce2.coef() not the same size, resize shorter one and pad the longer one
+        if (m_c.size() != ce2.coef().size()){ throw std::exception("lengths not the same"); }
         m_c += ce2.coef();
         return *this;
     }
@@ -129,7 +133,8 @@ PYBIND11_PLUGIN(ChebTools) {
 int main(){
 
     long N = 10000000;
-    ChebyshevExpansion ce({0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20});
+    std::valarray<double> c(1, 50);
+    ChebyshevExpansion ce(c);
     auto startTime = std::chrono::system_clock::now();
         mult_by_inplace(ce, 1.001, N);
     auto endTime = std::chrono::system_clock::now();
@@ -140,7 +145,7 @@ int main(){
     plus_by_inplace(ce, ce, N);
     endTime = std::chrono::system_clock::now();
     elap_us = std::chrono::duration<double>(endTime - startTime).count() / N*1e6;
-    std::cout << elap_us << " us/call (plus by inplace)\n";
+    std::cout << elap_us << " us/call (plus inplace)\n";
 
     startTime = std::chrono::system_clock::now();
         mult_by(ce, 1.001, N);
