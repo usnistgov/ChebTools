@@ -19,6 +19,8 @@
 #include <iostream>
 #include <valarray>
 
+#include "Eigen/Dense"
+
 typedef std::valarray<double> vectype;
 
 class ChebyshevExpansion {
@@ -132,9 +134,10 @@ PYBIND11_PLUGIN(ChebTools) {
 // Monolithic build
 int main(){
 
-    long N = 10000000;
+    long N = 1000000;
     std::valarray<double> c(1, 50);
     ChebyshevExpansion ce(c);
+
     auto startTime = std::chrono::system_clock::now();
         mult_by_inplace(ce, 1.001, N);
     auto endTime = std::chrono::system_clock::now();
@@ -144,14 +147,25 @@ int main(){
     startTime = std::chrono::system_clock::now();
     plus_by_inplace(ce, ce, N);
     endTime = std::chrono::system_clock::now();
-    elap_us = std::chrono::duration<double>(endTime - startTime).count() / N*1e6;
+    elap_us = std::chrono::duration<double>(endTime - startTime).count()/N*1e6;
     std::cout << elap_us << " us/call (plus inplace)\n";
 
     startTime = std::chrono::system_clock::now();
         mult_by(ce, 1.001, N);
     endTime = std::chrono::system_clock::now();
-    elap_us = std::chrono::duration<double>(endTime - startTime).count() / N*1e6;
+    elap_us = std::chrono::duration<double>(endTime - startTime).count()/N*1e6;
     std::cout << elap_us << " us/call (mult)\n";
+
+    Eigen::MatrixXd A = Eigen::MatrixXd::Random(50, 50);
+    N = 100;
+    startTime = std::chrono::system_clock::now();
+        const bool computeEigenvectors = false; 
+        for (int i = 0; i < N; ++i){
+            Eigen::EigenSolver<Eigen::MatrixXd> es(A, computeEigenvectors);
+        }
+    endTime = std::chrono::system_clock::now();
+    elap_us = std::chrono::duration<double>(endTime - startTime).count()/N*1e6;
+    std::cout << elap_us << " us/call (eigs 50x50)\n";
 
     return EXIT_SUCCESS;
 }

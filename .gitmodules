@@ -1,3 +1,6 @@
 [submodule "externals/pybind11"]
 	path = externals/pybind11
 	url = https://github.com/pybind/pybind11.git
+[submodule "externals/Eigen"]
+	path = externals/Eigen
+	url = https://github.com/RLovelett/eigen.git

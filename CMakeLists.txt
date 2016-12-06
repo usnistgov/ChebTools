@@ -5,6 +5,8 @@ project(ChebTools)
 # Set the standard for C++ to c++11
 set(CMAKE_CXX_STANDARD 11)
 
+include_directories("${CMAKE_SOURCE_DIR}/externals/Eigen")
+
 if (CHEBTOOLS_PYBIND11)
     # Build pybind11 python module
     add_subdirectory("${CMAKE_SOURCE_DIR}/externals/pybind11")
