@@ -28,7 +28,9 @@ private:
      vectype m_c;
 public:
     ChebyshevExpansion(const vectype &c) : m_c(c) { };
-    //ChebyshevExpansion(const std::vector<double> &c) : m_c(&(c[0]), c.size()) { };
+    ChebyshevExpansion(const std::vector<double> &c) { 
+        m_c = Eigen::Map<const Eigen::VectorXd>(&(c[0]), c.size());
+    };
 
 #if defined(CHEBTOOLS_CPP11)
     // Move constructor (C++11 only)
@@ -46,7 +48,7 @@ public:
 #endif
     };
     ChebyshevExpansion& operator+=(const ChebyshevExpansion &donor) {
-        std::size_t N1 = donor.coef().size(), Ndonor = m_c.size();
+        std::size_t Ndonor = donor.coef().size(), N1 = m_c.size();
         std::size_t Nmin = std::min(N1, Ndonor), Nmax = std::max(N1, Ndonor);
         // The first Nmin terms overlap between the two vectors
         m_c.head(Nmin) += donor.coef().head(Nmin);
@@ -116,6 +118,7 @@ void mult_by(ChebyshevExpansion &ce, double val, int N) {
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include <pybind11/operators.h>
+#include <pybind11/eigen.h>
 namespace py = pybind11;
 
 PYBIND11_PLUGIN(ChebTools) {
