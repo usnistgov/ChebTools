@@ -32,7 +32,7 @@ public:
 
 #if defined(CHEBTOOLS_CPP11)
     // Move constructor (C++11 only)
-    //ChebyshevExpansion(const vectype &&c) : m_c(c) { };
+    ChebyshevExpansion(const vectype &&c) : m_c(c) { };
 #endif
     
 public:
