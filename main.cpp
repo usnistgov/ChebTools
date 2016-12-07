@@ -21,19 +21,18 @@
 
 #include "Eigen/Dense"
 
-typedef std::valarray<double> vectype;
+typedef Eigen::VectorXd vectype;
 
 class ChebyshevExpansion {
 private:
      vectype m_c;
 public:
     ChebyshevExpansion(const vectype &c) : m_c(c) { };
-
-    ChebyshevExpansion(const std::vector<double> &c) : m_c(&(c[0]), c.size()) { };
+    //ChebyshevExpansion(const std::vector<double> &c) : m_c(&(c[0]), c.size()) { };
 
 #if defined(CHEBTOOLS_CPP11)
     // Move constructor (C++11 only)
-    ChebyshevExpansion(const vectype &&c) : m_c(c) { };
+    //ChebyshevExpansion(const vectype &&c) : m_c(c) { };
 #endif
     
 public:
@@ -46,10 +45,17 @@ public:
         return ChebyshevExpansion(c);
 #endif
     };
-    ChebyshevExpansion& operator+=(const ChebyshevExpansion &ce2) {
-        // TODO: when m_c and ce2.coef() not the same size, resize shorter one and pad the longer one
-        if (m_c.size() != ce2.coef().size()){ throw std::exception("lengths not the same"); }
-        m_c += ce2.coef();
+    ChebyshevExpansion& operator+=(const ChebyshevExpansion &donor) {
+        std::size_t N1 = donor.coef().size(), Ndonor = m_c.size();
+        std::size_t Nmin = std::min(N1, Ndonor), Nmax = std::max(N1, Ndonor);
+        // The first Nmin terms overlap between the two vectors
+        m_c.head(Nmin) += donor.coef().head(Nmin);
+        // If the donor vector is longer than the current vector, resizing is needed
+        if (Ndonor > N1) {
+            m_c.resize(Ndonor);
+            // Copy the last Nmax-Nmin values from the donor
+            m_c.tail(Nmax-Nmin) = donor.coef().tail(Nmax-Nmin);
+        }
         return *this;
     }
     ChebyshevExpansion operator*(double value) const { 
@@ -85,18 +91,19 @@ double plus_by_inplace(ChebyshevExpansion &ce, const ChebyshevExpansion &ce2, in
     for (std::size_t i = 0; i < N; ++i) {
         ce += ce2;
     }
-    return ce.coef()[0];
+    return ce.coef()(0);
 }
 
 double mult_by_inplace(ChebyshevExpansion &ce, double val, int N) {
     for (std::size_t i = 0; i < N; ++i) {
         ce *= val;
     }
-    return ce.coef()[0];
+    return ce.coef()(0);
 }
 
 void mult_by(ChebyshevExpansion &ce, double val, int N) {
-    ChebyshevExpansion ce2({ 1,0 });
+    Eigen::VectorXd c(2); c << 1, 0;
+    ChebyshevExpansion ce2(c);
     for (std::size_t i = 0; i < N; ++i) {
         ce2 = ce*val;
     }
@@ -135,7 +142,8 @@ PYBIND11_PLUGIN(ChebTools) {
 int main(){
 
     long N = 1000000;
-    std::valarray<double> c(1, 50);
+    Eigen::VectorXd c(50);
+    c.fill(1);
     ChebyshevExpansion ce(c);
 
     auto startTime = std::chrono::system_clock::now();
