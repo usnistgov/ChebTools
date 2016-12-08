@@ -25,6 +25,7 @@ typedef Eigen::VectorXd vectype;
 
 class ChebyshevExpansion {
 private:
+     double m_xmin, m_xmax;
      vectype m_c;
      vectype m_recurrence_buffer;
      Eigen::MatrixXd m_recurrence_buffer_matrix;
@@ -33,15 +34,15 @@ private:
      }
 
 public:
-    ChebyshevExpansion(const vectype &c) : m_c(c) { resize(); };
-    ChebyshevExpansion(const std::vector<double> &c) { 
+    ChebyshevExpansion(const vectype &c, double xmin = -1, double xmax = 1) : m_c(c), m_xmin(xmin), m_xmax(xmax) { resize(); };
+    ChebyshevExpansion(const std::vector<double> &c, double xmin = -1, double xmax = 1) : m_xmin(xmin), m_xmax(xmax) {
         m_c = Eigen::Map<const Eigen::VectorXd>(&(c[0]), c.size());
         resize();
     };
 
 #if defined(CHEBTOOLS_CPP11)
     // Move constructor (C++11 only)
-    ChebyshevExpansion(const vectype &&c) : m_c(c) { resize(); };
+    ChebyshevExpansion(const vectype &&c, double xmin = -1, double xmax = 1) : m_c(c), m_xmin(xmin), m_xmax(xmax) { resize(); };
 #endif
     
 public:
@@ -93,25 +94,54 @@ public:
     double y(const double x) {
         // Use the recurrence relationships to evaluate the Chebyshev expansion
         std::size_t Norder = m_c.size()-1;
+        // Scale x linearly into the domain [-1, 1]
+        double xscaled = (2*x - (m_xmax+ m_xmin))/(m_xmax- m_xmin);
         vectype &o = m_recurrence_buffer;
         o(0) = 1;
-        o(1) = x;
+        o(1) = xscaled;
         for (int n = 1; n < Norder; ++n){
-            o(n+1) = 2*x*o(n) - o(n-1);
+            o(n+1) = 2*xscaled*o(n) - o(n-1);
         }
         return m_c.dot(o);
     }
     vectype y(const vectype &x) {
+        
+        // Scale x linearly into the domain [-1, 1]
+        vectype xscaled = (2*x.array() - (m_xmax + m_xmin)) / (m_xmax - m_xmin);
+
         // Use the recurrence relationships to evaluate the Chebyshev expansion
         std::size_t Norder = m_c.size() - 1;
         Eigen::MatrixXd &A = m_recurrence_buffer_matrix;
+        
         A.resize(x.size(), Norder+1);
         A.col(0).fill(1);
-        A.col(1) = x;
+        A.col(1) = xscaled;
         for (int n = 1; n < Norder; ++n) {
-            A.col(n + 1).array() = 2 * x.array()*A.col(n).array() - A.col(n - 1).array();
+            A.col(n + 1).array() = 2*xscaled.array()*A.col(n).array() - A.col(n - 1).array();
         }
         return A*m_c;
+    }
+
+    /** 
+     * See Boyd, SIAM review, 2013, http://dx.doi.org/10.1137/110838297, Appendix A.2
+     */
+    Eigen::MatrixXd companion_matrix() {
+        std::size_t N = m_c.size()-1;
+        Eigen::MatrixXd A = Eigen::MatrixXd::Zero(N, N);
+        // First row
+        A(0, 1) = 1;
+        
+        // Last row
+        A(N-1, N-2) = 0.5;
+        for (int k = 0; k < N; ++k){
+            A(N - 1, k) -= m_c(k)/(2.0*m_c(N));
+        }
+        // All the other rows
+        for (int j = 1; j < N-1; ++j) {
+            A(j, j-1) = 0.5;
+            A(j, j+1) = 0.5;
+        }
+        return A;
     }
 
     //std::string toString() const {
@@ -127,7 +157,8 @@ int p_i(int i, int N){
         return 1;
 }
 
-ChebyshevExpansion generate_Chebyshev_expansion(int N, double (*func)(double), double xmin, double xmax)
+template<class double_function>
+ChebyshevExpansion generate_Chebyshev_expansion(int N, double_function func, double xmin, double xmax)
 {
     Eigen::VectorXd f(N + 1);
 
@@ -137,7 +168,7 @@ ChebyshevExpansion generate_Chebyshev_expansion(int N, double (*func)(double), d
     // roots of the Chebyshev polynomial of order N)
     for (int k = 0; k <= N; ++k){
         double x_k = (xmax - xmin)/2.0*cos((EIGEN_PI*k)/N) + (xmax + xmin) / 2.0;
-        f(k) = (*func)(x_k);
+        f(k) = func(x_k);
     }
 
     // Step 3: Constrct the matrix of coefficients used to obtain a
@@ -150,9 +181,8 @@ ChebyshevExpansion generate_Chebyshev_expansion(int N, double (*func)(double), d
 
     // Step 4: Obtain coefficients from vector - matrix product
     Eigen::VectorXd c = (L*f).rowwise().sum();
-    return ChebyshevExpansion(c);
+    return ChebyshevExpansion(c,xmin,xmax);
 }
-
 
 double plus_by_inplace(ChebyshevExpansion &ce, const ChebyshevExpansion &ce2, int N) {
     for (std::size_t i = 0; i < N; ++i) {
@@ -191,39 +221,12 @@ double f(double x){
 
 namespace py = pybind11;
 
-ChebyshevExpansion generate_Chebyshev_expansion2(int N, const std::function<double(double)> &func, double xmin, double xmax)
-{
-    Eigen::VectorXd f(N + 1);
-
-    // See Boyd, 2013
-
-    // Step 1&2: Grid points functional values (function evaluated at the
-    // roots of the Chebyshev polynomial of order N)
-    for (int k = 0; k <= N; ++k) {
-        double x_k = (xmax - xmin) / 2.0*cos((EIGEN_PI*k) / N) + (xmax + xmin) / 2.0;
-        f(k) = func(x_k);
-    }
-
-    // Step 3: Construct the matrix of coefficients used to obtain a
-    Eigen::MatrixXd L = Eigen::MatrixXd::Zero(N + 1, N + 1); ///< Matrix of coefficients
-    for (int j = 0; j <= N; ++j) {
-        for (int k = 0; k <= N; ++k) {
-            L(j, k) = 2.0 / (p_i(j, N)*p_i(k, N)*N)*cos((j*EIGEN_PI*k) / N);
-        }
-    }
-
-    // Step 4: Obtain coefficients from vector - matrix product
-    Eigen::VectorXd c = (L*f).rowwise().sum();
-    return ChebyshevExpansion(c);
-}
-
 PYBIND11_PLUGIN(ChebTools) {
     py::module m("ChebTools", "C++ tools for working with Chebyshev expansions");
 
     m.def("mult_by", &mult_by);
     m.def("mult_by_inplace", &mult_by_inplace);
-    m.def("generate_Chebyshev_expansion2", &generate_Chebyshev_expansion2);
-
+    m.def("generate_Chebyshev_expansion", &generate_Chebyshev_expansion<std::function<double(double)> >);
     
     py::class_<ChebyshevExpansion>(m, "ChebyshevExpansion")
         .def(py::init<const std::vector<double> &>())
@@ -234,6 +237,9 @@ PYBIND11_PLUGIN(ChebTools) {
         .def(py::self *= double())
         //.def("__repr__", &Vector2::toString);
         .def("coef", &ChebyshevExpansion::coef)
+        .def("companion_matrix", &ChebyshevExpansion::companion_matrix)
+        .def("y", (vectype (ChebyshevExpansion::*)(const vectype &)) &ChebyshevExpansion::y)
+        .def("y", (double (ChebyshevExpansion::*)(const double)) &ChebyshevExpansion::y)
         ;
     return m.ptr();
 }
@@ -242,10 +248,15 @@ PYBIND11_PLUGIN(ChebTools) {
 // Monolithic build
 int main(){
 
-    ChebyshevExpansion ce0 = generate_Chebyshev_expansion(10, *f, 0, 6);
+    auto ff = [](int N, std::function<double(double)> &func, double xmin, double xmax) {
+        return generate_Chebyshev_expansion(N, *func.target<double(*)(double)>(), xmin, xmax);
+    };
+    auto cerrrrr0 = ff(10, f, 0, 6);
+
+    ChebyshevExpansion ce0 = generate_Chebyshev_expansion(10, f, 0, 6);
     std::cout << ce0.coef() << std::endl;
 
-    long N = 1000000;
+    long N = 10000;
     Eigen::VectorXd c(50);
     c.fill(1);
     ChebyshevExpansion ce(c);
@@ -269,26 +280,40 @@ int main(){
     std::cout << elap_us << " us/call (mult)\n";
 
     int Norder = 50, Npoints = 200;
-    Eigen::MatrixXd A = Eigen::MatrixXd::Zero(Npoints, Norder+1);
     Eigen::VectorXd a = Eigen::VectorXd::Random(Norder + 1);
-    Eigen::VectorXd xpts = (Eigen::VectorXd::LinSpaced(Npoints, 0, Npoints-1)*EIGEN_PI / Npoints).array().cos();
-    Eigen::VectorXd ypts;
-    std::cout << a << std::endl;
+    Eigen::VectorXd xpts = (Eigen::VectorXd::LinSpaced(Npoints, 0, Npoints-1)*EIGEN_PI / Npoints).array().cos(), ypts;
+    Eigen::VectorXi signchange;
+    ChebyshevExpansion cee(a);
+    Eigen::MatrixXd buf(Npoints, 3);
+    buf.col(0) = xpts;
 
     startTime = std::chrono::system_clock::now();
         for (int i = 0; i < N; ++i){
-            A.col(1) = xpts;
-            for (int n=1; n < Norder; ++n){
-                A.col(n + 1).array() = 2*xpts.array()*A.col(n).array() - A.col(n - 1).array();
-            }
-            ypts = A*a;
+            ypts = cee.y(xpts);
         }
         std::cout << "y[0]:" << ypts[0] << std::endl;
-        Eigen::VectorXi signchange = (ypts.segment(0, Npoints).cwiseSign().cast<int>().array()*ypts.segment(1, Npoints).cwiseSign().cast<int>().array()) - 1;
+        signchange = (1-(ypts.segment(0, Npoints).cwiseSign().cast<int>().array()*ypts.segment(1, Npoints).cwiseSign().cast<int>().array()))/2;
         std::cout << "this many roots:" << signchange.count() << std::endl;
     endTime = std::chrono::system_clock::now();
     elap_us = std::chrono::duration<double>(endTime - startTime).count()/N*1e6;
     std::cout << elap_us << " us/call (yvals)\n";
+    buf.col(1) = ypts;
+
+     startTime = std::chrono::system_clock::now();
+         ypts.resize(xpts.size());
+         for (int i = 0; i < N; ++i) {
+             for (int n = 0; n < Npoints; ++n) {
+                 ypts(n) = cee.y(xpts(n));
+             }
+         }
+         std::cout << "y[0]:" << ypts[0] << std::endl;
+         signchange = (1-(ypts.segment(0, Npoints-1).cwiseSign().cast<int>().array()*ypts.segment(1, Npoints-1).cwiseSign().cast<int>().array()))/2;
+         std::cout << "this many roots:" << signchange.count() << std::endl;
+     endTime = std::chrono::system_clock::now();
+     elap_us = std::chrono::duration<double>(endTime - startTime).count() / N*1e6;
+     std::cout << elap_us << " us/call (yvals, one-by-one)\n";
+     buf.col(2) = ypts;
+     std::cout << buf << std::endl;
 
     Eigen::MatrixXd B = Eigen::MatrixXd::Random(50, 50);
     N = 100;
