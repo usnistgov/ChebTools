@@ -89,6 +89,41 @@ public:
     //}
 };
 
+
+int p_i(int i, int N){
+    if (i == 0 || i == N)
+        return 2;
+    else
+        return 1;
+}
+
+ChebyshevExpansion generate_Chebyshev_expansion(int N, double (*func)(double), double xmin, double xmax)
+{
+    Eigen::VectorXd f(N + 1);
+
+    // See Boyd, 2013
+
+    // Step 1&2: Grid points functional values (function evaluated at the
+    // roots of the Chebyshev polynomial of order N)
+    for (int k = 0; k <= N; ++k){
+        double x_k = (xmax - xmin)/2.0*cos((EIGEN_PI*k)/N) + (xmax + xmin) / 2.0;
+        f(k) = (*func)(x_k);
+    }
+
+    // Step 3: Constrct the matrix of coefficients used to obtain a
+    Eigen::MatrixXd L = Eigen::MatrixXd::Zero(N + 1, N + 1); ///< Matrix of coefficients
+    for (int j = 0; j <= N; ++j){
+        for (int k = 0; k <= N; ++k){
+            L(j, k) = 2.0/(p_i(j, N)*p_i(k, N)*N)*cos((j*EIGEN_PI*k)/N);
+        }
+    }
+
+    // Step 4: Obtain coefficients from vector - matrix product
+    Eigen::VectorXd c = (L*f).rowwise().sum();
+    return ChebyshevExpansion(c);
+}
+
+
 double plus_by_inplace(ChebyshevExpansion &ce, const ChebyshevExpansion &ce2, int N) {
     for (std::size_t i = 0; i < N; ++i) {
         ce += ce2;
@@ -112,6 +147,9 @@ void mult_by(ChebyshevExpansion &ce, double val, int N) {
     //return ce2;
 }
 
+double f(double x){
+    return exp(-pow(x,1));
+}
 
 #if defined(PYBIND11)
 
@@ -144,6 +182,9 @@ PYBIND11_PLUGIN(ChebTools) {
 // Monolithic build
 int main(){
 
+    ChebyshevExpansion ce0 = generate_Chebyshev_expansion(10, *f, 0, 6);
+    std::cout << ce0.coef() << std::endl;
+
     long N = 1000000;
     Eigen::VectorXd c(50);
     c.fill(1);
@@ -167,12 +208,34 @@ int main(){
     elap_us = std::chrono::duration<double>(endTime - startTime).count()/N*1e6;
     std::cout << elap_us << " us/call (mult)\n";
 
-    Eigen::MatrixXd A = Eigen::MatrixXd::Random(50, 50);
+    int Norder = 50, Npoints = 200;
+    Eigen::MatrixXd A = Eigen::MatrixXd::Zero(Npoints, Norder+1);
+    Eigen::VectorXd a = Eigen::VectorXd::Random(Norder + 1);
+    Eigen::VectorXd xpts = (Eigen::VectorXd::LinSpaced(Npoints, 0, Npoints-1)*EIGEN_PI / Npoints).array().cos();
+    Eigen::VectorXd ypts;
+    std::cout << a << std::endl;
+
+    startTime = std::chrono::system_clock::now();
+        for (int i = 0; i < N; ++i){
+            A.col(1) = xpts;
+            for (int n=1; n < Norder; ++n){
+                A.col(n + 1).array() = 2*xpts.array()*A.col(n).array() - A.col(n - 1).array();
+            }
+            ypts = A*a;
+        }
+        std::cout << "y[0]:" << ypts[0] << std::endl;
+        Eigen::VectorXi signchange = (ypts.segment(0, Npoints).cwiseSign().cast<int>().array()*ypts.segment(1, Npoints).cwiseSign().cast<int>().array()) - 1;
+        std::cout << "this many roots:" << signchange.count() << std::endl;
+    endTime = std::chrono::system_clock::now();
+    elap_us = std::chrono::duration<double>(endTime - startTime).count()/N*1e6;
+    std::cout << elap_us << " us/call (yvals)\n";
+
+    Eigen::MatrixXd B = Eigen::MatrixXd::Random(50, 50);
     N = 100;
     startTime = std::chrono::system_clock::now();
         const bool computeEigenvectors = false; 
         for (int i = 0; i < N; ++i){
-            Eigen::EigenSolver<Eigen::MatrixXd> es(A, computeEigenvectors);
+            Eigen::EigenSolver<Eigen::MatrixXd> es(B, computeEigenvectors);
         }
     endTime = std::chrono::system_clock::now();
     elap_us = std::chrono::duration<double>(endTime - startTime).count()/N*1e6;
