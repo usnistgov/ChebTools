@@ -23,6 +23,9 @@
 
 typedef Eigen::VectorXd vectype;
 
+// From CoolProp
+template<class T> bool is_in_closed_range(T x1, T x2, T x){ return (x >= std::min(x1, x2) && x <= std::max(x1, x2)); };
+
 class ChebyshevExpansion {
 private:
      double m_xmin, m_xmax;
@@ -178,10 +181,44 @@ public:
             double y1 = ypts(i), y2 = ypts(i+1);
             bool signchange = (std::signbit(y1) != std::signbit(y2));
             if (signchange){
+                // Fit a quadratic given three points; i and i+1 bracket the root, so need one more constraint
+                // i0 is the leftmost of the three indices that will be used; when i == 0, use 
+                // indices i,i+1,i+2, otherwise i-1,i,i+1
+                size_t i0 = (i >= 1) ? i-1 : i; 
+                Eigen::Vector3d r;
+                r << ypts(i0), ypts(i0+1), ypts(i0+2);
+                Eigen::Matrix3d A;
+                for (std::size_t irow = 0; irow < 3; ++irow){
+                    double _x = xpts_n11(i0 + irow);
+                    A.row(irow) << _x*_x, _x, 1;
+                }
+                // abc holds the coefficients a,b,c for y = a*x^2 + b*x + c
+                Eigen::VectorXd abc = A.colPivHouseholderQr().solve(r);
+                double a = abc[0], b = abc[1], c = abc[2];
+
+                // Solve the quadratic and find the root you want
+                double x1 = (-b + sqrt(b*b - 4*a*c))/(2*a);
+                double x2 = (-b - sqrt(b*b - 4*a*c))/(2*a);
+                bool x1_in_range = is_in_closed_range(xpts_n11(i), xpts_n11(i+1), x1);
+                bool x2_in_range = is_in_closed_range(xpts_n11(i), xpts_n11(i+1), x2);
+
+                double xscaled;
+                if (x1_in_range && !x2_in_range) {
+                    xscaled = x1;
+                }
+                else if(x2_in_range && !x1_in_range) {
+                    xscaled = x2;
+                }
+                else {
+                    xscaled = 1e99;
+                }
+
                 // Rescale back into real-world values
-                double xscaled = (xpts_n11(i) + xpts_n11(i + 1)) / 2.0;
                 double x = ((m_xmax - m_xmin)*xscaled + (m_xmax + m_xmin)) / 2.0;
                 roots.push_back(x);
+            }
+            else {
+                // TODO: locate other roots based on derivative considerations
             }
         }
         return roots;
