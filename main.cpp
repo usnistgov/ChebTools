@@ -26,15 +26,22 @@ typedef Eigen::VectorXd vectype;
 class ChebyshevExpansion {
 private:
      vectype m_c;
+     vectype m_recurrence_buffer;
+     Eigen::MatrixXd m_recurrence_buffer_matrix;
+     void resize(){
+         m_recurrence_buffer.resize(m_c.size());
+     }
+
 public:
-    ChebyshevExpansion(const vectype &c) : m_c(c) { };
+    ChebyshevExpansion(const vectype &c) : m_c(c) { resize(); };
     ChebyshevExpansion(const std::vector<double> &c) { 
         m_c = Eigen::Map<const Eigen::VectorXd>(&(c[0]), c.size());
+        resize();
     };
 
 #if defined(CHEBTOOLS_CPP11)
     // Move constructor (C++11 only)
-    ChebyshevExpansion(const vectype &&c) : m_c(c) { };
+    ChebyshevExpansion(const vectype &&c) : m_c(c) { resize(); };
 #endif
     
 public:
@@ -83,6 +90,29 @@ public:
     const vectype &coef() const {
         return m_c; 
     };
+    double y(const double x) {
+        // Use the recurrence relationships to evaluate the Chebyshev expansion
+        std::size_t Norder = m_c.size()-1;
+        vectype &o = m_recurrence_buffer;
+        o(0) = 1;
+        o(1) = x;
+        for (int n = 1; n < Norder; ++n){
+            o(n+1) = 2*x*o(n) - o(n-1);
+        }
+        return m_c.dot(o);
+    }
+    vectype y(const vectype &x) {
+        // Use the recurrence relationships to evaluate the Chebyshev expansion
+        std::size_t Norder = m_c.size() - 1;
+        Eigen::MatrixXd &A = m_recurrence_buffer_matrix;
+        A.resize(x.size(), Norder+1);
+        A.col(0).fill(1);
+        A.col(1) = x;
+        for (int n = 1; n < Norder; ++n) {
+            A.col(n + 1).array() = 2 * x.array()*A.col(n).array() - A.col(n - 1).array();
+        }
+        return A*m_c;
+    }
 
     //std::string toString() const {
     //    return "[" + std::to_string(x) + ", " + std::to_string(y) + "]";
