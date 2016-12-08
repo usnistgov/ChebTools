@@ -204,7 +204,7 @@ ChebyshevExpansion generate_Chebyshev_expansion2(int N, const std::function<doub
         f(k) = func(x_k);
     }
 
-    // Step 3: Constrct the matrix of coefficients used to obtain a
+    // Step 3: Construct the matrix of coefficients used to obtain a
     Eigen::MatrixXd L = Eigen::MatrixXd::Zero(N + 1, N + 1); ///< Matrix of coefficients
     for (int j = 0; j <= N; ++j) {
         for (int k = 0; k <= N; ++k) {
