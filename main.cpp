@@ -157,14 +157,44 @@ double f(double x){
 #include <pybind11/stl.h>
 #include <pybind11/operators.h>
 #include <pybind11/eigen.h>
+#include <pybind11/functional.h>
+
 namespace py = pybind11;
+
+ChebyshevExpansion generate_Chebyshev_expansion2(int N, const std::function<double(double)> &func, double xmin, double xmax)
+{
+    Eigen::VectorXd f(N + 1);
+
+    // See Boyd, 2013
+
+    // Step 1&2: Grid points functional values (function evaluated at the
+    // roots of the Chebyshev polynomial of order N)
+    for (int k = 0; k <= N; ++k) {
+        double x_k = (xmax - xmin) / 2.0*cos((EIGEN_PI*k) / N) + (xmax + xmin) / 2.0;
+        f(k) = func(x_k);
+    }
+
+    // Step 3: Constrct the matrix of coefficients used to obtain a
+    Eigen::MatrixXd L = Eigen::MatrixXd::Zero(N + 1, N + 1); ///< Matrix of coefficients
+    for (int j = 0; j <= N; ++j) {
+        for (int k = 0; k <= N; ++k) {
+            L(j, k) = 2.0 / (p_i(j, N)*p_i(k, N)*N)*cos((j*EIGEN_PI*k) / N);
+        }
+    }
+
+    // Step 4: Obtain coefficients from vector - matrix product
+    Eigen::VectorXd c = (L*f).rowwise().sum();
+    return ChebyshevExpansion(c);
+}
 
 PYBIND11_PLUGIN(ChebTools) {
     py::module m("ChebTools", "C++ tools for working with Chebyshev expansions");
 
     m.def("mult_by", &mult_by);
     m.def("mult_by_inplace", &mult_by_inplace);
+    m.def("generate_Chebyshev_expansion2", &generate_Chebyshev_expansion2);
 
+    
     py::class_<ChebyshevExpansion>(m, "ChebyshevExpansion")
         .def(py::init<const std::vector<double> &>())
         .def(py::self + py::self)
