@@ -105,19 +105,22 @@ public:
         return m_c.dot(o);
     }
     vectype y(const vectype &x) {
-        
         // Scale x linearly into the domain [-1, 1]
         vectype xscaled = (2*x.array() - (m_xmax + m_xmin)) / (m_xmax - m_xmin);
+        // Then call the function that takes the scaled x values
+        return y_xscaled(xscaled);        
+    }
+    vectype y_xscaled(const vectype &xscaled) {
 
         // Use the recurrence relationships to evaluate the Chebyshev expansion
         std::size_t Norder = m_c.size() - 1;
         Eigen::MatrixXd &A = m_recurrence_buffer_matrix;
-        
-        A.resize(x.size(), Norder+1);
+
+        A.resize(xscaled.size(), Norder + 1);
         A.col(0).fill(1);
         A.col(1) = xscaled;
         for (int n = 1; n < Norder; ++n) {
-            A.col(n + 1).array() = 2*xscaled.array()*A.col(n).array() - A.col(n - 1).array();
+            A.col(n + 1).array() = 2 * xscaled.array()*A.col(n).array() - A.col(n - 1).array();
         }
         return A*m_c;
     }
@@ -143,6 +146,46 @@ public:
         }
         return A;
     }
+    std::vector<double> real_roots(bool only_in_domain = true) {
+        std::vector<double> roots;
+
+        // Roots of the Chebyshev expansion are eigenvalues of the companion matrix
+        // obtained from the companion_matrix function
+        Eigen::VectorXcd eigvals = companion_matrix().eigenvalues();
+
+        for (int i = 0; i < eigvals.size(); ++i) {
+            if (std::abs(eigvals(i).imag()) < 10*DBL_EPSILON) {
+                // Rescale back into real-world values
+                double x = ((m_xmax - m_xmin)*eigvals(i).real() + (m_xmax + m_xmin)) / 2.0;
+                // Keep it if in the domain or if you want all real roots
+                if (!only_in_domain || (x <= m_xmax && x >= m_xmin)) {
+                    roots.push_back(x);
+                }
+            }
+        }
+        return roots;
+    }
+    std::vector<double> real_roots_approx(long Npoints)
+    {
+        std::vector<double> roots;
+        // Vector of values in the range [-1,1] as roots of a high-order Chebyshev 
+        Eigen::VectorXd xpts_n11 = (Eigen::VectorXd::LinSpaced(Npoints+1, 0, Npoints)*EIGEN_PI / Npoints).array().cos();
+        // Scale values into real-world values
+        Eigen::VectorXd ypts = y_xscaled(xpts_n11);
+        // Eigen::MatrixXd buf(Npoints+1, 2); buf.col(0) = xpts; buf.col(1) = ypts; std::cout << buf << std::endl;
+        for (size_t i = 0; i < Npoints - 1; ++i) {
+            // The change of sign guarantees at least one root between indices i and i+1
+            double y1 = ypts(i), y2 = ypts(i+1);
+            bool signchange = (std::signbit(y1) != std::signbit(y2));
+            if (signchange){
+                // Rescale back into real-world values
+                double xscaled = (xpts_n11(i) + xpts_n11(i + 1)) / 2.0;
+                double x = ((m_xmax - m_xmin)*xscaled + (m_xmax + m_xmin)) / 2.0;
+                roots.push_back(x);
+            }
+        }
+        return roots;
+    }
 
     //std::string toString() const {
     //    return "[" + std::to_string(x) + ", " + std::to_string(y) + "]";
@@ -157,12 +200,13 @@ int p_i(int i, int N){
         return 1;
 }
 
+/**
+ * See Boyd, SIAM review, 2013, http://dx.doi.org/10.1137/110838297, Appendix A.
+ */
 template<class double_function>
 ChebyshevExpansion generate_Chebyshev_expansion(int N, double_function func, double xmin, double xmax)
 {
     Eigen::VectorXd f(N + 1);
-
-    // See Boyd, 2013
 
     // Step 1&2: Grid points functional values (function evaluated at the
     // roots of the Chebyshev polynomial of order N)
@@ -240,6 +284,8 @@ PYBIND11_PLUGIN(ChebTools) {
         .def("companion_matrix", &ChebyshevExpansion::companion_matrix)
         .def("y", (vectype (ChebyshevExpansion::*)(const vectype &)) &ChebyshevExpansion::y)
         .def("y", (double (ChebyshevExpansion::*)(const double)) &ChebyshevExpansion::y)
+        .def("real_roots", &ChebyshevExpansion::real_roots)
+        .def("real_roots_approx", &ChebyshevExpansion::real_roots_approx)
         ;
     return m.ptr();
 }
