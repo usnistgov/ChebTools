@@ -94,6 +94,10 @@ public:
     const vectype &coef() const {
         return m_c; 
     };
+    /**
+    * @brief Do a single input/single output evaluation of the Chebyshev expansion with the inputs scaled in [xmin, xmax]
+    * @param x A value scaled in the domain [xmin,xmax]
+    */
     double y(const double x) {
         // Use the recurrence relationships to evaluate the Chebyshev expansion
         std::size_t Norder = m_c.size()-1;
@@ -107,28 +111,47 @@ public:
         }
         return m_c.dot(o);
     }
+    /**
+     * @brief Do a vectorized evaluation of the Chebyshev expansion with the inputs scaled in [xmin, xmax]
+     * @param x A vectype of values in the domain [xmin,xmax]
+     */
     vectype y(const vectype &x) {
         // Scale x linearly into the domain [-1, 1]
         vectype xscaled = (2*x.array() - (m_xmax + m_xmin)) / (m_xmax - m_xmin);
         // Then call the function that takes the scaled x values
-        return y_xscaled(xscaled);        
+        return y_xscaled(xscaled);
     }
+    /** 
+     * @brief Do a vectorized evaluation of the Chebyshev expansion with the input scaled in the domain [-1,1]
+     * @param xscaled A vectype of values scaled to the domain [-1,1] (the domain of the Chebyshev basis functions)
+     * @param y A vectype of values evaluated from the expansion
+     *
+     * By using vectorizable types like Eigen::MatrixXd, without 
+     * any additional work, "magical" vectorization is happening
+     * under the hood, giving a significant speed improvement. From naive
+     * testing, the increase was a factor of about 10x.
+     */
     vectype y_xscaled(const vectype &xscaled) {
+        const std::size_t Norder = m_c.size() - 1;
+        // A reference for concision
+        Eigen::MatrixXd &A = m_recurrence_buffer_matrix;
+        A.resize(xscaled.size(), Norder + 1);
 
         // Use the recurrence relationships to evaluate the Chebyshev expansion
-        std::size_t Norder = m_c.size() - 1;
-        Eigen::MatrixXd &A = m_recurrence_buffer_matrix;
-
-        A.resize(xscaled.size(), Norder + 1);
+        // In this case we do column-wise evaluations of the recurrence rule
         A.col(0).fill(1);
         A.col(1) = xscaled;
         for (int n = 1; n < Norder; ++n) {
-            A.col(n + 1).array() = 2 * xscaled.array()*A.col(n).array() - A.col(n - 1).array();
+            A.col(n + 1).array() = 2*xscaled.array()*A.col(n).array() - A.col(n - 1).array();
         }
+        // In this form, the matrix-vector product will yield the y values
         return A*m_c;
     }
 
     /** 
+     * @brief Construct and return the companion matrix of the Chebyshev expansion
+     * @returns A The companion matrix of the expansion
+     *
      * See Boyd, SIAM review, 2013, http://dx.doi.org/10.1137/110838297, Appendix A.2
      */
     Eigen::MatrixXd companion_matrix() {
@@ -149,6 +172,20 @@ public:
         }
         return A;
     }
+    /** 
+     * @brief Return the real roots of the Chebyshev expansion
+     * @param only_in_domain If true, only real roots that are within the domain
+     *                       of the expansion will be returned, otherwise all real roots
+     * 
+     * The roots are obtained based on the fact that the eigenvalues of the 
+     * companion matrix are the roots of the Chebyshev expansion.  Thus 
+     * this function is relatively slow, because an eigenvalue solve is required,
+     * which takes O(n^3) FLOPs.  But it is numerically rather reliable.
+     *
+     * As the order of the expansion increases, the eigenvalue solver in Eigen becomes
+     * progressively less and less able to obtain the roots properly. The eigenvalue
+     * solver in numpy tends to be more reliable
+     */
     std::vector<double> real_roots(bool only_in_domain = true) {
         std::vector<double> roots;
 
@@ -181,6 +218,8 @@ public:
             double y1 = ypts(i), y2 = ypts(i+1);
             bool signchange = (std::signbit(y1) != std::signbit(y2));
             if (signchange){
+                double xscaled = xpts_n11(i);
+
                 // Fit a quadratic given three points; i and i+1 bracket the root, so need one more constraint
                 // i0 is the leftmost of the three indices that will be used; when i == 0, use 
                 // indices i,i+1,i+2, otherwise i-1,i,i+1
@@ -202,7 +241,7 @@ public:
                 bool x1_in_range = is_in_closed_range(xpts_n11(i), xpts_n11(i+1), x1);
                 bool x2_in_range = is_in_closed_range(xpts_n11(i), xpts_n11(i+1), x2);
 
-                double xscaled;
+                // Double check that only one root is within the range
                 if (x1_in_range && !x2_in_range) {
                     xscaled = x1;
                 }
@@ -330,11 +369,6 @@ PYBIND11_PLUGIN(ChebTools) {
 
 // Monolithic build
 int main(){
-
-    auto ff = [](int N, std::function<double(double)> &func, double xmin, double xmax) {
-        return generate_Chebyshev_expansion(N, *func.target<double(*)(double)>(), xmin, xmax);
-    };
-    auto cerrrrr0 = ff(10, f, 0, 6);
 
     ChebyshevExpansion ce0 = generate_Chebyshev_expansion(10, f, 0, 6);
     std::cout << ce0.coef() << std::endl;
