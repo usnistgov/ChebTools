@@ -17,7 +17,7 @@
 #include <vector>
 #include <chrono>
 #include <iostream>
-#include <valarray>
+#include <map>
 
 #include "Eigen/Dense"
 
@@ -98,7 +98,7 @@ public:
     * @brief Do a single input/single output evaluation of the Chebyshev expansion with the inputs scaled in [xmin, xmax]
     * @param x A value scaled in the domain [xmin,xmax]
     */
-    double y(const double x) {
+    double y_recurrence(const double x) {
         // Use the recurrence relationships to evaluate the Chebyshev expansion
         std::size_t Norder = m_c.size()-1;
         // Scale x linearly into the domain [-1, 1]
@@ -111,15 +111,29 @@ public:
         }
         return m_c.dot(o);
     }
+    double y_Clenshaw(const double x) {
+        std::size_t Norder = m_c.size() - 1;
+        // Scale x linearly into the domain [-1, 1]
+        double xscaled = (2*x - (m_xmax + m_xmin)) / (m_xmax - m_xmin);
+        double u_k = 0, u_kp1 = m_c[Norder], u_kp2 = 0;
+        for (int k = Norder-1; k >= 1; --k) {
+            u_k = 2.0*xscaled*u_kp1 - u_kp2 + m_c(k);
+            // Update summation values for all but the last step
+            if (k > 1){
+                u_kp2 = u_kp1; u_kp1 = u_k;
+            }
+        }
+        return xscaled*u_k-u_kp1+m_c(0);
+    }
     /**
      * @brief Do a vectorized evaluation of the Chebyshev expansion with the inputs scaled in [xmin, xmax]
      * @param x A vectype of values in the domain [xmin,xmax]
      */
-    vectype y(const vectype &x) {
+    vectype y(const vectype &x) const{
         // Scale x linearly into the domain [-1, 1]
-        vectype xscaled = (2*x.array() - (m_xmax + m_xmin)) / (m_xmax - m_xmin);
+        const vectype xscaled = (2*x.array() - (m_xmax + m_xmin)) / (m_xmax - m_xmin);
         // Then call the function that takes the scaled x values
-        return y_xscaled(xscaled);
+        return y_recurrence_xscaled(xscaled);
     }
     /** 
      * @brief Do a vectorized evaluation of the Chebyshev expansion with the input scaled in the domain [-1,1]
@@ -131,11 +145,10 @@ public:
      * under the hood, giving a significant speed improvement. From naive
      * testing, the increase was a factor of about 10x.
      */
-    vectype y_xscaled(const vectype &xscaled) {
+    vectype y_recurrence_xscaled(const vectype &xscaled) const{
         const std::size_t Norder = m_c.size() - 1;
-        // A reference for concision
-        Eigen::MatrixXd &A = m_recurrence_buffer_matrix;
-        A.resize(xscaled.size(), Norder + 1);
+        
+        Eigen::MatrixXd A(xscaled.size(), Norder + 1);
 
         // Use the recurrence relationships to evaluate the Chebyshev expansion
         // In this case we do column-wise evaluations of the recurrence rule
@@ -147,6 +160,19 @@ public:
         // In this form, the matrix-vector product will yield the y values
         return A*m_c;
     }
+    vectype y_Clenshaw_xscaled(const vectype &xscaled) const{
+        const std::size_t Norder = m_c.size() - 1;
+        vectype u_k, u_kp1(xscaled.size()), u_kp2(xscaled.size());
+        u_kp1.fill(m_c[Norder]); u_kp2.fill(0);
+        for (int k = Norder - 1; k >= 1; --k) {
+            u_k = 2*xscaled.array()*u_kp1.array() - u_kp2.array() + m_c(k);
+            // Update summation values for all but the last step
+            if (k > 1){
+                u_kp2 = u_kp1; u_kp1 = u_k;
+            }
+        }
+        return xscaled.array()*u_k.array() - u_kp1.array() + m_c(0);
+    }
 
     /** 
      * @brief Construct and return the companion matrix of the Chebyshev expansion
@@ -154,7 +180,7 @@ public:
      *
      * See Boyd, SIAM review, 2013, http://dx.doi.org/10.1137/110838297, Appendix A.2
      */
-    Eigen::MatrixXd companion_matrix() {
+    Eigen::MatrixXd companion_matrix() const {
         std::size_t N = m_c.size()-1;
         Eigen::MatrixXd A = Eigen::MatrixXd::Zero(N, N);
         // First row
@@ -184,7 +210,7 @@ public:
      *
      * As the order of the expansion increases, the eigenvalue solver in Eigen becomes
      * progressively less and less able to obtain the roots properly. The eigenvalue
-     * solver in numpy tends to be more reliable
+     * solver in numpy tends to be more reliable.
      */
     std::vector<double> real_roots(bool only_in_domain = true) {
         std::vector<double> roots;
@@ -211,7 +237,7 @@ public:
         // Vector of values in the range [-1,1] as roots of a high-order Chebyshev 
         Eigen::VectorXd xpts_n11 = (Eigen::VectorXd::LinSpaced(Npoints+1, 0, Npoints)*EIGEN_PI / Npoints).array().cos();
         // Scale values into real-world values
-        Eigen::VectorXd ypts = y_xscaled(xpts_n11);
+        Eigen::VectorXd ypts = y_recurrence_xscaled(xpts_n11);
         // Eigen::MatrixXd buf(Npoints+1, 2); buf.col(0) = xpts; buf.col(1) = ypts; std::cout << buf << std::endl;
         for (size_t i = 0; i < Npoints - 1; ++i) {
             // The change of sign guarantees at least one root between indices i and i+1
@@ -331,6 +357,67 @@ double f(double x){
     return exp(-pow(x,1));
 }
 
+std::map<std::string,double> evaluation_speed_test(ChebyshevExpansion &cee, const vectype &xpts, long N) {
+    std::map<std::string, double> output;
+    vectype ypts;
+
+    auto startTime = std::chrono::system_clock::now();
+    for (int i = 0; i < N; ++i) {
+        ypts = cee.y_recurrence_xscaled(xpts);
+    }
+    auto endTime = std::chrono::system_clock::now();
+    auto elap_us = std::chrono::duration<double>(endTime - startTime).count() / N*1e6;
+    output["recurrence[vector]"] = elap_us;
+
+    startTime = std::chrono::system_clock::now();
+    for (int i = 0; i < N; ++i) {
+        ypts = cee.y_Clenshaw_xscaled(xpts);
+    }
+    endTime = std::chrono::system_clock::now();
+    elap_us = std::chrono::duration<double>(endTime - startTime).count()/N*1e6;
+    output["Clenshaw[vector]"] = elap_us;
+
+    startTime = std::chrono::system_clock::now();
+    ypts.resize(xpts.size());
+    for (int i = 0; i < N; ++i) {
+        for (int n = static_cast<int>(xpts.size())-1; n >= 0; --n) {
+            ypts(n) = cee.y_recurrence(xpts(n));
+        }
+    }
+    endTime = std::chrono::system_clock::now();
+    elap_us = std::chrono::duration<double>(endTime - startTime).count()/N*1e6;
+    output["recurrence[1x1]"] = elap_us;
+
+    startTime = std::chrono::system_clock::now();
+    ypts.resize(xpts.size());
+    for (int i = 0; i < N; ++i) {
+        for (int n = static_cast<int>(xpts.size())-1; n >= 0; --n) {
+            ypts(n) = cee.y_Clenshaw(xpts(n));
+        }
+    }
+    endTime = std::chrono::system_clock::now();
+    elap_us = std::chrono::duration<double>(endTime - startTime).count()/N*1e6;
+    output["Clenshaw[1x1]"] = elap_us;
+    return output;
+}
+
+Eigen::MatrixXd eigs_speed_test(std::vector<std::size_t> &Nvec, std::size_t Nrepeats) {
+    Eigen::MatrixXd results(Nvec.size(), 3);
+    for (std::size_t i = 0; i < Nvec.size(); ++i)
+    {
+        Eigen::MatrixXd A = Eigen::MatrixXd::Random(Nvec[i], Nvec[i]);
+        double maxeig;
+        auto startTime = std::chrono::system_clock::now();
+            for (int i = 0; i < Nrepeats; ++i) {
+                maxeig = A.eigenvalues().real().minCoeff();
+            }
+        auto endTime = std::chrono::system_clock::now();
+        auto elap_us = std::chrono::duration<double>(endTime - startTime).count()/Nrepeats*1e6;
+        results.row(i) << Nvec[i], elap_us, maxeig;
+    }
+    return results;
+}
+
 #if defined(PYBIND11)
 
 #include <pybind11/pybind11.h>
@@ -347,6 +434,8 @@ PYBIND11_PLUGIN(ChebTools) {
     m.def("mult_by", &mult_by);
     m.def("mult_by_inplace", &mult_by_inplace);
     m.def("generate_Chebyshev_expansion", &generate_Chebyshev_expansion<std::function<double(double)> >);
+    m.def("evaluation_speed_test", &evaluation_speed_test);
+    m.def("eigs_speed_test", &eigs_speed_test);
     
     py::class_<ChebyshevExpansion>(m, "ChebyshevExpansion")
         .def(py::init<const std::vector<double> &>())
@@ -370,9 +459,6 @@ PYBIND11_PLUGIN(ChebTools) {
 // Monolithic build
 int main(){
 
-    ChebyshevExpansion ce0 = generate_Chebyshev_expansion(10, f, 0, 6);
-    std::cout << ce0.coef() << std::endl;
-
     long N = 10000;
     Eigen::VectorXd c(50);
     c.fill(1);
@@ -395,42 +481,6 @@ int main(){
     endTime = std::chrono::system_clock::now();
     elap_us = std::chrono::duration<double>(endTime - startTime).count()/N*1e6;
     std::cout << elap_us << " us/call (mult)\n";
-
-    int Norder = 50, Npoints = 200;
-    Eigen::VectorXd a = Eigen::VectorXd::Random(Norder + 1);
-    Eigen::VectorXd xpts = (Eigen::VectorXd::LinSpaced(Npoints, 0, Npoints-1)*EIGEN_PI / Npoints).array().cos(), ypts;
-    Eigen::VectorXi signchange;
-    ChebyshevExpansion cee(a);
-    Eigen::MatrixXd buf(Npoints, 3);
-    buf.col(0) = xpts;
-
-    startTime = std::chrono::system_clock::now();
-        for (int i = 0; i < N; ++i){
-            ypts = cee.y(xpts);
-        }
-        std::cout << "y[0]:" << ypts[0] << std::endl;
-        signchange = (1-(ypts.segment(0, Npoints).cwiseSign().cast<int>().array()*ypts.segment(1, Npoints).cwiseSign().cast<int>().array()))/2;
-        std::cout << "this many roots:" << signchange.count() << std::endl;
-    endTime = std::chrono::system_clock::now();
-    elap_us = std::chrono::duration<double>(endTime - startTime).count()/N*1e6;
-    std::cout << elap_us << " us/call (yvals)\n";
-    buf.col(1) = ypts;
-
-     startTime = std::chrono::system_clock::now();
-         ypts.resize(xpts.size());
-         for (int i = 0; i < N; ++i) {
-             for (int n = 0; n < Npoints; ++n) {
-                 ypts(n) = cee.y(xpts(n));
-             }
-         }
-         std::cout << "y[0]:" << ypts[0] << std::endl;
-         signchange = (1-(ypts.segment(0, Npoints-1).cwiseSign().cast<int>().array()*ypts.segment(1, Npoints-1).cwiseSign().cast<int>().array()))/2;
-         std::cout << "this many roots:" << signchange.count() << std::endl;
-     endTime = std::chrono::system_clock::now();
-     elap_us = std::chrono::duration<double>(endTime - startTime).count() / N*1e6;
-     std::cout << elap_us << " us/call (yvals, one-by-one)\n";
-     buf.col(2) = ypts;
-     std::cout << buf << std::endl;
 
     Eigen::MatrixXd B = Eigen::MatrixXd::Random(50, 50);
     N = 100;
