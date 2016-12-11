@@ -18,6 +18,9 @@
 #include <chrono>
 #include <iostream>
 #include <map>
+#include <limits>
+
+#define DBL_EPSILON std::numeric_limits<double>::epsilon()
 
 #include "Eigen/Dense"
 
@@ -28,13 +31,14 @@ template<class T> bool is_in_closed_range(T x1, T x2, T x){ return (x >= std::mi
 
 class ChebyshevExpansion {
 private:
-     double m_xmin, m_xmax;
-     vectype m_c;
-     vectype m_recurrence_buffer;
-     Eigen::MatrixXd m_recurrence_buffer_matrix;
-     void resize(){
-         m_recurrence_buffer.resize(m_c.size());
-     }
+    vectype m_c;
+    double m_xmin, m_xmax;
+
+    vectype m_recurrence_buffer;
+    Eigen::MatrixXd m_recurrence_buffer_matrix;
+    void resize(){
+        m_recurrence_buffer.resize(m_c.size());
+    }
 
 public:
     ChebyshevExpansion(const vectype &c, double xmin = -1, double xmax = 1) : m_c(c), m_xmin(xmin), m_xmax(xmax) { resize(); };
@@ -51,7 +55,7 @@ public:
 public:
     ChebyshevExpansion operator+(const ChebyshevExpansion &ce2) const {
         // TODO: when m_c and ce2.coef() not the same size, resize shorter one and pad the longer one
-        if (m_c.size() != ce2.coef().size()) { throw std::exception("lengths not the same"); }
+        if (m_c.size() != ce2.coef().size()) { throw std::range_error("lengths not the same"); }
 #if defined(CHEBTOOLS_CPP11) 
         return ChebyshevExpansion(std::move(ce2.coef()+m_c));
 #else
