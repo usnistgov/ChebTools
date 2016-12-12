@@ -12,6 +12,8 @@ if (CHEBTOOLS_PYBIND11)
     add_subdirectory("${CMAKE_SOURCE_DIR}/externals/pybind11")
     add_definitions(-DPYBIND11)
     pybind11_add_module(ChebTools "${CMAKE_SOURCE_DIR}/main.cpp")
+    #add_definitions(-DEIGEN_USE_LAPACKE)
+    #target_link_libraries (ChebTools PUBLIC "-framework Accelerate")
 elseif (CHEBTOOLS_MONO)
     # Build monolithic exe
     add_executable(ChebTools "${CMAKE_SOURCE_DIR}/main.cpp")
