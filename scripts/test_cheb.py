@@ -32,7 +32,7 @@ for Npower in [5,10,20,40,80,160,320]:
     print((toc-tic)/N*1e6,'us/call to evaluate Chebyshev of order:', Npower)
 
 tic = time.clock()
-ce = CT.generate_Chebyshev_expansion(80, f, xmin, xmax)
+ce = CT.generate_Chebyshev_expansion(50, f, xmin, xmax)
 # print(ce.coef())
 toc = time.clock()
 print((toc-tic)*1e6,'us to generate Chebyshev')
@@ -57,7 +57,8 @@ print((toc-tic)/N*1e6,'us/call (big eigenvalue solve in python)')
 N = 100
 tic = time.clock()
 for i in range(N):
-    real_rts = ce.real_roots_subdivided_intervals(6, 8, True)
+    intervals = ce.subdivide(20, 5)
+    real_rts = ce.real_roots_intervals(intervals, True)
 print(sorted(real_rts))
 toc = time.clock()
 print((toc-tic)/N*1e6,'us/call (subdivided)')

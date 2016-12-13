@@ -237,10 +237,10 @@ public:
         }
         return roots;
     }
-    std::vector<double> real_roots_subdivided_intervals(std::size_t Nintervals, std::size_t Norder, bool only_in_domain = true) {
-        std::vector<double> roots; 
-        double deltax = (m_xmax-m_xmin)/(Nintervals-1);
-        
+    std::vector<ChebyshevExpansion> subdivide(std::size_t Nintervals, std::size_t Norder) const {
+        std::vector<ChebyshevExpansion> segments;
+        double deltax = (m_xmax - m_xmin) / (Nintervals - 1);
+
         /// A functor that will allow us to call the y_Clenshaw method on this class.
         /// Could also have been done withe some function wrapping trickery from C++11, but this is a 
         /// cleaner (if more verbose) interface
@@ -254,9 +254,15 @@ public:
         };
         ClenshawWrapper wrap(*this);
 
-        for (std::size_t i = 0; i < Nintervals-1; ++i){
-            ChebyshevExpansion ce(factory(Norder, wrap, m_xmin + i*deltax, m_xmin + (i+1)*deltax));
-            auto introots = ce.real_roots(only_in_domain);
+        for (std::size_t i = 0; i < Nintervals - 1; ++i) {
+            segments.push_back(factory(Norder, wrap, m_xmin + i*deltax, m_xmin + (i + 1)*deltax));
+        }
+        return segments;
+    }
+    std::vector<double> real_roots_intervals(std::vector<ChebyshevExpansion> &segments, bool only_in_domain = true) const {
+        std::vector<double> roots; 
+        for (auto &seg : segments){
+            auto introots = seg.real_roots(only_in_domain);
             for (auto &root : introots){
                 roots.push_back(root);
             }
@@ -494,7 +500,8 @@ PYBIND11_PLUGIN(ChebTools) {
         .def("real_roots", &ChebyshevExpansion::real_roots)
         .def("real_roots_time", &ChebyshevExpansion::real_roots_time)
         .def("real_roots_approx", &ChebyshevExpansion::real_roots_approx)
-        .def("real_roots_subdivided_intervals", &ChebyshevExpansion::real_roots_subdivided_intervals)
+        .def("subdivide", &ChebyshevExpansion::subdivide)
+        .def("real_roots_intervals", &ChebyshevExpansion::real_roots_intervals)
         ;
     return m.ptr();
 }
