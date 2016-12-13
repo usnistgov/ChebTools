@@ -43,7 +43,7 @@ for i in range(N):
     real_rts = ce.real_roots(True)
 print(sorted(real_rts))
 toc = time.clock()
-print((toc-tic)/N*1e6,'us/call')
+print((toc-tic)/N*1e6,'us/call (big eigenvalue solve in C++)')
 
 N = 100
 tic = time.clock()
@@ -52,7 +52,15 @@ for i in range(N):
     real_rts = [rt for rt in roots if np.isreal(rt) and rt < xmax and rt >= xmin]
 print(sorted(real_rts))
 toc = time.clock()
-print((toc-tic)/N*1e6,'us/call')
+print((toc-tic)/N*1e6,'us/call (big eigenvalue solve in python)')
+
+N = 100
+tic = time.clock()
+for i in range(N):
+    real_rts = ce.real_roots_subdivided_intervals(6, 8, True)
+print(sorted(real_rts))
+toc = time.clock()
+print((toc-tic)/N*1e6,'us/call (subdivided)')
 
 N = 300000
 tic = time.clock()
