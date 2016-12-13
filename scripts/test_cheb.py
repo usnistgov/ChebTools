@@ -32,7 +32,7 @@ for Npower in [5,10,20,40,80,160,320]:
     print((toc-tic)/N*1e6,'us/call to evaluate Chebyshev of order:', Npower)
 
 tic = time.clock()
-ce = CT.generate_Chebyshev_expansion(50, f, xmin, xmax)
+ce = CT.generate_Chebyshev_expansion(40, f, xmin, xmax)
 # print(ce.coef())
 toc = time.clock()
 print((toc-tic)*1e6,'us to generate Chebyshev')
@@ -49,7 +49,7 @@ N = 100
 tic = time.clock()
 for i in range(N):
     roots = ((xmax-xmin)*np.linalg.eigvals(ce.companion_matrix()) + (xmax + xmin))/2.0
-    real_rts = [rt for rt in roots if np.isreal(rt) and rt < xmax and rt >= xmin]
+    real_rts = [float(np.real(rt)) for rt in roots if np.isreal(rt) and rt < xmax and rt >= xmin]
 print(sorted(real_rts))
 toc = time.clock()
 print((toc-tic)/N*1e6,'us/call (big eigenvalue solve in python)')
@@ -81,7 +81,7 @@ for N in range(10, 50):
     try:
         ce = CT.generate_Chebyshev_expansion(N, f, xmin, xmax)
         roots = ((xmax-xmin)*np.linalg.eigvals(ce.companion_matrix()) + (xmax + xmin))/2.0
-        real_rts = [rt for rt in roots if np.isreal(rt) and rt < xmax and rt >= xmin]
+        real_rts = [float(np.real(rt)) for rt in roots if np.isreal(rt) and rt < xmax and rt >= xmin]
         toc = time.clock()
         data.append((N, toc-tic, len(real_rts)))
 

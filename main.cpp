@@ -241,21 +241,13 @@ public:
         std::vector<ChebyshevExpansion> segments;
         double deltax = (m_xmax - m_xmin) / (Nintervals - 1);
 
-        /// A functor that will allow us to call the y_Clenshaw method on this class.
-        /// Could also have been done withe some function wrapping trickery from C++11, but this is a 
-        /// cleaner (if more verbose) interface
-        class ClenshawWrapper {
-            const ChebyshevExpansion &ce;
-        public:
-            ClenshawWrapper(const ChebyshevExpansion &ce) : ce(ce) {};
-            double operator()(double x) {
-                return ce.y_Clenshaw(x);
-            }
-        };
-        ClenshawWrapper wrap(*this);
+        // Vector of values in the range [-1,1] as roots of a high-order Chebyshev 
+        Eigen::VectorXd xpts_n11 = (Eigen::VectorXd::LinSpaced(Norder+1, 0, Norder)*EIGEN_PI / Norder).array().cos();
 
         for (std::size_t i = 0; i < Nintervals - 1; ++i) {
-            segments.push_back(factory(Norder, wrap, m_xmin + i*deltax, m_xmin + (i + 1)*deltax));
+            double xmin = m_xmin + i*deltax, xmax = m_xmin + (i + 1)*deltax;
+            Eigen::VectorXd xrealworld = ((xmax - xmin)*xpts_n11.array() + (xmax + xmin))/2.0;
+            segments.push_back(factoryf(Norder, y(xrealworld), xmin, xmax));
         }
         return segments;
     }
@@ -341,6 +333,24 @@ public:
     //    return "[" + std::to_string(x) + ", " + std::to_string(y) + "]";
     //}
 
+    static ChebyshevExpansion factoryf(const int N, const Eigen::VectorXd &f, const double xmin, const double xmax) {
+
+        // Step 3: Construct the matrix of coefficients used to obtain a
+        Eigen::MatrixXd L(N + 1, N + 1); ///< Matrix of coefficients
+        for (int j = 0; j <= N; ++j) {
+            for (int k = j; k <= N; ++k) {
+                double p_j = (j == 0 || j == N) ? 2 : 1;
+                double p_k = (k == 0 || k == N) ? 2 : 1;
+                L(j, k) = 2.0 / (p_j*p_k*N)*cos((j*EIGEN_PI*k) / N);
+                // Exploit symmetry to fill in the symmetric elements in the matrix
+                L(k, j) = L(j, k);
+            }
+        }
+
+        // Step 4: Obtain coefficients from vector - matrix product
+        return ChebyshevExpansion((L*f).rowwise().sum(), xmin, xmax);
+    }
+
     /**
      * @brief Given a callable function, construct the N-th order Chebyshev expansion in [xmin, xmax]
      * @param N The order of the expansion; there will be N+1 coefficients
@@ -369,21 +379,7 @@ public:
             f(k) = func(x_nk);
             f(N-k) = func(x_pk);
         }
-
-        // Step 3: Construct the matrix of coefficients used to obtain a
-        Eigen::MatrixXd L(N + 1, N + 1); ///< Matrix of coefficients
-        for (int j = 0; j <= N; ++j) {
-            for (int k = j; k <= N; ++k) {
-                double p_j = (j == 0 || j == N) ? 2 : 1;
-                double p_k = (k == 0 || k == N) ? 2 : 1;
-                L(j, k) = 2.0/(p_j*p_k*N)*cos((j*EIGEN_PI*k) / N);
-                // Exploit symmetry to fill in the symmetric elements in the matrix
-                L(k,j) = L(j,k);
-            }
-        }
-
-        // Step 4: Obtain coefficients from vector - matrix product
-        return ChebyshevExpansion((L*f).rowwise().sum(), xmin, xmax);
+        return factoryf(N, f, xmin, xmax);
     }
 };
 
