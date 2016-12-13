@@ -356,19 +356,29 @@ public:
         Eigen::VectorXd f(N + 1);
 
         // Step 1&2: Grid points functional values (function evaluated at the
-        // roots of the Chebyshev polynomial of order N)
-        for (int k = 0; k <= N; ++k) {
-            double x_k = (xmax - xmin) / 2.0*cos((EIGEN_PI*k) / N) + (xmax + xmin) / 2.0;
-            f(k) = func(x_k);
+        // roots of the Chebyshev polynomial of order N).  The roots are symmetric in the 
+        // domain [-1,1], so you can save a little bit by exploiting the symmetry and 
+        // mirroring the negative roots in [-1,0] to [0,1]
+        for (int k = 0; k <= N/2; ++k) {
+            // Find the root in the range [-1,0]
+            double x_n10 = cos((k*EIGEN_PI)/N);
+            // The negative root in [-1,1] scaled to real-world coordinates
+            double x_nk = (xmax - xmin)/2.0*x_n10 + (xmax + xmin)/2.0;
+            // The positive root in [-1,1] scaled to real-world coordinates
+            double x_pk = (xmax - xmin)/2.0*(-x_n10) + (xmax + xmin)/2.0;
+            f(k) = func(x_nk);
+            f(N-k) = func(x_pk);
         }
 
         // Step 3: Construct the matrix of coefficients used to obtain a
         Eigen::MatrixXd L = Eigen::MatrixXd::Zero(N + 1, N + 1); ///< Matrix of coefficients
         for (int j = 0; j <= N; ++j) {
-            for (int k = 0; k <= N; ++k) {
+            for (int k = j; k <= N; ++k) {
                 double p_j = (j == 0 || j == N) ? 2 : 1;
                 double p_k = (k == 0 || k == N) ? 2 : 1;
                 L(j, k) = 2.0/(p_j*p_k*N)*cos((j*EIGEN_PI*k) / N);
+                // Exploit symmetry to fill in the symmetric elements in the matrix
+                L(k,j) = L(j,k);
             }
         }
 
@@ -510,7 +520,8 @@ PYBIND11_PLUGIN(ChebTools) {
 // Monolithic build
 int main(){
     ChebyshevExpansion cee = ChebyshevExpansion::factory(10, f, -6, 6);
-    auto roots = cee.real_roots_subdivided_intervals(10,10);
+    auto intervals = cee.subdivide(10,10);
+    auto roots = cee.real_roots_intervals(intervals);
 
     long N = 10000;
     Eigen::VectorXd c(50);
