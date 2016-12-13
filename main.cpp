@@ -28,6 +28,37 @@
 
 typedef Eigen::VectorXd vectype;
 
+class LMatrixLibrary{
+private:
+    std::map<std::size_t, Eigen::MatrixXd> matrices;
+    void build(std::size_t N) {
+        Eigen::MatrixXd L(N + 1, N + 1); ///< Matrix of coefficients
+        for (int j = 0; j <= N; ++j) {
+            for (int k = j; k <= N; ++k) {
+                double p_j = (j == 0 || j == N) ? 2 : 1;
+                double p_k = (k == 0 || k == N) ? 2 : 1;
+                L(j, k) = 2.0 / (p_j*p_k*N)*cos((j*EIGEN_PI*k) / N);
+                // Exploit symmetry to fill in the symmetric elements in the matrix
+                L(k, j) = L(j, k);
+            }
+        }
+        matrices[N] = L;
+    }
+public:
+    const Eigen::MatrixXd & get(std::size_t N) {
+        auto it = matrices.find(N);
+        if (it != matrices.end()) {
+            return it->second;
+        }
+        else{
+            build(N);
+            return matrices.find(N)->second;
+        }
+    }
+};
+static LMatrixLibrary l_matrix_library;
+
+
 // From CoolProp
 template<class T> bool is_in_closed_range(T x1, T x2, T x){ return (x >= std::min(x1, x2) && x <= std::max(x1, x2)); };
 
@@ -332,21 +363,10 @@ public:
     //}
 
     static ChebyshevExpansion factoryf(const int N, const Eigen::VectorXd &f, const double xmin, const double xmax) {
-
-        // Step 3: Construct the matrix of coefficients used to obtain a
-        Eigen::MatrixXd L(N + 1, N + 1); ///< Matrix of coefficients
-        for (int j = 0; j <= N; ++j) {
-            for (int k = j; k <= N; ++k) {
-                double p_j = (j == 0 || j == N) ? 2 : 1;
-                double p_k = (k == 0 || k == N) ? 2 : 1;
-                L(j, k) = 2.0 / (p_j*p_k*N)*cos((j*EIGEN_PI*k) / N);
-                // Exploit symmetry to fill in the symmetric elements in the matrix
-                L(k, j) = L(j, k);
-            }
-        }
-
+        // Step 3: Get coefficients for the L matrix from the library of coefficients
+        const Eigen::MatrixXd &L = l_matrix_library.get(N);
         // Step 4: Obtain coefficients from vector - matrix product
-        return ChebyshevExpansion((L*f).rowwise().sum(), xmin, xmax);
+        return std::move(ChebyshevExpansion((L*f).rowwise().sum(), xmin, xmax));
     }
 
     /**
@@ -513,6 +533,30 @@ PYBIND11_PLUGIN(ChebTools) {
 
 // Monolithic build
 int main(){
+
+    {
+        long N = 10000;
+        auto startTime = std::chrono::system_clock::now(); 
+        for (int i = 0; i < N; ++i) {
+            ChebyshevExpansion cee = ChebyshevExpansion::factory(100, f, -6, 6);
+        }
+        auto endTime = std::chrono::system_clock::now();
+        auto elap_us = std::chrono::duration<double>(endTime - startTime).count()/N*1e6;
+        std::cout << elap_us << " us/call (generation)\n";
+
+        double s = 0; 
+        double x = 0.3; 
+        N = 10000000;
+        startTime = std::chrono::system_clock::now();
+        for (int i = 0; i < N; ++i) {
+            s += f(x+i*1e-10);
+        }
+        endTime = std::chrono::system_clock::now();
+        elap_us = std::chrono::duration<double>(endTime - startTime).count() / N*1e6;
+
+        std::cout << elap_us << " us/call (f(x)); s: " << s << "\n";
+    }
+
     ChebyshevExpansion cee = ChebyshevExpansion::factory(10, f, -6, 6);
     auto intervals = cee.subdivide(10,10);
     auto roots = cee.real_roots_intervals(intervals);
