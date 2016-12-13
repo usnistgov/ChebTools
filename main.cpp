@@ -218,7 +218,7 @@ public:
      * progressively less and less able to obtain the roots properly. The eigenvalue
      * solver in numpy tends to be more reliable.
      */
-    std::vector<double> real_roots(bool only_in_domain = true) {
+    std::vector<double> real_roots(bool only_in_domain = true) const {
         std::vector<double> roots;
 
         // Roots of the Chebyshev expansion are eigenvalues of the companion matrix
@@ -251,13 +251,11 @@ public:
         }
         return segments;
     }
-    std::vector<double> real_roots_intervals(std::vector<ChebyshevExpansion> &segments, bool only_in_domain = true) const {
-        std::vector<double> roots; 
+    std::vector<double> real_roots_intervals(const std::vector<ChebyshevExpansion> &segments, bool only_in_domain = true) const {
+        std::vector<double> roots;
         for (auto &seg : segments){
-            auto introots = seg.real_roots(only_in_domain);
-            for (auto &root : introots){
-                roots.push_back(root);
-            }
+            const auto segroots = seg.real_roots(only_in_domain);
+            roots.insert(roots.end(), segroots.cbegin(), segroots.cend());
         }
         return roots;
     }

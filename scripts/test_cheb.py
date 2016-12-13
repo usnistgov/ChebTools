@@ -35,16 +35,8 @@ tic = time.clock()
 ce = CT.generate_Chebyshev_expansion(40, f, xmin, xmax)
 # print(ce.coef())
 toc = time.clock()
-print((toc-tic)*1e6,'us to generate Chebyshev')
-
-N = 100
-tic = time.clock()
-for i in range(N):
-    real_rts = ce.real_roots(True)
-print(sorted(real_rts))
-toc = time.clock()
-print((toc-tic)/N*1e6,'us/call (big eigenvalue solve in C++)')
-
+print((toc-tic)*1e6,'us to generate Chebyshev of order', len(ce.coef())-1)
+print('-')
 N = 100
 tic = time.clock()
 for i in range(N):
@@ -53,11 +45,11 @@ for i in range(N):
 print(sorted(real_rts))
 toc = time.clock()
 print((toc-tic)/N*1e6,'us/call (big eigenvalue solve in python)')
-
+print('-')
 N = 100
 tic = time.clock()
 for i in range(N):
-    intervals = ce.subdivide(30, 4)
+    intervals = ce.subdivide(20, 4)
 toc = time.clock()
 print((toc-tic)/N*1e6,'us/call (to subdivide)')
 tic = time.clock()
@@ -66,15 +58,15 @@ for i in range(N):
 toc = time.clock()
 print(sorted(real_rts))
 print((toc-tic)/N*1e6,'us/call (subdivided)')
-
+print('-')
 N = 300000
 tic = time.clock()
 for i in range(N):
     ce.real_roots_approx(100)
 toc = time.clock()
 print(sorted(ce.real_roots_approx(100)))
-print((toc-tic)/N*1e6,'us/call')
-
+print((toc-tic)/N*1e6,'us/call (approximate)')
+print('-')
 data = []
 for N in range(10, 50):
     tic = time.clock()
@@ -93,10 +85,9 @@ plt.plot(N, elap)
 plt.yscale('log')
 plt.show()
 
-print(sorted(real_rts))
 for rt in roots:
     if np.isreal(rt) and rt < xmax and rt >= xmin:   
-        plt.axvline(np.sqrt(rt))
+        plt.axvline(np.sqrt(np.real(rt)))
 
 xx = np.linspace(xmin, xmax, 1000)
 plt.plot(np.sqrt(xx), [f(_x) for _x in xx])
