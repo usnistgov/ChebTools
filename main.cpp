@@ -20,7 +20,9 @@
 #include <map>
 #include <limits>
 
+#ifndef DBL_EPSILON
 #define DBL_EPSILON std::numeric_limits<double>::epsilon()
+#endif
 
 #include "Eigen/Dense"
 
@@ -235,6 +237,16 @@ public:
         }
         return roots;
     }
+
+    double real_roots_time(long N) {
+        auto startTime = std::chrono::system_clock::now();
+        for (int i = 0; i < N; ++i) {
+            auto ypts = real_roots();
+        }
+        auto endTime = std::chrono::system_clock::now();
+        auto elap_us = std::chrono::duration<double>(endTime - startTime).count() / N*1e6;
+        return elap_us;
+    }
     std::vector<double> real_roots_approx(long Npoints)
     {
         std::vector<double> roots;
@@ -296,42 +308,41 @@ public:
     //std::string toString() const {
     //    return "[" + std::to_string(x) + ", " + std::to_string(y) + "]";
     //}
-};
 
+    /**
+    * See Boyd, SIAM review, 2013, http://dx.doi.org/10.1137/110838297, Appendix A.
+    */
+    template<class double_function>
+    static ChebyshevExpansion factory(int N, double_function func, double xmin, double xmax)
+    {
+        Eigen::VectorXd f(N + 1);
+
+        // Step 1&2: Grid points functional values (function evaluated at the
+        // roots of the Chebyshev polynomial of order N)
+        for (int k = 0; k <= N; ++k) {
+            double x_k = (xmax - xmin) / 2.0*cos((EIGEN_PI*k) / N) + (xmax + xmin) / 2.0;
+            f(k) = func(x_k);
+        }
+
+        // Step 3: Construct the matrix of coefficients used to obtain a
+        Eigen::MatrixXd L = Eigen::MatrixXd::Zero(N + 1, N + 1); ///< Matrix of coefficients
+        for (int j = 0; j <= N; ++j) {
+            for (int k = 0; k <= N; ++k) {
+                L(j, k) = 2.0 / (p_i(j, N)*p_i(k, N)*N)*cos((j*EIGEN_PI*k) / N);
+            }
+        }
+
+        // Step 4: Obtain coefficients from vector - matrix product
+        Eigen::VectorXd c = (L*f).rowwise().sum();
+        return ChebyshevExpansion(c, xmin, xmax);
+    }
+};
 
 int p_i(int i, int N){
     if (i == 0 || i == N)
         return 2;
     else
         return 1;
-}
-
-/**
- * See Boyd, SIAM review, 2013, http://dx.doi.org/10.1137/110838297, Appendix A.
- */
-template<class double_function>
-ChebyshevExpansion generate_Chebyshev_expansion(int N, double_function func, double xmin, double xmax)
-{
-    Eigen::VectorXd f(N + 1);
-
-    // Step 1&2: Grid points functional values (function evaluated at the
-    // roots of the Chebyshev polynomial of order N)
-    for (int k = 0; k <= N; ++k){
-        double x_k = (xmax - xmin)/2.0*cos((EIGEN_PI*k)/N) + (xmax + xmin) / 2.0;
-        f(k) = func(x_k);
-    }
-
-    // Step 3: Constrct the matrix of coefficients used to obtain a
-    Eigen::MatrixXd L = Eigen::MatrixXd::Zero(N + 1, N + 1); ///< Matrix of coefficients
-    for (int j = 0; j <= N; ++j){
-        for (int k = 0; k <= N; ++k){
-            L(j, k) = 2.0/(p_i(j, N)*p_i(k, N)*N)*cos((j*EIGEN_PI*k)/N);
-        }
-    }
-
-    // Step 4: Obtain coefficients from vector - matrix product
-    Eigen::VectorXd c = (L*f).rowwise().sum();
-    return ChebyshevExpansion(c,xmin,xmax);
 }
 
 double plus_by_inplace(ChebyshevExpansion &ce, const ChebyshevExpansion &ce2, int N) {
@@ -437,9 +448,10 @@ PYBIND11_PLUGIN(ChebTools) {
 
     m.def("mult_by", &mult_by);
     m.def("mult_by_inplace", &mult_by_inplace);
-    m.def("generate_Chebyshev_expansion", &generate_Chebyshev_expansion<std::function<double(double)> >);
+    
     m.def("evaluation_speed_test", &evaluation_speed_test);
     m.def("eigs_speed_test", &eigs_speed_test);
+    m.def("generate_Chebyshev_expansion", &ChebyshevExpansion::factory<std::function<double(double)> >);
     
     py::class_<ChebyshevExpansion>(m, "ChebyshevExpansion")
         .def(py::init<const std::vector<double> &>())
@@ -454,6 +466,7 @@ PYBIND11_PLUGIN(ChebTools) {
         .def("y", (vectype (ChebyshevExpansion::*)(const vectype &)) &ChebyshevExpansion::y)
         .def("y", (double (ChebyshevExpansion::*)(const double)) &ChebyshevExpansion::y)
         .def("real_roots", &ChebyshevExpansion::real_roots)
+        .def("real_roots_time", &ChebyshevExpansion::real_roots_time)
         .def("real_roots_approx", &ChebyshevExpansion::real_roots_approx)
         ;
     return m.ptr();
@@ -462,6 +475,7 @@ PYBIND11_PLUGIN(ChebTools) {
 
 // Monolithic build
 int main(){
+    ChebyshevExpansion cee = ChebyshevExpansion::factory(10, f, 0, 6);
 
     long N = 10000;
     Eigen::VectorXd c(50);
