@@ -10,8 +10,12 @@ include_directories("${CMAKE_SOURCE_DIR}/externals/Eigen")
 if (CHEBTOOLS_PYBIND11)
     # Build pybind11 python module
     add_subdirectory("${CMAKE_SOURCE_DIR}/externals/pybind11")
-    add_definitions(-DPYBIND11)
     pybind11_add_module(ChebTools "${CMAKE_SOURCE_DIR}/main.cpp")
+    target_compile_definitions(ChebTools PUBLIC -DPYBIND11)
+
+    # Also build monolithic exe
+    add_executable(ChebToolsMonolith "${CMAKE_SOURCE_DIR}/main.cpp")
+
 elseif (CHEBTOOLS_MONO)
     # Build monolithic exe
     add_executable(ChebTools "${CMAKE_SOURCE_DIR}/main.cpp")
