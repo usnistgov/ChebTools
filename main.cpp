@@ -351,7 +351,7 @@ public:
      * See Boyd, SIAM review, 2013, http://dx.doi.org/10.1137/110838297, Appendix A.
      */
     template<class double_function>
-    static ChebyshevExpansion factory(int N, double_function func, double xmin, double xmax)
+    static ChebyshevExpansion factory(const int N, double_function func, const double xmin, const double xmax)
     {
         Eigen::VectorXd f(N + 1);
 
@@ -371,7 +371,7 @@ public:
         }
 
         // Step 3: Construct the matrix of coefficients used to obtain a
-        Eigen::MatrixXd L = Eigen::MatrixXd::Zero(N + 1, N + 1); ///< Matrix of coefficients
+        Eigen::MatrixXd L(N + 1, N + 1); ///< Matrix of coefficients
         for (int j = 0; j <= N; ++j) {
             for (int k = j; k <= N; ++k) {
                 double p_j = (j == 0 || j == N) ? 2 : 1;

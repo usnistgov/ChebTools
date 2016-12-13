@@ -57,10 +57,14 @@ print((toc-tic)/N*1e6,'us/call (big eigenvalue solve in python)')
 N = 100
 tic = time.clock()
 for i in range(N):
-    intervals = ce.subdivide(20, 5)
-    real_rts = ce.real_roots_intervals(intervals, True)
-print(sorted(real_rts))
+    intervals = ce.subdivide(30, 4)
 toc = time.clock()
+print((toc-tic)/N*1e6,'us/call (to subdivide)')
+tic = time.clock()
+for i in range(N):
+    real_rts = ce.real_roots_intervals(intervals, True)
+toc = time.clock()
+print(sorted(real_rts))
 print((toc-tic)/N*1e6,'us/call (subdivided)')
 
 N = 300000
