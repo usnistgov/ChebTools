@@ -336,8 +336,14 @@ public:
     //}
 
     /**
-    * See Boyd, SIAM review, 2013, http://dx.doi.org/10.1137/110838297, Appendix A.
-    */
+     * @brief Given a callable function, construct the N-th order Chebyshev expansion in [xmin, xmax]
+     * @param N The order of the expansion; there will be N+1 coefficients
+     * @param func A callable object, taking the x value (in [xmin,xmax]) and returning the y value
+     * @param xmin The minimum x value for the fit
+     * @param xmax The maximum x value for the fit
+     *
+     * See Boyd, SIAM review, 2013, http://dx.doi.org/10.1137/110838297, Appendix A.
+     */
     template<class double_function>
     static ChebyshevExpansion factory(int N, double_function func, double xmin, double xmax)
     {
@@ -356,13 +362,12 @@ public:
             for (int k = 0; k <= N; ++k) {
                 double p_j = (j == 0 || j == N) ? 2 : 1;
                 double p_k = (k == 0 || k == N) ? 2 : 1;
-                L(j, k) = 2.0 / (p_j*p_k*cos((j*EIGEN_PI*k) / N));
+                L(j, k) = 2.0/(p_j*p_k*N)*cos((j*EIGEN_PI*k) / N);
             }
         }
 
         // Step 4: Obtain coefficients from vector - matrix product
-        Eigen::VectorXd c = (L*f).rowwise().sum();
-        return ChebyshevExpansion(c, xmin, xmax);
+        return ChebyshevExpansion((L*f).rowwise().sum(), xmin, xmax);
     }
 };
 
