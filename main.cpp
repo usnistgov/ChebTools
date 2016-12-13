@@ -117,7 +117,7 @@ public:
         }
         return m_c.dot(o);
     }
-    double y_Clenshaw(const double x) {
+    double y_Clenshaw(const double x) const{
         std::size_t Norder = m_c.size() - 1;
         // Scale x linearly into the domain [-1, 1]
         double xscaled = (2*x - (m_xmax + m_xmin)) / (m_xmax - m_xmin);
@@ -237,6 +237,32 @@ public:
         }
         return roots;
     }
+    std::vector<double> real_roots_subdivided_intervals(std::size_t Nintervals, std::size_t Norder, bool only_in_domain = true) {
+        std::vector<double> roots; 
+        double deltax = (m_xmax-m_xmin)/(Nintervals-1);
+        
+        /// A functor that will allow us to call the y_Clenshaw method on this class.
+        /// Could also have been done withe some function wrapping trickery from C++11, but this is a 
+        /// cleaner (if more verbose) interface
+        class ClenshawWrapper {
+            const ChebyshevExpansion &ce;
+        public:
+            ClenshawWrapper(const ChebyshevExpansion &ce) : ce(ce) {};
+            double operator()(double x) {
+                return ce.y_Clenshaw(x);
+            }
+        };
+        ClenshawWrapper wrap(*this);
+
+        for (std::size_t i = 0; i < Nintervals-1; ++i){
+            ChebyshevExpansion ce(factory(Norder, wrap, m_xmin + i*deltax, m_xmin + (i+1)*deltax));
+            auto introots = ce.real_roots(only_in_domain);
+            for (auto &root : introots){
+                roots.push_back(root);
+            }
+        }
+        return roots;
+    }
 
     double real_roots_time(long N) {
         auto startTime = std::chrono::system_clock::now();
@@ -328,7 +354,9 @@ public:
         Eigen::MatrixXd L = Eigen::MatrixXd::Zero(N + 1, N + 1); ///< Matrix of coefficients
         for (int j = 0; j <= N; ++j) {
             for (int k = 0; k <= N; ++k) {
-                L(j, k) = 2.0 / (p_i(j, N)*p_i(k, N)*N)*cos((j*EIGEN_PI*k) / N);
+                double p_j = (j == 0 || j == N) ? 2 : 1;
+                double p_k = (k == 0 || k == N) ? 2 : 1;
+                L(j, k) = 2.0 / (p_j*p_k*cos((j*EIGEN_PI*k) / N));
             }
         }
 
@@ -337,13 +365,6 @@ public:
         return ChebyshevExpansion(c, xmin, xmax);
     }
 };
-
-int p_i(int i, int N){
-    if (i == 0 || i == N)
-        return 2;
-    else
-        return 1;
-}
 
 double plus_by_inplace(ChebyshevExpansion &ce, const ChebyshevExpansion &ce2, int N) {
     for (std::size_t i = 0; i < N; ++i) {
@@ -369,7 +390,7 @@ void mult_by(ChebyshevExpansion &ce, double val, int N) {
 }
 
 double f(double x){
-    return exp(-pow(x,1));
+    return exp(-pow(x,2)) - 0.5;
 }
 
 std::map<std::string,double> evaluation_speed_test(ChebyshevExpansion &cee, const vectype &xpts, long N) {
@@ -468,6 +489,7 @@ PYBIND11_PLUGIN(ChebTools) {
         .def("real_roots", &ChebyshevExpansion::real_roots)
         .def("real_roots_time", &ChebyshevExpansion::real_roots_time)
         .def("real_roots_approx", &ChebyshevExpansion::real_roots_approx)
+        .def("real_roots_subdivided_intervals", &ChebyshevExpansion::real_roots_subdivided_intervals)
         ;
     return m.ptr();
 }
@@ -475,7 +497,8 @@ PYBIND11_PLUGIN(ChebTools) {
 
 // Monolithic build
 int main(){
-    ChebyshevExpansion cee = ChebyshevExpansion::factory(10, f, 0, 6);
+    ChebyshevExpansion cee = ChebyshevExpansion::factory(10, f, -6, 6);
+    auto roots = cee.real_roots_subdivided_intervals(10,10);
 
     long N = 10000;
     Eigen::VectorXd c(50);
