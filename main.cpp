@@ -366,7 +366,7 @@ public:
         // Step 3: Get coefficients for the L matrix from the library of coefficients
         const Eigen::MatrixXd &L = l_matrix_library.get(N);
         // Step 4: Obtain coefficients from vector - matrix product
-        return std::move(ChebyshevExpansion((L*f).rowwise().sum(), xmin, xmax));
+        return ChebyshevExpansion((L*f).rowwise().sum(), xmin, xmax);
     }
 
     /**
@@ -425,7 +425,7 @@ void mult_by(ChebyshevExpansion &ce, double val, int N) {
 }
 
 double f(double x){
-    return exp(-pow(x,2)) - 0.5;
+    return exp(-5*pow(x-1,2)) - 0.5;
 }
 
 std::map<std::string,double> evaluation_speed_test(ChebyshevExpansion &cee, const vectype &xpts, long N) {
@@ -557,7 +557,7 @@ int main(){
         std::cout << elap_us << " us/call (f(x)); s: " << s << "\n";
     }
 
-    ChebyshevExpansion cee = ChebyshevExpansion::factory(10, f, -6, 6);
+    ChebyshevExpansion cee = ChebyshevExpansion::factory(40, f, -6, 6);
     auto intervals = cee.subdivide(10,10);
     auto roots = cee.real_roots_intervals(intervals);
 
@@ -571,6 +571,17 @@ int main(){
     auto endTime = std::chrono::system_clock::now();
     auto elap_us = std::chrono::duration<double>(endTime - startTime).count()/N*1e6;
     std::cout << elap_us << " us/call (mult inplace)\n";
+
+    {
+        auto intervals = cee.subdivide(20, 4); 
+        startTime = std::chrono::system_clock::now();
+        for (int i = 0; i < N; ++i) {
+            auto roots = cee.real_roots_intervals(intervals);
+        }
+        endTime = std::chrono::system_clock::now();
+        elap_us = std::chrono::duration<double>(endTime - startTime).count()/N*1e6;
+        std::cout << elap_us << " us/call (roots inplace)\n";
+    }
     
     startTime = std::chrono::system_clock::now();
     plus_by_inplace(ce, ce, N);
