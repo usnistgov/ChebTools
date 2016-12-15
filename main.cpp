@@ -28,6 +28,27 @@
 
 typedef Eigen::VectorXd vectype;
 
+
+class ChebyshevRootsLibrary {
+private:
+    std::map<std::size_t, Eigen::VectorXd> vectors;
+    void build(std::size_t N) {
+        vectors[N] = ((Eigen::VectorXd::LinSpaced(N, 0, N-1).array() + 0.5)*EIGEN_PI/N).cos();
+    }
+public:
+    const Eigen::VectorXd & get(std::size_t N) {
+        auto it = vectors.find(N);
+        if (it != vectors.end()) {
+            return it->second;
+        }
+        else {
+            build(N);
+            return vectors.find(N)->second;
+        }
+    }
+};
+static ChebyshevRootsLibrary roots_library;
+
 class LMatrixLibrary{
 private:
     std::map<std::size_t, Eigen::MatrixXd> matrices;
