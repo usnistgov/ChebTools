@@ -220,14 +220,12 @@ public:
     Eigen::MatrixXd companion_matrix() const {
         std::size_t N = m_c.size()-1;
         Eigen::MatrixXd A = Eigen::MatrixXd::Zero(N, N);
+        Eigen::Map<const Eigen::VectorXd> c_wrap(&(m_c[0]), N);
         // First row
         A(0, 1) = 1;
-        
         // Last row
         A(N-1, N-2) = 0.5;
-        for (int k = 0; k < N; ++k){
-            A(N - 1, k) -= m_c(k)/(2.0*m_c(N));
-        }
+        A.row(N-1) -= c_wrap / (2.0*m_c(N));
         // All the other rows
         for (int j = 1; j < N-1; ++j) {
             A(j, j-1) = 0.5;
