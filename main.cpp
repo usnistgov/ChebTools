@@ -26,8 +26,44 @@
 
 #include "Eigen/Dense"
 
+/// See python code in https://en.wikipedia.org/wiki/Binomial_coefficient#Binomial_coefficient_in_programming_languages
+/// This is a direct translation of that code to C++
+double binomialCoefficient(const double n, const double k){
+    if (k < 0 || k > n){
+        return 0;
+    }
+    if (k == 0 || k == n){
+        return 1;
+    }
+    double _k = std::min(k, n - k); //# take advantage of symmetry
+    double c = 1;
+    for (double i = 0; i < _k; ++i){
+        c *= (n - i)/(i + 1);
+    }
+    return c;
+}
+
 typedef Eigen::VectorXd vectype;
 
+class ChebyshevExtremaLibrary {
+private:
+    std::map<std::size_t, Eigen::VectorXd> vectors;
+    void build(std::size_t N) {
+        vectors[N] = (Eigen::VectorXd::LinSpaced(N+1, 0, N).array()*EIGEN_PI/N).cos();
+    }
+public:
+    const Eigen::VectorXd & get(std::size_t N) {
+        auto it = vectors.find(N);
+        if (it != vectors.end()) {
+            return it->second;
+        }
+        else {
+            build(N);
+            return vectors.find(N)->second;
+        }
+    }
+};
+static ChebyshevExtremaLibrary extrema_library;
 
 class ChebyshevRootsLibrary {
 private:
@@ -400,23 +436,39 @@ public:
     template<class double_function>
     static ChebyshevExpansion factory(const int N, double_function func, const double xmin, const double xmax)
     {
-        Eigen::VectorXd f(N + 1);
+        // Get the precalculated extrema values
+        const Eigen::VectorXd & x_extrema_n11 = extrema_library.get(N);
 
         // Step 1&2: Grid points functional values (function evaluated at the
-        // roots of the Chebyshev polynomial of order N).  The roots are symmetric in the 
-        // domain [-1,1], so you can save a little bit by exploiting the symmetry and 
-        // mirroring the negative roots in [-1,0] to [0,1]
-        for (int k = 0; k <= N/2; ++k) {
-            // Find the root in the range [-1,0]
-            double x_n10 = cos((k*EIGEN_PI)/N);
-            // The negative root in [-1,1] scaled to real-world coordinates
-            double x_nk = (xmax - xmin)/2.0*x_n10 + (xmax + xmin)/2.0;
-            // The positive root in [-1,1] scaled to real-world coordinates
-            double x_pk = (xmax - xmin)/2.0*(-x_n10) + (xmax + xmin)/2.0;
-            f(k) = func(x_nk);
-            f(N-k) = func(x_pk);
+        // extrema of the Chebyshev polynomial of order N - there are N+1 of them)
+        Eigen::VectorXd f(N + 1);
+        for (int k = 0; k <= N; ++k) {
+            // The extrema in [-1,1] scaled to real-world coordinates
+            double x_k = ((xmax - xmin)*x_extrema_n11(k) + (xmax + xmin))/2.0;
+            f(k) = func(x_k);
         }
         return factoryf(N, f, xmin, xmax);
+    }
+    /// Convert a monomial term in the form x^n to a Chebyshev expansion
+    static ChebyshevExpansion from_powxn(const int n, const double xmin, const double xmax) {
+        Eigen::VectorXd c = Eigen::VectorXd::Zero(n+1);
+        for (std::size_t k = 0; k <= n/2; ++k) {
+            std::size_t index = n-2*k;
+            std::size_t coeff = binomialCoefficient(n, k);
+            if (index == 0) {
+                coeff /= 2;
+            }
+            c(index) = coeff;
+        }
+        return pow(2, 1-n)*ChebyshevExpansion(c, xmin, xmax);
+    }
+    template<class vector_type>
+    static ChebyshevExpansion from_polynomial(vector_type c, const double xmin, const double xmax) {
+        ChebyshevExpansion s({0}, xmin, xmax);
+        for (std::size_t i = 0; i < c.size(); ++i) {
+            s += c(i)*from_powxn(i, xmin, xmax);
+        }
+        return s;
     }
 };
 
@@ -444,7 +496,8 @@ void mult_by(ChebyshevExpansion &ce, double val, int N) {
 }
 
 double f(double x){
-    return exp(-5*pow(x-1,2)) - 0.5;
+    return pow(x,3);
+    //return exp(-5*pow(x,2)) - 0.5;
 }
 
 std::map<std::string,double> evaluation_speed_test(ChebyshevExpansion &cee, const vectype &xpts, long N) {
@@ -553,11 +606,16 @@ PYBIND11_PLUGIN(ChebTools) {
 // Monolithic build
 int main(){
 
+    ChebyshevExpansion ee = ChebyshevExpansion::from_powxn(3, -1, 1);
+    std::cout << ee.coef() << std::endl;
+    ee = ChebyshevExpansion::factory(40, f, -1, 1);
+    std::cout << ee.coef() << std::endl;
+
     {
         long N = 10000;
         auto startTime = std::chrono::system_clock::now(); 
         for (int i = 0; i < N; ++i) {
-            ChebyshevExpansion cee = ChebyshevExpansion::factory(100, f, -6, 6);
+            ChebyshevExpansion cee = ChebyshevExpansion::factory(40, f, -2, 2);
         }
         auto endTime = std::chrono::system_clock::now();
         auto elap_us = std::chrono::duration<double>(endTime - startTime).count()/N*1e6;
