@@ -421,7 +421,7 @@ public:
         // Step 3: Get coefficients for the L matrix from the library of coefficients
         const Eigen::MatrixXd &L = l_matrix_library.get(N);
         // Step 4: Obtain coefficients from vector - matrix product
-        return ChebyshevExpansion((L*f).rowwise().sum(), xmin, xmax);
+        return ChebyshevExpansion(L*f, xmin, xmax);
     }
 
     /**
@@ -449,7 +449,7 @@ public:
         }
         return factoryf(N, f, xmin, xmax);
     }
-    /// Convert a monomial term in the form x^n to a Chebyshev expansion
+    /// Convert a monomial term in the form \f$x^n\f$ to a Chebyshev expansion
     static ChebyshevExpansion from_powxn(const int n, const double xmin, const double xmax) {
         Eigen::VectorXd c = Eigen::VectorXd::Zero(n+1);
         for (std::size_t k = 0; k <= n/2; ++k) {
@@ -610,6 +610,22 @@ int main(){
     std::cout << ee.coef() << std::endl;
     ee = ChebyshevExpansion::factory(40, f, -1, 1);
     std::cout << ee.coef() << std::endl;
+
+    {
+        Eigen::MatrixXd mat = Eigen::MatrixXd::Random(20, 50);
+        Eigen::VectorXd Tpart = Eigen::VectorXd::Random(20);
+
+        long N = 1000000;
+        Eigen::VectorXd c;
+        auto startTime = std::chrono::system_clock::now();
+        for (int i = 0; i < N; ++i) {
+            // see http://stackoverflow.com/a/36849915/1360263
+            c = (mat.array().colwise() * Tpart.array()).colwise().sum();
+        }
+        auto endTime = std::chrono::system_clock::now();
+        auto elap_us = std::chrono::duration<double>(endTime - startTime).count() / N*1e6;
+        std::cout << elap_us << " us/call (matrix coeff eval)\n";
+    }
 
     {
         long N = 10000;
