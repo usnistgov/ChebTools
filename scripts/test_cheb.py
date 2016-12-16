@@ -89,7 +89,7 @@ for rt in roots:
     if np.isreal(rt) and rt < xmax and rt >= xmin:   
         plt.axvline(np.sqrt(np.real(rt)))
 
-xx = np.linspace(xmin, xmax, 1000)
+xx = np.linspace(xmin, xmax, 10000)
 plt.plot(np.sqrt(xx), [f(_x) for _x in xx])
 plt.plot(np.sqrt(xx), ce.y(xx))
 
