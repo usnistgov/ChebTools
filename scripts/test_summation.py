@@ -8,11 +8,12 @@ sys.path.append('../build/pybind11/Debug')
 import ChebTools as CT
 
 import CoolProp, CoolProp.CoolProp as CP, json
-T = 110
+T = 340
 fluid = 'n-Propane'
 Tc = CP.PropsSI("Tcrit",fluid)
 
-Ndelta = 80
+Ndelta = 100
+Ntau = Ndelta
 deltamin = 0.00000001
 deltamax = 6
 
@@ -43,7 +44,7 @@ def coeffs_from_summation(plot = False):
     terms = []
     for i in range(len(n)):
         funcF = lambda tau: tau**t[i]*np.exp(-beta[i]*(tau-gamma[i])**2)
-        F = CT.generate_Chebyshev_expansion(400, funcF, deltamin, deltamax)
+        F = CT.generate_Chebyshev_expansion(Ntau, funcF, deltamin, deltamax)
         funcG = lambda delta: delta**d[i]*np.exp(-cdelta[i]*delta**ldelta[i]-eta[i]*(delta-epsilon[i])**2)
         G = CT.generate_Chebyshev_expansion(Ndelta, funcG, deltamin, deltamax)
 
@@ -66,8 +67,11 @@ if __name__=='__main__':
     ce_CP = CT.ChebyshevExpansion(c_CP, deltamin, deltamax)
     ce_sum = CT.ChebyshevExpansion(c_sum, deltamin, deltamax)
 
-    plt.plot(np.abs(c_CP/c_sum))
-    plt.show()
+    def get_roots(ce):
+        return [((deltamax-deltamin)*np.real(rt) + (deltamax + deltamin))/2.0 for rt in np.linalg.eigvals(ce.companion_matrix()) if np.isreal(rt) and rt > -1 and rt < 1]
+
+    print(get_roots(ce_CP))
+    print(get_roots(ce_sum))
 
     delta = np.linspace(deltamin, deltamax, 10000)
     plt.plot(delta, ce_CP.y(delta))
