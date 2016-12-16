@@ -472,6 +472,56 @@ public:
     }
 };
 
+struct SumElement {
+    double n_i; ///< The leading coefficient
+    ChebyshevExpansion F, ///< Expansion in terms of variable #1
+                       G; ///< Expansion in terms of variable #2
+};
+
+class ChebyshevSummation {
+private:
+    Eigen::MatrixXd C; ///< Coefficient matrix for the coefficients associated with each ChebyshevExpansion in the non-provided variable
+    std::vector<SumElement> terms;
+    bool F_SPECIFIED = true;
+public:
+    ChebyshevSummation(std::vector<SumElement> &&terms) : terms(terms) {};
+    /// Once you specify which variable will be given, you can build the independent variable matrix
+    void build_independent_matrix() {
+        /// C is a matrix with as many rows as terms in the summation, and the coefficients for each term in increasing order in each row
+        Eigen::Index Nrows = terms.size(), Ncols = 0;
+        // Determine how many columns are needed 
+        for (auto &term : terms) { Ncols = (F_SPECIFIED) ? std::max(Ncols, term.F.coef().size()) : std::max(Ncols, term.G.coef().size()); }
+        // Fill matrix with all zeros (padding for shorter entries)
+        C = Eigen::MatrixXd::Zero(Nrows, Ncols);
+        // Fill each row
+        std::size_t i = 0;
+        for (auto &term : terms) {
+            const Eigen::VectorXd &coef = (F_SPECIFIED) ? term.G.coef() : term.F.coef();
+            C.row(i).head(coef.size()) = coef;
+            ++i;
+        }
+    }
+    Eigen::VectorXd get_coefficients(double input) {
+        // For the specified one, evaluate its Chebyshev expansion
+        Eigen::VectorXd givenvec(terms.size());
+        std::size_t i = 0;
+        for (const auto &term : terms) {
+            if (F_SPECIFIED) {
+                givenvec(i) = term.n_i*term.F.y_Clenshaw(input);
+            }
+            else {
+                throw -1;
+            }
+        }
+        return (C.array().colwise() * givenvec.array()).colwise().sum();
+    }
+};
+
+double f(double x){
+    return pow(x,3);
+    //return exp(-5*pow(x,2)) - 0.5;
+}
+
 double plus_by_inplace(ChebyshevExpansion &ce, const ChebyshevExpansion &ce2, int N) {
     for (std::size_t i = 0; i < N; ++i) {
         ce += ce2;
@@ -494,12 +544,6 @@ void mult_by(ChebyshevExpansion &ce, double val, int N) {
     }
     //return ce2;
 }
-
-double f(double x){
-    return pow(x,3);
-    //return exp(-5*pow(x,2)) - 0.5;
-}
-
 std::map<std::string,double> evaluation_speed_test(ChebyshevExpansion &cee, const vectype &xpts, long N) {
     std::map<std::string, double> output;
     vectype ypts;
