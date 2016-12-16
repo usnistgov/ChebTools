@@ -17,8 +17,9 @@ def f(delta):
     AS.update(CP.DmolarT_INPUTS, delta*AS.rhomolar_reducing(), T)
     return AS.p() - 1e4
 
-xmax = 6
 xmin = 0.00000001
+xmax = 6
+
 
 xx = np.linspace(0.0001,6,200)
 for Npower in [5,10,20,40,80,160,320]:

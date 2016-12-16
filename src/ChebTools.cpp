@@ -352,50 +352,41 @@ namespace ChebTools {
         }
         return pow(2, 1 - n)*ChebyshevExpansion(c, xmin, xmax);
     }
-
-    struct SumElement {
-        double n_i; ///< The leading coefficient
-        ChebyshevExpansion F, ///< Expansion in terms of variable #1
-                           G; ///< Expansion in terms of variable #2
+     
+    /// Once you specify which variable will be given, you can build the independent variable matrix
+    void ChebyshevSummation::build_independent_matrix() {
+        if (matrix_built){ return; } // no-op if matrix already built
+        /// C is a matrix with as many rows as terms in the summation, and the coefficients for each term in increasing order in each row
+        Eigen::Index Nrows = terms.size(), Ncols = 0;
+        // Determine how many columns are needed 
+        for (auto &term : terms) { Ncols = (F_SPECIFIED) ? std::max(Ncols, term.G.coef().size()) : std::max(Ncols, term.F.coef().size()); }
+        // Fill matrix with all zeros (padding for shorter entries)
+        C = Eigen::MatrixXd::Zero(Nrows, Ncols);
+        // Fill each row
+        std::size_t i = 0;
+        for (auto &term : terms) {
+            const Eigen::VectorXd &coef = (F_SPECIFIED) ? term.G.coef() : term.F.coef();
+            C.row(i).head(coef.size()) = coef.transpose(); // Make column vector into row vector
+            i++;
+        }
+        matrix_built = true;
     };
-
-    class ChebyshevSummation {
-    private:
-        Eigen::MatrixXd C; ///< Coefficient matrix for the coefficients associated with each ChebyshevExpansion in the non-provided variable
-        std::vector<SumElement> terms;
-        bool F_SPECIFIED = true;
-    public:
-        ChebyshevSummation(std::vector<SumElement> &&terms) : terms(terms) {};
-        /// Once you specify which variable will be given, you can build the independent variable matrix
-        void build_independent_matrix() {
-            /// C is a matrix with as many rows as terms in the summation, and the coefficients for each term in increasing order in each row
-            Eigen::Index Nrows = terms.size(), Ncols = 0;
-            // Determine how many columns are needed 
-            for (auto &term : terms) { Ncols = (F_SPECIFIED) ? std::max(Ncols, term.F.coef().size()) : std::max(Ncols, term.G.coef().size()); }
-            // Fill matrix with all zeros (padding for shorter entries)
-            C = Eigen::MatrixXd::Zero(Nrows, Ncols);
-            // Fill each row
-            std::size_t i = 0;
-            for (auto &term : terms) {
-                const Eigen::VectorXd &coef = (F_SPECIFIED) ? term.G.coef() : term.F.coef();
-                C.row(i).head(coef.size()) = coef;
-                ++i;
+    Eigen::VectorXd ChebyshevSummation::get_coefficients(double input) {
+        build_independent_matrix();
+        // For the specified one, evaluate its Chebyshev expansion
+        Eigen::VectorXd givenvec(terms.size());
+        std::size_t i = 0;
+        for (const auto &term : terms) {
+            if (F_SPECIFIED) {
+                givenvec(i) = term.n_i*term.F.y_Clenshaw(input);
             }
-        }
-        Eigen::VectorXd get_coefficients(double input) {
-            // For the specified one, evaluate its Chebyshev expansion
-            Eigen::VectorXd givenvec(terms.size());
-            std::size_t i = 0;
-            for (const auto &term : terms) {
-                if (F_SPECIFIED) {
-                    givenvec(i) = term.n_i*term.F.y_Clenshaw(input);
-                }
-                else {
-                    throw - 1;
-                }
+            else {
+                throw - 1;
             }
-            return (C.array().colwise() * givenvec.array()).colwise().sum();
+            i++;
         }
+        // Each column gets multiplied by the vector n*F, then each column is summed
+        return (C.array().colwise() * givenvec.array()).colwise().sum();
     };
 
 }; /* namespace Chebtools */

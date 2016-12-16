@@ -139,7 +139,29 @@ namespace ChebTools{
     };
 
     const Eigen::VectorXd &get_extrema(std::size_t N);
-    
+
+    class SumElement {
+    public:
+        double n_i; ///< The leading coefficient
+        ChebyshevExpansion F, ///< Expansion in terms of variable #1
+            G; ///< Expansion in terms of variable #2
+        SumElement(double n_i, ChebyshevExpansion &F, ChebyshevExpansion &G) :n_i(n_i), F(F), G(G) {};
+    };
+
+    class ChebyshevSummation {
+    private:
+        Eigen::MatrixXd C; ///< Coefficient matrix for the coefficients associated with each ChebyshevExpansion in the non-provided variable
+        std::vector<SumElement> terms;
+        bool F_SPECIFIED = true;
+        bool matrix_built = false;
+    public:
+        ChebyshevSummation(const std::vector<SumElement> &terms) : terms(terms) {}; 
+        ChebyshevSummation(const std::vector<SumElement> &&terms) : terms(terms) {};
+        /// Once you specify which variable will be given, you can build the independent variable matrix
+        void build_independent_matrix();
+        Eigen::VectorXd get_givenvec(double input);
+        Eigen::VectorXd get_coefficients(double input);
+    };
 
 }; /* namespace ChebTools */
 #endif

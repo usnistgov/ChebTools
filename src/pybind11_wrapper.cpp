@@ -20,8 +20,20 @@ PYBIND11_PLUGIN(ChebTools) {
     m.def("eigs_speed_test", &eigs_speed_test);
     m.def("generate_Chebyshev_expansion", &ChebyshevExpansion::factory<std::function<double(double)> >);
 
+    py::class_<SumElement>(m, "SumElement")
+        .def(py::init<double, ChebyshevExpansion &, ChebyshevExpansion &>())
+        .def_readonly("n_i", &SumElement::n_i)
+        .def_readonly("F", &SumElement::F, py::return_value_policy::take_ownership)
+        .def_readonly("G", &SumElement::G, py::return_value_policy::take_ownership);
+
+    py::class_<ChebyshevSummation>(m, "ChebyshevSummation")
+        .def(py::init<const std::vector<SumElement> &>())
+        .def("build_independent_matrix", &ChebyshevSummation::build_independent_matrix)
+        .def("get_coefficients", &ChebyshevSummation::get_coefficients)
+        ;
+
     py::class_<ChebyshevExpansion>(m, "ChebyshevExpansion")
-        .def(py::init<const std::vector<double> &>())
+        .def(py::init<const std::vector<double> &, double, double>())
         .def(py::self + py::self)
         .def(py::self += py::self)
         .def(py::self * double())
@@ -32,6 +44,7 @@ PYBIND11_PLUGIN(ChebTools) {
         .def("companion_matrix", &ChebyshevExpansion::companion_matrix)
         .def("y", (vectype(ChebyshevExpansion::*)(const vectype &)) &ChebyshevExpansion::y)
         .def("y", (double (ChebyshevExpansion::*)(const double)) &ChebyshevExpansion::y)
+        .def("y_Clenshaw", &ChebyshevExpansion::y_Clenshaw)
         .def("real_roots", &ChebyshevExpansion::real_roots)
         .def("real_roots_time", &ChebyshevExpansion::real_roots_time)
         .def("real_roots_approx", &ChebyshevExpansion::real_roots_approx)
