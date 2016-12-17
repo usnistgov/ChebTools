@@ -136,6 +136,8 @@ namespace ChebTools{
             }
             return s;
         }
+        /// Return the N-th derivative of this expansion, where N must be >= 1
+        ChebyshevExpansion deriv(std::size_t Nderiv) const ;
     };
 
     const Eigen::VectorXd &get_extrema(std::size_t N);
@@ -159,7 +161,6 @@ namespace ChebTools{
         ChebyshevSummation(const std::vector<SumElement> &&terms) : terms(terms) {};
         /// Once you specify which variable will be given, you can build the independent variable matrix
         void build_independent_matrix();
-        Eigen::VectorXd get_givenvec(double input);
         Eigen::VectorXd get_coefficients(double input);
     };
 

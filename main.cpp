@@ -20,6 +20,13 @@ int main(){
     ee = ChebyshevExpansion::factory(40, f, -1, 1);
     std::cout << ee.coef() << std::endl;
 
+    Eigen::Vector4d ccccc;
+    ccccc << 1,2,3,4;
+    auto ce4 = ChebyshevExpansion(ccccc, -1, 1);
+    std::cout << ce4.deriv(1).coef() << std::endl;
+    std::cout << ce4.deriv(3).coef() << std::endl;
+
+
     {
         Eigen::MatrixXd mat = Eigen::MatrixXd::Random(20, 50);
         Eigen::VectorXd Tpart = Eigen::VectorXd::Random(20);

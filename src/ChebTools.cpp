@@ -352,7 +352,34 @@ namespace ChebTools {
         }
         return pow(2, 1 - n)*ChebyshevExpansion(c, xmin, xmax);
     }
-     
+    ChebyshevExpansion ChebyshevExpansion::deriv(std::size_t Nderiv) const {
+        // See Mason and Handscomb, p. 34, Eq. 2.52
+        // and example in https ://github.com/numpy/numpy/blob/master/numpy/polynomial/chebyshev.py#L868-L964
+        vectype c = m_c;
+        for (std::size_t deriv_counter = 0; deriv_counter < Nderiv; ++deriv_counter) {
+            std::size_t N = c.size() - 1, Nd = N - 1;
+            vectype cd(N);
+            for (std::size_t r = 0; r < Nd + 1; ++r) {
+                cd(r) = 0;
+                for (std::size_t k = r + 1; k < Nd + 2; ++k) {
+                    if ((k - r) % 2 == 1) {
+                        cd(r) += 2*k*c(k);
+                    }
+                }
+                if (r == 0) {
+                    cd(r) /= 2;
+                }
+            }
+            if (Nderiv == 1) {
+                return ChebyshevExpansion(std::move(cd), m_xmin, m_xmax);
+            }
+            else{
+                c = cd;
+            }
+        }
+        return ChebyshevExpansion(std::move(c), m_xmin, m_xmax);
+    };
+    
     /// Once you specify which variable will be given, you can build the independent variable matrix
     void ChebyshevSummation::build_independent_matrix() {
         if (matrix_built){ return; } // no-op if matrix already built
