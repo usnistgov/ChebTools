@@ -369,6 +369,8 @@ namespace ChebTools {
                 if (r == 0) {
                     cd(r) /= 2;
                 }
+                // Rescale the values if the range is not [-1,1]
+                cd(r) /= (m_xmax-m_xmin)/2.0;
             }
             if (Nderiv == 1) {
                 return ChebyshevExpansion(std::move(cd), m_xmin, m_xmax);

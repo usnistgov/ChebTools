@@ -30,6 +30,7 @@ PYBIND11_PLUGIN(ChebTools) {
         .def(py::init<const std::vector<SumElement> &>())
         .def("build_independent_matrix", &ChebyshevSummation::build_independent_matrix)
         .def("get_coefficients", &ChebyshevSummation::get_coefficients)
+        .def("get_matrix", &ChebyshevSummation::get_matrix)
         ;
 
     py::class_<ChebyshevExpansion>(m, "ChebyshevExpansion")
@@ -50,6 +51,7 @@ PYBIND11_PLUGIN(ChebTools) {
         .def("real_roots_approx", &ChebyshevExpansion::real_roots_approx)
         .def("subdivide", &ChebyshevExpansion::subdivide)
         .def("real_roots_intervals", &ChebyshevExpansion::real_roots_intervals)
+        .def("deriv", &ChebyshevExpansion::deriv)
         ;
     return m.ptr();
 }

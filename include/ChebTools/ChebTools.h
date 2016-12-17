@@ -161,6 +161,7 @@ namespace ChebTools{
         ChebyshevSummation(const std::vector<SumElement> &&terms) : terms(terms) {};
         /// Once you specify which variable will be given, you can build the independent variable matrix
         void build_independent_matrix();
+        Eigen::MatrixXd get_matrix(){ return C; }
         Eigen::VectorXd get_coefficients(double input);
     };
 
