@@ -122,14 +122,15 @@ namespace ChebTools {
         m_c.head(Nmin) += donor.coef().head(Nmin);
         // If the donor vector is longer than the current vector, resizing is needed
         if (Ndonor > N1) {
-            m_c.resize(Ndonor);
+            // Resize but leave values as they were
+            m_c.conservativeResize(Ndonor);
             // Copy the last Nmax-Nmin values from the donor
             m_c.tail(Nmax - Nmin) = donor.coef().tail(Nmax - Nmin);
         }
         return *this;
     }
     ChebyshevExpansion ChebyshevExpansion::operator*(double value) const {
-        return ChebyshevExpansion(std::move(m_c*value));
+        return ChebyshevExpansion(m_c*value, m_xmin, m_xmax);
     }
     ChebyshevExpansion& ChebyshevExpansion::operator*=(double value) {
         m_c *= value;
@@ -340,17 +341,17 @@ namespace ChebTools {
         // Step 4: Obtain coefficients from vector - matrix product
         return ChebyshevExpansion(L*f, xmin, xmax);
     }
-    ChebyshevExpansion ChebyshevExpansion::from_powxn(const int n, const double xmin, const double xmax) {
+    ChebyshevExpansion ChebyshevExpansion::from_powxn(const std::size_t n, const double xmin, const double xmax) {
         Eigen::VectorXd c = Eigen::VectorXd::Zero(n + 1);
         for (std::size_t k = 0; k <= n / 2; ++k) {
             std::size_t index = n - 2 * k;
-            std::size_t coeff = binomialCoefficient(n, k);
+            double coeff = binomialCoefficient(static_cast<double>(n), static_cast<double>(k));
             if (index == 0) {
-                coeff /= 2;
+                coeff /= 2.0;
             }
             c(index) = coeff;
         }
-        return pow(2, 1 - n)*ChebyshevExpansion(c, xmin, xmax);
+        return pow(2, 1-static_cast<int>(n))*ChebyshevExpansion(c, xmin, xmax);
     }
     ChebyshevExpansion ChebyshevExpansion::deriv(std::size_t Nderiv) const {
         // See Mason and Handscomb, p. 34, Eq. 2.52
@@ -414,7 +415,7 @@ namespace ChebTools {
             }
             i++;
         }
-        // Each column gets multiplied by the vector n*F, then each column is summed
+        // Each column gets multiplied by the vector n*F element-wise, then each column is summed
         return (C.array().colwise() * givenvec.array()).colwise().sum();
     };
 

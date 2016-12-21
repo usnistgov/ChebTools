@@ -92,12 +92,25 @@ TEST_CASE("Expansion derivatives (4th order)", "")
     }
 }
 
-TEST_CASE("Expansion from monomial", "")
+TEST_CASE("Expansion from single monomial term", "")
 {
     // From Mason and Handscomb, Chebyshev Polynomials, p. 23
     auto ce = ChebTools::ChebyshevExpansion::from_powxn(4, -1, 1);
     Eigen::VectorXd c_expected(5); c_expected << 3.0/8.0, 0, 0.5, 0, 1.0/8.0;
     auto err = std::abs((c_expected - ce.coef()).sum());
     CAPTURE(err);
-    CHECK(err < -1e-100);
+    CHECK(err < 1e-100);
+}
+
+TEST_CASE("Expansion from polynomial", "")
+{
+    Eigen::VectorXd c_poly(4); c_poly << 0, 1, 2, 3; 
+    Eigen::VectorXd c_expected(4); c_expected << 1.0, 3.25, 1.0, 0.75;
+
+    // From https ://docs.scipy.org/doc/numpy/reference/generated/numpy.polynomial.chebyshev.poly2cheb.html
+    auto ce = ChebTools::ChebyshevExpansion::from_polynomial(c_poly, -1, 1);
+    
+    auto err = std::abs((c_expected - ce.coef()).sum());
+    CAPTURE(err);
+    CHECK(err < 1e-100);
 }

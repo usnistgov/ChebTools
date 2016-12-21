@@ -126,7 +126,7 @@ namespace ChebTools{
         };
 
         /// Convert a monomial term in the form \f$x^n\f$ to a Chebyshev expansion
-        static ChebyshevExpansion from_powxn(const int n, const double xmin, const double xmax);
+        static ChebyshevExpansion from_powxn(const std::size_t n, const double xmin, const double xmax);
 
         template<class vector_type>
         static ChebyshevExpansion from_polynomial(vector_type c, const double xmin, const double xmax) {
