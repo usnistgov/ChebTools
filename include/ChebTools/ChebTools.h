@@ -8,6 +8,8 @@ namespace ChebTools{
 
     typedef Eigen::VectorXd vectype;
 
+    const Eigen::VectorXd &get_extrema(std::size_t N);
+
     class ChebyshevExpansion {
     private:
         vectype m_c;
@@ -139,8 +141,6 @@ namespace ChebTools{
         /// Return the N-th derivative of this expansion, where N must be >= 1
         ChebyshevExpansion deriv(std::size_t Nderiv) const ;
     };
-
-    const Eigen::VectorXd &get_extrema(std::size_t N);
 
     class SumElement {
     public:
