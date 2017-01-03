@@ -1,0 +1,19 @@
+language: cpp
+compiler:
+  - clang
+  - gcc
+# command to run tests
+script: 
+  - git submodule update --init
+  - mkdir build
+  - cd build
+  - cmake ..
+  - cmake --build . --config Release
+  - ./ChebToolsCatchTests
+
+notifications:
+  email:
+    recipients:
+      - ian.bell@nist.gov
+    on_success: never # default: change
+    on_failure: always # default: always
