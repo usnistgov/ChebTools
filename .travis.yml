@@ -10,6 +10,8 @@ addons:
     packages:
     - cmake
     - cmake-data
+    - gcc-4.8
+    - g++-4.8
 
 # command to run tests
 script: 
