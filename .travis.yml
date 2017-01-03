@@ -2,6 +2,15 @@ language: cpp
 compiler:
   - clang
   - gcc
+
+addons:
+  apt:
+    sources:
+    - george-edison55-precise-backports
+    packages:
+    - cmake
+    - cmake-data
+
 # command to run tests
 script: 
   - git submodule update --init
