@@ -132,7 +132,8 @@ namespace ChebTools{
 
         template<class vector_type>
         static ChebyshevExpansion from_polynomial(vector_type c, const double xmin, const double xmax) {
-            ChebyshevExpansion s({ 0 }, xmin, xmax);
+            vectype c0(1); c0 << 0;
+            ChebyshevExpansion s(c0, xmin, xmax);
             for (std::size_t i = 0; i < c.size(); ++i) {
                 s += c(i)*from_powxn(i, xmin, xmax);
             }
