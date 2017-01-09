@@ -139,9 +139,21 @@ namespace ChebTools {
     template<class T> bool is_in_closed_range(T x1, T x2, T x) { return (x >= std::min(x1, x2) && x <= std::max(x1, x2)); };
 
     ChebyshevExpansion ChebyshevExpansion::operator+(const ChebyshevExpansion &ce2) const {
-        // TODO: when m_c and ce2.coef() not the same size, resize shorter one and pad the longer one
-        if (m_c.size() != ce2.coef().size()) { throw std::range_error("lengths not the same"); }
-        return ChebyshevExpansion(std::move(ce2.coef() + m_c));
+        if (m_c.size() == ce2.coef().size()) {
+            // Both are the same size, nothing creative to do, just add the coefficients
+            return ChebyshevExpansion(std::move(ce2.coef() + m_c), m_xmin, m_xmax); 
+        }
+        else{
+            if (m_c.size() > ce2.coef().size()) {
+                Eigen::VectorXd c(m_c.size()); c.setZero(); c.head(ce2.coef().size()) = ce2.coef();
+                return ChebyshevExpansion(c+m_c, m_xmin, m_xmax);
+            }
+            else {
+                std::size_t n = ce2.coef().size();
+                Eigen::VectorXd c(n); c.setZero(); c.head(m_c.size()) = m_c;
+                return ChebyshevExpansion(c + ce2.coef(), m_xmin, m_xmax);
+            }
+        }
     };
     ChebyshevExpansion& ChebyshevExpansion::operator+=(const ChebyshevExpansion &donor) {
         std::size_t Ndonor = donor.coef().size(), N1 = m_c.size();
@@ -194,6 +206,10 @@ namespace ChebTools {
         std::size_t Norder = m_c.size() - 1;
         // Scale x linearly into the domain [-1, 1]
         double xscaled = (2 * x - (m_xmax + m_xmin)) / (m_xmax - m_xmin);
+        // Short circuit if not using recursive solution
+        if (Norder == 0){ return m_c[0]; }
+        if (Norder == 1) { return m_c[0] + m_c[1]*xscaled; }
+
         vectype &o = m_recurrence_buffer;
         o(0) = 1;
         o(1) = xscaled;
@@ -206,6 +222,10 @@ namespace ChebTools {
         std::size_t Norder = m_c.size() - 1;
         // Scale x linearly into the domain [-1, 1]
         double xscaled = (2 * x - (m_xmax + m_xmin)) / (m_xmax - m_xmin);
+        // Short circuit if not using recursive solution
+        if (Norder == 0) { return m_c[0]; }
+        if (Norder == 1) { return m_c[0] + m_c[1]*xscaled; }
+        
         double u_k = 0, u_kp1 = m_c[Norder], u_kp2 = 0;
         for (int k = Norder - 1; k >= 1; --k) {
             u_k = 2.0*xscaled*u_kp1 - u_kp2 + m_c(k);
@@ -240,6 +260,9 @@ namespace ChebTools {
         const std::size_t Norder = m_c.size() - 1;
 
         Eigen::MatrixXd A(xscaled.size(), Norder + 1);
+        
+        if (Norder == 0) { return m_c[0]*Eigen::MatrixXd::Ones(A.rows(), A.cols()); }
+        if (Norder == 1) { return m_c[0] + m_c[1]*xscaled.array(); }
 
         // Use the recurrence relationships to evaluate the Chebyshev expansion
         // In this case we do column-wise evaluations of the recurrence rule

@@ -95,11 +95,18 @@ TEST_CASE("Expansion derivatives (4th order)", "")
 TEST_CASE("Expansion from single monomial term", "")
 {
     // From Mason and Handscomb, Chebyshev Polynomials, p. 23
-    auto ce = ChebTools::ChebyshevExpansion::from_powxn(4, -1, 1);
-    Eigen::VectorXd c_expected(5); c_expected << 3.0/8.0, 0, 0.5, 0, 1.0/8.0;
-    auto err = std::abs((c_expected - ce.coef()).sum());
-    CAPTURE(err);
-    CHECK(err < 1e-100);
+    auto ce = ChebTools::ChebyshevExpansion::from_powxn(4, 1, 10);
+    SECTION("Check coefficients",""){
+        Eigen::VectorXd c_expected(5); c_expected << 3.0/8.0, 0, 0.5, 0, 1.0/8.0;
+        auto err = std::abs((c_expected - ce.coef()).sum());
+        CAPTURE(err);
+        CHECK(err < 1e-100);
+    }
+    SECTION("Check calculated value",""){
+        auto err = std::abs(pow(3.0, 4.0) - ce.y_Clenshaw(3.0));
+        CAPTURE(err);
+        CHECK(err < 1e-100);
+    }
 }
 
 TEST_CASE("Expansion from polynomial", "")
@@ -108,7 +115,7 @@ TEST_CASE("Expansion from polynomial", "")
     Eigen::VectorXd c_expected(4); c_expected << 1.0, 3.25, 1.0, 0.75;
 
     // From https ://docs.scipy.org/doc/numpy/reference/generated/numpy.polynomial.chebyshev.poly2cheb.html
-    auto ce = ChebTools::ChebyshevExpansion::from_polynomial(c_poly, -1, 1);
+    auto ce = ChebTools::ChebyshevExpansion::from_polynomial(c_poly, 0, 10);
     
     auto err = std::abs((c_expected - ce.coef()).sum());
     CAPTURE(err);
@@ -134,4 +141,107 @@ TEST_CASE("Product of expansions", "")
     auto err = std::abs((c_expected - (C1*C2).coef()).sum());
     CAPTURE(err);
     CHECK(err < 1e-14);
+}
+
+TEST_CASE("Sums of expansions", "")
+{
+    Eigen::VectorXd c4(4); c4 << 1, 2, 3, 4;
+    Eigen::VectorXd c3(3); c3 << 0.1, 0.2, 0.3;
+    double xmin = 0.1, xmax = 3.8;
+
+    SECTION("same lengths") {
+        Eigen::VectorXd c_expected(4); c_expected << 2,4,6,8;
+        auto C1 = ChebTools::ChebyshevExpansion(c4, xmin, xmax);
+        auto C2 = ChebTools::ChebyshevExpansion(c4, xmin, xmax);
+        
+        auto err = std::abs((c_expected - (C1 + C2).coef()).sum());
+        CAPTURE(err);
+        CHECK(err < 1e-100);
+    }
+    SECTION("first longer lengths") {
+        Eigen::VectorXd c_expected(4); c_expected << 1.1, 2.2, 3.3, 4;
+        auto C1 = ChebTools::ChebyshevExpansion(c4, xmin, xmax);
+        auto C2 = ChebTools::ChebyshevExpansion(c3, xmin, xmax);
+
+        auto err = std::abs((c_expected - (C1 + C2).coef()).sum());
+        CAPTURE(err);
+        CHECK(err < 1e-100);
+    }
+    SECTION("second longer length") {
+        Eigen::VectorXd c_expected(4); c_expected << 1.1, 2.2, 3.3, 4;
+        auto C1 = ChebTools::ChebyshevExpansion(c3, xmin, xmax);
+        auto C2 = ChebTools::ChebyshevExpansion(c4, xmin, xmax);
+
+        auto err = std::abs((c_expected - (C1 + C2).coef()).sum());
+        CAPTURE(err);
+        CHECK(err < 1e-100);
+    }
+}
+TEST_CASE("Constant value 1.0", "")
+{
+    Eigen::VectorXd c(1); c << 1.0;
+    Eigen::VectorXd x1(1); x1 << 0.5;
+    Eigen::VectorXd x2(2); x2 << 0.5, 0.5;
+    auto C = ChebTools::ChebyshevExpansion(c, 0, 10);
+
+    double err = std::abs(C.y_recurrence(0.5) - 1.0);
+    CAPTURE(err);
+    CHECK(err < 1e-100);
+
+    double err1 = (C.y(x1).array() - 1.0).cwiseAbs().sum();
+    CAPTURE(err1);
+    CHECK(err1 < 1e-100);
+
+    double err2 = (C.y(x2).array() - 1.0).cwiseAbs().sum();
+    CAPTURE(err2);
+    CHECK(err2 < 1e-100);
+    
+}
+
+TEST_CASE("Constant value y=x", "")
+{
+    Eigen::VectorXd c(2); c << 0.0, 1.0;
+    Eigen::VectorXd x1(1); x1 << 0.5; 
+    Eigen::VectorXd x2(2); x2 << 0.5, 0.5;
+
+    auto C = ChebTools::ChebyshevExpansion(c, -1, 1);
+
+    SECTION("One element with recurrence", ""){
+        double err = std::abs(C.y_recurrence(x1(0)) - x1(0));
+        CAPTURE(err);
+        CHECK(err < 1e-100);
+    }
+    SECTION("One element with Clenshaw", "") {
+        double err = std::abs(C.y_Clenshaw(x1(0)) - x1(0));
+        CAPTURE(err);
+        CHECK(err < 1e-100);
+    }
+    SECTION("One element vector", "") {
+        double err = (C.y(x1).array() - x1.array()).cwiseAbs().sum();
+        CAPTURE(err);
+        CHECK(err < 1e-100);
+    }
+    SECTION("Two element vector",""){
+        double err = (C.y(x2).array() - x2.array()).cwiseAbs().sum();
+        CAPTURE(err);
+        CHECK(err < 1e-100);
+    }
+}
+
+TEST_CASE("Constant value y=x with generation from factory", "")
+{
+    Eigen::VectorXd x1(1); x1 << 0.5;
+
+    SECTION("Standard range", "") {
+        auto C = ChebTools::ChebyshevExpansion::factory(2, [](double x){ return x; }, -1, 1);
+        double err = (C.y(x1).array() - x1.array()).cwiseAbs().sum();
+        CAPTURE(err);
+        CHECK(err < 1e-14);
+    }
+    SECTION("Range(0,10)", "") {
+        auto C = ChebTools::ChebyshevExpansion::factory(1, [](double x) { return x; }, 0, 10);
+        double err = (C.y(x1).array() - x1.array()).cwiseAbs().sum();
+        CAPTURE(err);
+        CHECK(err < 1e-14);
+    }
 }

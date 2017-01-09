@@ -8,24 +8,27 @@ sys.path.append('../build/pybind11/Debug')
 import ChebTools as CT
 
 import CoolProp, CoolProp.CoolProp as CP, json
-T = 600
+T = 200
 fluid = 'n-Propane'
 Tc = CP.PropsSI("Tcrit",fluid)
 
-Ndelta = 12
-Ntau = 400
-deltamin = 1.5
+Ndelta = 40
+Ntau = 50
+deltamin = 1e-12
 deltamax = 6
 
 def check_deriv():
     Ndelta = 6
     f = lambda x: np.exp(x)
-    ce = CT.generate_Chebyshev_expansion(Ndelta, f, 1, 6)
+    ce = CT.generate_Chebyshev_expansion(Ndelta, f, -1, 1)
     print(ce.coef())
     print(ce.deriv(1).coef())
 
 AS = CoolProp.CoolProp.AbstractState('HEOS',fluid)
 AS.specify_phase(CP.iphase_gas) # Something homogeneous
+rhomolar_reducing = AS.rhomolar_reducing()
+R = AS.gas_constant()
+print(rhomolar_reducing, R, T)
 def f(delta):
     AS.update(CP.DmolarT_INPUTS, delta*AS.rhomolar_reducing(), T)
     return AS.alphar()
@@ -59,7 +62,7 @@ def get_EOS(fluid):
         s.__dict__.pop(k)
     return s
 
-def coeffs_from_summation(plot = True):
+def coeffs_from_summation(plot = False):
     
     E = get_EOS(fluid)
 
@@ -78,9 +81,9 @@ def coeffs_from_summation(plot = True):
 
         nF[i] = E.n[i]*funcF(Tc/T)
 
-        _delta = np.linspace(deltamin, deltamax, 10000)
-        _tau = np.linspace(0.1, 6, 10000)
-        print(np.sum((funcG(_delta)-G.y(_delta))**2), np.sum((funcF(_tau)-F.y(_tau))**2))
+        # _delta = np.linspace(deltamin, deltamax, 10000)
+        # _tau = np.linspace(0.1, 6, 10000)
+        # print(np.sum((funcG(_delta)-G.y(_delta))**2), np.sum((funcF(_tau)-F.y(_tau))**2))
 
         if plot:
             tau = np.linspace(0.1, 6, 10000)
@@ -105,29 +108,45 @@ def coeffs_from_summation(plot = True):
         ax2.set_yscale('symlog', linthreshy = 0.01)
         plt.show()
     
-    return c2
+    return c0
 
 if __name__=='__main__':
-    check_deriv()
+    #check_deriv()
+    
+    p_target = 0
 
-    c_CP = coeffs_from_CoolProp()
-    c_sum = coeffs_from_summation()
-    ce_CP = CT.ChebyshevExpansion(c_CP, deltamin, deltamax)
-    ce_sum = CT.ChebyshevExpansion(c_sum, deltamin, deltamax)
+    one = CT.ChebyshevExpansion([1], deltamin, deltamax)
+    _delta = CT.generate_Chebyshev_expansion(1, lambda delta: delta, deltamin, deltamax)
+    neg_p_target = -p_target*one
+
+    dalpharddelta_CP = coeffs_from_CoolProp()
+    dalpharddelta_sum = coeffs_from_summation()
+        
+    p_CP = (CT.ChebyshevExpansion(dalpharddelta_CP, deltamin, deltamax)*_delta+one)*(rhomolar_reducing*T*R*_delta) + neg_p_target
+    p_sum = (CT.ChebyshevExpansion(dalpharddelta_sum, deltamin, deltamax)*_delta+one)*(rhomolar_reducing*T*R*_delta) + neg_p_target
+
+    def get_p(delta, AS, T):
+        y = []
+        for _d in delta:
+            AS.update(CP.DmolarT_INPUTS, _d*rhomolar_reducing, T)
+            p = (AS.dalphar_dDelta()*_d + 1.0)*AS.rhomolar_reducing()*_d*AS.gas_constant()*AS.T()
+            # p = AS.p()
+            y.append(p)
+        return np.array(y)
 
     def get_roots(ce):
         return [((deltamax-deltamin)*np.real(rt) + (deltamax + deltamin))/2.0 for rt in np.linalg.eigvals(ce.companion_matrix()) if np.isreal(rt) and rt > -1 and rt < 1]
 
-    print(get_roots(ce_CP))
-    print(get_roots(ce_sum))
-
-    plt.plot(c_CP - c_sum)
+    plt.plot(p_CP.coef()-p_sum.coef())
     plt.ylabel('diff in coeff')
     plt.show()
 
     delta = np.linspace(deltamin, deltamax, 10000)
-    plt.plot(delta, ce_CP.y(delta))
-    plt.plot(delta, ce_sum.y(delta))
+    plt.plot(delta, p_sum.y(delta), lw = 2)
+    plt.plot(delta, p_CP.y(delta), dashes = [2,2])
+    plt.plot(delta, get_p(delta,AS,T)-p_target)
+    plt.yscale('symlog')
+    plt.axhline(p_target)
     plt.show()
 
     # AS = CoolProp.CoolProp.AbstractState('HEOS',fluid)

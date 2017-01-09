@@ -40,6 +40,7 @@ PYBIND11_PLUGIN(ChebTools) {
         .def(py::self * double())
         .def(double() * py::self)
         .def(py::self *= double())
+        .def(py::self * py::self)
         //.def("__repr__", &Vector2::toString);
         .def("coef", &ChebyshevExpansion::coef)
         .def("companion_matrix", &ChebyshevExpansion::companion_matrix)
