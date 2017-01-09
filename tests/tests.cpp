@@ -114,3 +114,24 @@ TEST_CASE("Expansion from polynomial", "")
     CAPTURE(err);
     CHECK(err < 1e-100);
 }
+/*
+From numpy:
+----------
+from numpy.polynomial.chebyshev import Chebyshev
+c1 = Chebyshev([1,2,3,4])
+c2 = Chebyshev([0.1,0.2,0.3])
+print (c1*c2).coef
+*/
+TEST_CASE("Product of expansions", "")
+{
+    Eigen::VectorXd c1(4); c1 << 1, 2, 3, 4;
+    Eigen::VectorXd c2(3); c2 << 0.1, 0.2, 0.3;
+    Eigen::VectorXd c_expected(6); c_expected << 0.75, 1.6, 1.2, 1.0, 0.85, 0.6;
+
+    auto C1 = ChebTools::ChebyshevExpansion(c1);
+    auto C2 = ChebTools::ChebyshevExpansion(c2);
+
+    auto err = std::abs((c_expected - (C1*C2).coef()).sum());
+    CAPTURE(err);
+    CHECK(err < 1e-14);
+}

@@ -107,6 +107,34 @@ namespace ChebTools {
     };
     static LMatrixLibrary l_matrix_library;
 
+    class UMatrixLibrary {
+    private:
+        std::map<std::size_t, Eigen::MatrixXd> matrices;
+        void build(std::size_t N) {
+            Eigen::MatrixXd U(N + 1, N + 1); ///< Matrix of coefficients
+            for (int j = 0; j <= N; ++j) {
+                for (int k = j; k <= N; ++k) {
+                    U(j, k) = cos((j*EIGEN_PI*k) / N);
+                    // Exploit symmetry to fill in the symmetric elements in the matrix
+                    U(k, j) = U(j, k);
+                }
+            }
+            matrices[N] = U;
+        }
+    public:
+        const Eigen::MatrixXd & get(std::size_t N) {
+            auto it = matrices.find(N);
+            if (it != matrices.end()) {
+                return it->second;
+            }
+            else {
+                build(N);
+                return matrices.find(N)->second;
+            }
+        }
+    };
+    static UMatrixLibrary u_matrix_library;
+
     // From CoolProp
     template<class T> bool is_in_closed_range(T x1, T x2, T x) { return (x >= std::min(x1, x2) && x <= std::max(x1, x2)); };
 
@@ -136,6 +164,23 @@ namespace ChebTools {
         m_c *= value;
         return *this;
     }
+    ChebyshevExpansion ChebyshevExpansion::operator*(const ChebyshevExpansion &ce2) const {
+
+        std::size_t len1 = this->m_c.size(), len2 = ce2.coef().size();
+        std::size_t n = len1 + len2 - 2;
+
+        // Create padded vectors, and copy into them the coefficients from this instance 
+        // and that of the donor
+        Eigen::VectorXd a = Eigen::VectorXd::Zero(n+1), b = Eigen::VectorXd::Zero(n+1);
+        a.head(len1) = this->m_c; b.head(len2) = ce2.coef();
+
+        // Get the matrices u and v
+        Eigen::MatrixXd u = u_matrix_library.get(n);
+        Eigen::MatrixXd v = l_matrix_library.get(n);
+        
+        // Carry out the calculation of the final coefficients
+        return ChebyshevExpansion(v*((u*a).array()*(u*b).array()).matrix(), m_xmin, m_xmax);
+    };
 
     const vectype &ChebyshevExpansion::coef() const {
         return m_c;
