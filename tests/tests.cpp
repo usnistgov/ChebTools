@@ -245,3 +245,15 @@ TEST_CASE("Constant value y=x with generation from factory", "")
         CHECK(err < 1e-14);
     }
 }
+TEST_CASE("product commutativity","") {
+    auto rhoRT = 1e3; // Just a dummy variable
+    double deltamin = 1e-12, deltamax = 6;
+    auto delta = ChebTools::ChebyshevExpansion::factory(1, [](double x) { return x; }, deltamin, deltamax);
+    auto one = ChebTools::ChebyshevExpansion::factory(1, [](double x) { return 1; }, deltamin, deltamax);
+    Eigen::VectorXd c(10); c << 0,1,2,3,4,5,6,7,8,9;
+    auto c0 = ((ChebTools::ChebyshevExpansion(c, deltamin, deltamax)*delta + one)*(rhoRT*delta)).coef();
+    auto c1 = ((rhoRT*delta)*(ChebTools::ChebyshevExpansion(c, deltamin, deltamax)*delta + one)).coef();
+    double err = (c0.array() - c1.array()).cwiseAbs().sum();
+    CAPTURE(err);
+    CHECK(err < 1e-14);
+}

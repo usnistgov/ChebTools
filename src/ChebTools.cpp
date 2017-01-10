@@ -484,7 +484,7 @@ namespace ChebTools {
             i++;
         }
         // Each column gets multiplied by the vector n*F element-wise, then each column is summed
-        return (C.array().colwise() * givenvec.array()).colwise().sum();
+        return C.transpose()*givenvec;
     };
 
 }; /* namespace Chebtools */
