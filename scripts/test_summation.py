@@ -159,16 +159,23 @@ def build_summation_structure(fluids):
 
 def mixture_expansion_of_p(sumstruct, AS, T, N):
     z = AS.get_mole_fractions()
-    Ncomp = len(z)
-    A = np.zeros((N, Ncomp))
     Tr = AS.T_reducing()
-    for i, summat in enumerate(sumstruct):
-        # c = summat.get_coefficients(Tr/T).squeeze()
-        # A[0:len(c)+1, i] = c
-        pass
-    return
+    tau = Tr/T
+
+    # Ncomp = len(z)
+    # A = np.zeros((N, Ncomp))
+    
+    # for i, summat in enumerate(sumstruct):
+    #     c = summat.get_coefficients(tau).squeeze()
+    #     A[0:len(c)+1, i] = c
     # dalphar_dDelta = A.dot(z)
-    # p = (CT.ChebyshevExpansion(dalphar_dDelta, deltamin, deltamax)*_delta + one)*(AS.rhomolar_reducing()*T*AS.gas_constant()*_delta)
+
+    # Method #2, with C++ class
+    cm = CT.ChebyshevMixture(sumstruct, N-1)
+    dalphar_dDelta = cm.get_expansion(Tr/T, z).coef()
+    # return
+
+    p = (CT.ChebyshevExpansion(dalphar_dDelta, deltamin, deltamax)*_delta + one)*(AS.rhomolar_reducing()*T*AS.gas_constant()*_delta)
     return p
 
 if __name__=='__main__':

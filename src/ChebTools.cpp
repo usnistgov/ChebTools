@@ -487,4 +487,18 @@ namespace ChebTools {
         return C.transpose()*givenvec;
     };
 
+    ChebyshevExpansion ChebyshevMixture::get_expansion(double tau, const Eigen::VectorXd &z) {
+        if (all_same_order){
+            // If they are all the same order, can skip the copy, and just write the column directly
+            for (std::size_t i = 0; i < contributions.size(); ++i) {
+                A.col(i) = contributions[i].get_coefficients(tau);
+            }
+        }
+        else {
+            // TODO: not implemented for now
+            throw -1;
+        }
+        return ChebyshevExpansion(A*z);
+    }
+
 }; /* namespace Chebtools */

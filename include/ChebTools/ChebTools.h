@@ -168,5 +168,21 @@ namespace ChebTools{
         Eigen::VectorXd get_coefficients(double input);
     };
 
+    class ChebyshevMixture {
+    private:
+        std::vector<ChebyshevSummation> contributions;
+        Eigen::MatrixXd A;
+        bool all_same_order = true;
+        void allocate(short Norder){
+            A.resize(Norder + 1, contributions.size());
+        }
+    public:
+        ChebyshevMixture(const std::vector<ChebyshevSummation> &contributions, short Norder) : contributions(contributions) {allocate(Norder);};
+        ChebyshevMixture(const std::vector<ChebyshevSummation> &&contributions, short Norder) : contributions(contributions) {allocate(Norder);};
+
+        Eigen::MatrixXd get_A() { return A; }
+        ChebyshevExpansion get_expansion(double tau, const Eigen::VectorXd &z);
+    };
+
 }; /* namespace ChebTools */
 #endif

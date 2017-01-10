@@ -33,6 +33,12 @@ PYBIND11_PLUGIN(ChebTools) {
         .def("get_matrix", &ChebyshevSummation::get_matrix)
         ;
 
+    py::class_<ChebyshevMixture>(m, "ChebyshevMixture")
+        .def(py::init<const std::vector<ChebyshevSummation> &, short>())
+        .def("get_expansion", &ChebyshevMixture::get_expansion)
+        .def("A", &ChebyshevMixture::get_A)
+        ;
+
     py::class_<ChebyshevExpansion>(m, "ChebyshevExpansion")
         .def(py::init<const std::vector<double> &, double, double>())
         .def(py::self + py::self)
