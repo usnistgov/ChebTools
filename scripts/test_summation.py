@@ -12,7 +12,7 @@ import CoolProp, CoolProp.CoolProp as CP, json
 T = 200
 
 Ndelta = 40
-Ntau = 20
+Ntau = 40
 deltamin = 1e-12
 deltamax = 6
 
@@ -89,7 +89,7 @@ def get_terms_in_summation(E, plot = False):
     nF = np.zeros((len(E.n),1))
     for i in range(len(E.n)):
         funcF = lambda tau: tau**E.t[i]*np.exp(-E.beta[i]*(tau-E.gamma[i])**2)
-        F = CT.generate_Chebyshev_expansion(Ntau, funcF, 0.4, 3)
+        F = CT.generate_Chebyshev_expansion(Ntau, funcF, 0.2, 4)
         funcG = lambda delta: delta**E.d[i]*np.exp(-E.cdelta[i]*delta**E.ldelta[i]-E.eta[i]*(delta-E.epsilon[i])**2)
         G = CT.generate_Chebyshev_expansion(Ndelta+1, funcG, deltamin, deltamax)
 
@@ -169,46 +169,29 @@ def python_expansion_of_dalphar_dDelta(sumstruct, AS, T, N):
         c = summat.get_coefficients(tau).squeeze()
         A[0:len(c)+1, i] = c
     dalphar_dDelta = A.dot(z)
-    return 
-
-def python_expansion_of_dalphar_dDelta(sumstruct, AS, T, N):
-    z = AS.get_mole_fractions()
-    Tr = AS.T_reducing()
-    tau = Tr/T
-
-    Ncomp = len(z)
-    A = np.zeros((N, Ncomp))
-    
-    for i, summat in enumerate(sumstruct):
-        c = summat.get_coefficients(tau).squeeze()
-        A[0:len(c)+1, i] = c
-    dalphar_dDelta = A.dot(z)
     return CT.ChebyshevExpansion(dalphar_dDelta, deltamin, deltamax)
 
-def cpp_expansion_of_dalphar_dDelta(cm, tau, z):
-    dalphar_dDelta = cm.get_expansion(tau, z).coef()
-    return CT.ChebyshevExpansion(dalphar_dDelta, deltamin, deltamax)
-
-def mixture_expansion_of_p(dalphar_dDelta, AS):
-    p = (dalphar_dDelta*_delta + one)*(AS.rhomolar_reducing()*T*AS.gas_constant()*_delta)
+def mixture_expansion_of_p(dalphar_dDelta, rhoRT):
+    p = (dalphar_dDelta*_delta + one)*(rhoRT*_delta)
     return p
 
 if __name__=='__main__':
     
-    p_target = 0
+    p_target = 1e4
     neg_p_target = -p_target*one
 
     fluids = ['Methane','HydrogenSulfide']
     sumstruct, N = build_summation_structure(fluids)
     AS = CoolProp.CoolProp.AbstractState('HEOS','&'.join(fluids))
     AS.specify_phase(CP.iphase_gas) # Something homogeneous
-    z0 = 0.5
+    z0 = 0.9
     AS.set_mole_fractions([z0,1-z0])
     z = np.array(AS.get_mole_fractions())
+    rhoRT = AS.rhomolar_reducing()*T*AS.gas_constant()
     
     # Method #1 with composition at python level
     tic = time.clock()
-    p_mix = mixture_expansion_of_p(python_expansion_of_dalphar_dDelta(sumstruct, AS, T, N), AS)
+    p_mix = mixture_expansion_of_p(python_expansion_of_dalphar_dDelta(sumstruct, AS, T, N), rhoRT)
     toc = time.clock()
     print((toc - tic)*1e6,'us elapsed [python]')
     if p_mix is None: sys.exit(-1)
@@ -217,7 +200,11 @@ if __name__=='__main__':
     cm = CT.ChebyshevMixture(sumstruct, N-1)
     tau = AS.T_reducing()/T
     tic = time.clock()
-    p_mix = mixture_expansion_of_p(cpp_expansion_of_dalphar_dDelta(cm, tau, z), AS)
+    ex = cm.get_expansion(tau, z, deltamin, deltamax); p_mix = None
+    toc = time.clock()
+    print((toc - tic)*1e6,'us elapsed [c++ construction of expansion for dalphar_dDelta]')
+    tic = time.clock()
+    p_mix = mixture_expansion_of_p(cm.get_expansion(tau, z, deltamin, deltamax), rhoRT)
     toc = time.clock()
     print((toc - tic)*1e6,'us elapsed [c++]')
     if p_mix is None: sys.exit(-1)

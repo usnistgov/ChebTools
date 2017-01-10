@@ -182,7 +182,7 @@ namespace ChebTools{
         ChebyshevMixture(const std::vector<ChebyshevSummation> &&contributions, short Norder) : contributions(contributions) {allocate(Norder);};
 
         Eigen::MatrixXd get_A() { return A; }
-        ChebyshevExpansion get_expansion(double tau, const Eigen::VectorXd &z);
+        ChebyshevExpansion get_expansion(double tau, const Eigen::VectorXd &z, double xmin, double xmax);
     };
 
 }; /* namespace ChebTools */
