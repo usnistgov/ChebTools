@@ -472,7 +472,7 @@ namespace ChebTools {
     Eigen::VectorXd ChebyshevSummation::get_coefficients(double input) {
         build_independent_matrix();
         // For the specified one, evaluate its Chebyshev expansion
-        Eigen::VectorXd givenvec(terms.size());
+        givenvec.resize(terms.size());
         std::size_t i = 0;
         for (const auto &term : terms) {
             if (F_SPECIFIED) {

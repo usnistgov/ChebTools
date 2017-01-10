@@ -157,6 +157,7 @@ namespace ChebTools{
     private:
         Eigen::MatrixXd C; ///< Coefficient matrix for the coefficients associated with each ChebyshevExpansion in the non-provided variable
         std::vector<SumElement> terms;
+        Eigen::VectorXd givenvec; ///< Buffer for calculated values
         bool F_SPECIFIED = true;
         bool matrix_built = false;
     public:

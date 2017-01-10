@@ -12,7 +12,7 @@ import CoolProp, CoolProp.CoolProp as CP, json
 T = 200
 
 Ndelta = 40
-Ntau = 40
+Ntau = 20
 deltamin = 1e-12
 deltamax = 6
 
@@ -157,25 +157,40 @@ def build_summation_structure(fluids):
         N = max(N, C.shape[1])
     return summats, N
 
-def mixture_expansion_of_p(sumstruct, AS, T, N):
+def python_expansion_of_dalphar_dDelta(sumstruct, AS, T, N):
     z = AS.get_mole_fractions()
     Tr = AS.T_reducing()
     tau = Tr/T
 
-    # Ncomp = len(z)
-    # A = np.zeros((N, Ncomp))
+    Ncomp = len(z)
+    A = np.zeros((N, Ncomp))
     
-    # for i, summat in enumerate(sumstruct):
-    #     c = summat.get_coefficients(tau).squeeze()
-    #     A[0:len(c)+1, i] = c
-    # dalphar_dDelta = A.dot(z)
+    for i, summat in enumerate(sumstruct):
+        c = summat.get_coefficients(tau).squeeze()
+        A[0:len(c)+1, i] = c
+    dalphar_dDelta = A.dot(z)
+    return 
 
-    # Method #2, with C++ class
-    cm = CT.ChebyshevMixture(sumstruct, N-1)
-    dalphar_dDelta = cm.get_expansion(Tr/T, z).coef()
-    # return
+def python_expansion_of_dalphar_dDelta(sumstruct, AS, T, N):
+    z = AS.get_mole_fractions()
+    Tr = AS.T_reducing()
+    tau = Tr/T
 
-    p = (CT.ChebyshevExpansion(dalphar_dDelta, deltamin, deltamax)*_delta + one)*(AS.rhomolar_reducing()*T*AS.gas_constant()*_delta)
+    Ncomp = len(z)
+    A = np.zeros((N, Ncomp))
+    
+    for i, summat in enumerate(sumstruct):
+        c = summat.get_coefficients(tau).squeeze()
+        A[0:len(c)+1, i] = c
+    dalphar_dDelta = A.dot(z)
+    return CT.ChebyshevExpansion(dalphar_dDelta, deltamin, deltamax)
+
+def cpp_expansion_of_dalphar_dDelta(cm, tau, z):
+    dalphar_dDelta = cm.get_expansion(tau, z).coef()
+    return CT.ChebyshevExpansion(dalphar_dDelta, deltamin, deltamax)
+
+def mixture_expansion_of_p(dalphar_dDelta, AS):
+    p = (dalphar_dDelta*_delta + one)*(AS.rhomolar_reducing()*T*AS.gas_constant()*_delta)
     return p
 
 if __name__=='__main__':
@@ -189,14 +204,24 @@ if __name__=='__main__':
     AS.specify_phase(CP.iphase_gas) # Something homogeneous
     z0 = 0.5
     AS.set_mole_fractions([z0,1-z0])
+    z = np.array(AS.get_mole_fractions())
     
+    # Method #1 with composition at python level
     tic = time.clock()
-    p_mix = mixture_expansion_of_p(sumstruct, AS, T, N)
+    p_mix = mixture_expansion_of_p(python_expansion_of_dalphar_dDelta(sumstruct, AS, T, N), AS)
     toc = time.clock()
-    print((toc - tic)*1e6,'us elapsed')
-    if p_mix is None:
-        sys.exit(-1)
-        
+    print((toc - tic)*1e6,'us elapsed [python]')
+    if p_mix is None: sys.exit(-1)
+
+    # Method #2, with C++ class
+    cm = CT.ChebyshevMixture(sumstruct, N-1)
+    tau = AS.T_reducing()/T
+    tic = time.clock()
+    p_mix = mixture_expansion_of_p(cpp_expansion_of_dalphar_dDelta(cm, tau, z), AS)
+    toc = time.clock()
+    print((toc - tic)*1e6,'us elapsed [c++]')
+    if p_mix is None: sys.exit(-1)
+    
     p_sum = p_mix + neg_p_target
 
     def get_p(delta, AS, T):
