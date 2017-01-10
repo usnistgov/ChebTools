@@ -172,7 +172,7 @@ def python_expansion_of_dalphar_dDelta(sumstruct, AS, T, N):
     return CT.ChebyshevExpansion(dalphar_dDelta, deltamin, deltamax)
 
 def mixture_expansion_of_p(dalphar_dDelta, rhoRT):
-    p = (dalphar_dDelta*_delta + one)*(rhoRT*_delta)
+    p = (dalphar_dDelta*_delta + 1.0)*(rhoRT*_delta)
     return p
 
 if __name__=='__main__':
@@ -189,7 +189,7 @@ if __name__=='__main__':
     z = np.array(AS.get_mole_fractions())
     rhoRT = AS.rhomolar_reducing()*T*AS.gas_constant()
     
-    # Method #1 with composition at python level
+    # Method #1, with composition at python level
     tic = time.clock()
     p_mix = mixture_expansion_of_p(python_expansion_of_dalphar_dDelta(sumstruct, AS, T, N), rhoRT)
     toc = time.clock()
@@ -200,11 +200,12 @@ if __name__=='__main__':
     cm = CT.ChebyshevMixture(sumstruct, N-1)
     tau = AS.T_reducing()/T
     tic = time.clock()
-    ex = cm.get_expansion(tau, z, deltamin, deltamax); p_mix = None
+    ex = cm.get_expansion(tau, z, deltamin, deltamax); #p_mix = None
     toc = time.clock()
     print((toc - tic)*1e6,'us elapsed [c++ construction of expansion for dalphar_dDelta]')
+    if p_mix is None: sys.exit(-1)
     tic = time.clock()
-    p_mix = mixture_expansion_of_p(cm.get_expansion(tau, z, deltamin, deltamax), rhoRT)
+    p_mix = mixture_expansion_of_p(ex, rhoRT)
     toc = time.clock()
     print((toc - tic)*1e6,'us elapsed [c++]')
     if p_mix is None: sys.exit(-1)

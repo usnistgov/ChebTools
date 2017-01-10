@@ -43,6 +43,7 @@ PYBIND11_PLUGIN(ChebTools) {
         .def(py::init<const std::vector<double> &, double, double>())
         .def(py::self + py::self)
         .def(py::self += py::self)
+        .def(py::self + double())
         .def(py::self * double())
         .def(double() * py::self)
         .def(py::self *= double())

@@ -35,6 +35,7 @@ namespace ChebTools{
         ChebyshevExpansion operator+(const ChebyshevExpansion &ce2) const ;
         ChebyshevExpansion& operator+=(const ChebyshevExpansion &donor);
         ChebyshevExpansion operator*(double value) const ;
+        ChebyshevExpansion operator+(double value) const;
         ChebyshevExpansion& operator*=(double value);
         // Multiply two Chebyshev expansions together; thanks to Julia code from Bradley Alpert, NIST
         ChebyshevExpansion operator*(const ChebyshevExpansion &ce2) const;
