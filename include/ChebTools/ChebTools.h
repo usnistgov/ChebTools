@@ -39,6 +39,7 @@ namespace ChebTools{
         ChebyshevExpansion& operator*=(double value);
         // Multiply two Chebyshev expansions together; thanks to Julia code from Bradley Alpert, NIST
         ChebyshevExpansion operator*(const ChebyshevExpansion &ce2) const;
+        ChebyshevExpansion times_x() const;
 
         /// Friend function that allows for pre-multiplication by a constant value
         friend ChebyshevExpansion operator*(double value, const ChebyshevExpansion &ce){

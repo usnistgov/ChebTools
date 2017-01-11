@@ -142,6 +142,25 @@ TEST_CASE("Product of expansions", "")
     CAPTURE(err);
     CHECK(err < 1e-14);
 }
+TEST_CASE("Expansion times x", "")
+{
+    Eigen::VectorXd c1(4); c1 << 1, 2, 3, 4;
+    SECTION("default range"){
+        auto x = ChebTools::ChebyshevExpansion::factory(1, [](double x) { return x; }, -1, 1);
+        auto C = ChebTools::ChebyshevExpansion(c1, -1, 1);
+        auto err = (C.times_x().coef().array() - (x*C).coef().array()).cwiseAbs().sum();
+        CAPTURE(err);
+        CHECK(err < 1e-14);
+    }
+    SECTION("non-default range") {
+        double xmin = -0.3, xmax = 4.4;
+        auto x = ChebTools::ChebyshevExpansion::factory(1, [](double x) { return x; }, xmin, xmax);
+        auto C = ChebTools::ChebyshevExpansion(c1, xmin, xmax);
+        auto err = (C.times_x().coef().array() - (x*C).coef().array()).cwiseAbs().sum();
+        CAPTURE(err);
+        CHECK(err < 1e-14);
+    }
+}
 
 TEST_CASE("Sums of expansions", "")
 {
@@ -253,6 +272,18 @@ TEST_CASE("product commutativity","") {
     Eigen::VectorXd c(10); c << 0,1,2,3,4,5,6,7,8,9;
     auto c0 = ((ChebTools::ChebyshevExpansion(c, deltamin, deltamax)*delta + one)*(rhoRT*delta)).coef();
     auto c1 = ((rhoRT*delta)*(ChebTools::ChebyshevExpansion(c, deltamin, deltamax)*delta + one)).coef();
+    double err = (c0.array() - c1.array()).cwiseAbs().sum();
+    CAPTURE(err);
+    CHECK(err < 1e-14);
+}
+TEST_CASE("product commutativity with simple multiplication", "") {
+    auto rhoRT = 1e3; // Just a dummy variable
+    double deltamin = 1e-12, deltamax = 6;
+    auto delta = ChebTools::ChebyshevExpansion::factory(1, [](double x) { return x; }, deltamin, deltamax);
+    auto one = ChebTools::ChebyshevExpansion::factory(1, [](double x) { return 1; }, deltamin, deltamax);
+    Eigen::VectorXd c(10); c << 0, 1, 2, 3, 4, 5, 6, 7, 8, 9;
+    auto c0 = (ChebTools::ChebyshevExpansion(c, deltamin, deltamax)*rhoRT).coef();
+    auto c1 = (rhoRT*ChebTools::ChebyshevExpansion(c, deltamin, deltamax)).coef();
     double err = (c0.array() - c1.array()).cwiseAbs().sum();
     CAPTURE(err);
     CHECK(err < 1e-14);

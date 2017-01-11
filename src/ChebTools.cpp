@@ -198,6 +198,17 @@ namespace ChebTools {
         // Carry out the calculation of the final coefficients
         return ChebyshevExpansion(v*((u*a).array()*(u*b).array()).matrix(), m_xmin, m_xmax);
     };
+    ChebyshevExpansion ChebyshevExpansion::times_x() const {
+        double scale_factor = (m_xmax - m_xmin)/2.0;
+        Eigen::VectorXd c = m_c*(m_xmax + m_xmin)/2.0; 
+        c.conservativeResize(m_c.size()+1); c.tail(1).setZero();
+        c(1) += m_c(0)*scale_factor;
+        for (std::size_t i = 1; i < m_c.size(); ++i) {
+            c(i-1) += 0.5*m_c[i]*scale_factor;
+            c(i+1) += 0.5*m_c[i]*scale_factor;
+        }
+        return ChebyshevExpansion(c, m_xmin, m_xmax);
+    };
 
     const vectype &ChebyshevExpansion::coef() const {
         return m_c;

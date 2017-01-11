@@ -15,6 +15,7 @@ PYBIND11_PLUGIN(ChebTools) {
 
     m.def("mult_by", &mult_by);
     m.def("mult_by_inplace", &mult_by_inplace);
+    m.def("to_p", [](ChebyshevExpansion&dalphar_dDelta, double rhoRT){ return rhoRT*(dalphar_dDelta.times_x() + 1.0).times_x(); });
 
     m.def("evaluation_speed_test", &evaluation_speed_test);
     m.def("eigs_speed_test", &eigs_speed_test);
@@ -48,6 +49,7 @@ PYBIND11_PLUGIN(ChebTools) {
         .def(double() * py::self)
         .def(py::self *= double())
         .def(py::self * py::self)
+        .def("times_x", &ChebyshevExpansion::times_x)
         //.def("__repr__", &Vector2::toString);
         .def("coef", &ChebyshevExpansion::coef)
         .def("companion_matrix", &ChebyshevExpansion::companion_matrix)

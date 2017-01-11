@@ -172,7 +172,9 @@ def python_expansion_of_dalphar_dDelta(sumstruct, AS, T, N):
     return CT.ChebyshevExpansion(dalphar_dDelta, deltamin, deltamax)
 
 def mixture_expansion_of_p(dalphar_dDelta, rhoRT):
-    p = (dalphar_dDelta*_delta + 1.0)*(rhoRT*_delta)
+    #p = rhoRT*(dalphar_dDelta*_delta + 1.0)*(_delta)
+    #p = rhoRT*(dalphar_dDelta.times_x() + 1.0).times_x()
+    p = CT.to_p(dalphar_dDelta, rhoRT)
     return p
 
 if __name__=='__main__':
@@ -184,7 +186,7 @@ if __name__=='__main__':
     sumstruct, N = build_summation_structure(fluids)
     AS = CoolProp.CoolProp.AbstractState('HEOS','&'.join(fluids))
     AS.specify_phase(CP.iphase_gas) # Something homogeneous
-    z0 = 0.9
+    z0 = 0.5
     AS.set_mole_fractions([z0,1-z0])
     z = np.array(AS.get_mole_fractions())
     rhoRT = AS.rhomolar_reducing()*T*AS.gas_constant()
@@ -202,12 +204,12 @@ if __name__=='__main__':
     tic = time.clock()
     ex = cm.get_expansion(tau, z, deltamin, deltamax); #p_mix = None
     toc = time.clock()
-    print((toc - tic)*1e6,'us elapsed [c++ construction of expansion for dalphar_dDelta]')
+    print((toc - tic)*1e6,'us elapsed [c++ - construction of expansion for dalphar_dDelta]')
     if p_mix is None: sys.exit(-1)
     tic = time.clock()
     p_mix = mixture_expansion_of_p(ex, rhoRT)
     toc = time.clock()
-    print((toc - tic)*1e6,'us elapsed [c++]')
+    print((toc - tic)*1e6,'us elapsed [c++ - sums and products to get p]')
     if p_mix is None: sys.exit(-1)
     
     p_sum = p_mix + neg_p_target
