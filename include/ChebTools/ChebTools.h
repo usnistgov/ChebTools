@@ -34,7 +34,7 @@ namespace ChebTools{
 
         ChebyshevExpansion operator+(const ChebyshevExpansion &ce2) const ;
         ChebyshevExpansion& operator+=(const ChebyshevExpansion &donor);
-        ChebyshevExpansion operator*(double value) const ;
+        ChebyshevExpansion operator*(double value) const;
         ChebyshevExpansion operator+(double value) const;
         ChebyshevExpansion& operator*=(double value);
         // Multiply two Chebyshev expansions together; thanks to Julia code from Bradley Alpert, NIST
@@ -42,7 +42,7 @@ namespace ChebTools{
 
         /// Friend function that allows for pre-multiplication by a constant value
         friend ChebyshevExpansion operator*(double value, const ChebyshevExpansion &ce){
-            return ChebyshevExpansion(std::move(ce.coef()*value));
+            return ChebyshevExpansion(std::move(ce.coef()*value),ce.m_xmin, ce.m_xmax);
         };
 
         const vectype &coef() const ;
