@@ -95,7 +95,7 @@ TEST_CASE("Expansion derivatives (4th order)", "")
 TEST_CASE("Expansion from single monomial term", "")
 {
     // From Mason and Handscomb, Chebyshev Polynomials, p. 23
-    auto ce = ChebTools::ChebyshevExpansion::from_powxn(4, 1, 10);
+    auto ce = ChebTools::ChebyshevExpansion::from_powxn(4, -1, 1);
     SECTION("Check coefficients",""){
         Eigen::VectorXd c_expected(5); c_expected << 3.0/8.0, 0, 0.5, 0, 1.0/8.0;
         auto err = std::abs((c_expected - ce.coef()).sum());
