@@ -15,11 +15,13 @@ PYBIND11_PLUGIN(ChebTools) {
 
     m.def("mult_by", &mult_by);
     m.def("mult_by_inplace", &mult_by_inplace);
-    m.def("to_p", [](ChebyshevExpansion&dalphar_dDelta, double rhoRT){ return rhoRT*(dalphar_dDelta.times_x() + 1.0).times_x(); });
+    m.def("to_p", [](ChebyshevExpansion &dalphar_dDelta, double rhoRT){ return rhoRT*(dalphar_dDelta.times_x() + 1.0).times_x(); });
 
     m.def("evaluation_speed_test", &evaluation_speed_test);
     m.def("eigs_speed_test", &eigs_speed_test);
     m.def("generate_Chebyshev_expansion", &ChebyshevExpansion::factory<std::function<double(double)> >);
+    m.def("Eigen_nbThreads", []() { return Eigen::nbThreads(); });
+    m.def("Eigen_setNbThreads", [](int Nthreads) { return Eigen::setNbThreads(Nthreads); });
 
     py::class_<SumElement>(m, "SumElement")
         .def(py::init<double, ChebyshevExpansion &, ChebyshevExpansion &>())
@@ -28,16 +30,28 @@ PYBIND11_PLUGIN(ChebTools) {
         .def_readonly("G", &SumElement::G, py::return_value_policy::take_ownership);
 
     py::class_<ChebyshevSummation>(m, "ChebyshevSummation")
-        .def(py::init<const std::vector<SumElement> &>())
+        .def(py::init<const std::vector<SumElement> &, double, double>())
         .def("build_independent_matrix", &ChebyshevSummation::build_independent_matrix)
         .def("get_coefficients", &ChebyshevSummation::get_coefficients)
         .def("get_matrix", &ChebyshevSummation::get_matrix)
+        .def("xmin", &ChebyshevSummation::xmin)
+        .def("xmax", &ChebyshevSummation::xmax)
         ;
 
     py::class_<ChebyshevMixture>(m, "ChebyshevMixture")
-        .def(py::init<const std::vector<ChebyshevSummation> &, short>())
-        .def("get_expansion", &ChebyshevMixture::get_expansion)
-        .def("A", &ChebyshevMixture::get_A)
+        .def(py::init<const std::vector<std::vector<ChebyshevSummation> > &, short>())
+        .def("get_A", &ChebyshevMixture::get_A)
+        .def("get_p", &ChebyshevMixture::get_p)
+        .def("time_get_p", &ChebyshevMixture::time_get_p)
+        .def("get_dalphar_ddelta", &ChebyshevMixture::get_dalphar_ddelta)
+        .def("Nintervals", &ChebyshevMixture::Nintervals)
+        .def("get_intervals", &ChebyshevMixture::get_intervals)
+        .def("calc_real_roots", &ChebyshevMixture::calc_real_roots)
+        .def("time_calc_real_roots", &ChebyshevMixture::time_calc_real_roots)
+        .def("get_real_roots", &ChebyshevMixture::get_real_roots)
+        .def("calc_companion_matrices", &ChebyshevMixture::calc_companion_matrices)
+        .def("unlikely_root", &ChebyshevMixture::unlikely_root)
+        .def("eigenvalues", &ChebyshevMixture::eigenvalues)
         ;
 
     py::class_<ChebyshevExpansion>(m, "ChebyshevExpansion")
@@ -45,6 +59,7 @@ PYBIND11_PLUGIN(ChebTools) {
         .def(py::self + py::self)
         .def(py::self += py::self)
         .def(py::self + double())
+        .def(py::self - double())
         .def(py::self * double())
         .def(double() * py::self)
         .def(py::self *= double())
@@ -62,6 +77,10 @@ PYBIND11_PLUGIN(ChebTools) {
         .def("subdivide", &ChebyshevExpansion::subdivide)
         .def("real_roots_intervals", &ChebyshevExpansion::real_roots_intervals)
         .def("deriv", &ChebyshevExpansion::deriv)
+        .def("xmin", &ChebyshevExpansion::xmin)
+        .def("xmax", &ChebyshevExpansion::xmax)
+        .def("get_nodes_n11", &ChebyshevExpansion::get_nodes_n11)
+        .def("get_node_function_values", &ChebyshevExpansion::get_node_function_values)
         ;
     return m.ptr();
 }

@@ -34,6 +34,40 @@ double binomialCoefficient(const double n, const double k) {
 
 namespace ChebTools {
 
+    void balance_matrix(const Eigen::MatrixXd &A, Eigen::MatrixXd &Aprime, Eigen::MatrixXd &D) {
+        // https://arxiv.org/pdf/1401.5766.pdf (Algorithm #3)
+        const int p = 2;
+        double beta = 2; // Radix base (2?)
+        Aprime = A;
+        D = Eigen::MatrixXd::Identity(A.rows(), A.cols());
+        bool converged = false;
+        do {
+            converged = true;
+            for (Eigen::Index i = 0; i < A.rows(); ++i) {
+                double c = Aprime.col(i).lpNorm<p>();
+                double r = Aprime.row(i).lpNorm<p>();
+                double s = pow(c, p) + pow(r, p);
+                double f = 1;
+                while (c < r / beta) {
+                    c *= beta;
+                    r /= beta;
+                    f *= beta;
+                }
+                while (c >= r*beta) {
+                    c /= beta;
+                    r *= beta;
+                    f /= beta;
+                }
+                if (pow(c, p) + pow(r, p) < 0.95*s) {
+                    converged = false;
+                    D(i, i) *= f;
+                    Aprime.col(i) *= f;
+                    Aprime.row(i) /= f;
+                }
+            }
+        } while (!converged);
+    }
+
     class ChebyshevExtremaLibrary {
     private:
         std::map<std::size_t, Eigen::VectorXd> vectors;
@@ -175,6 +209,11 @@ namespace ChebTools {
     ChebyshevExpansion ChebyshevExpansion::operator+(double value) const {
         Eigen::VectorXd c = m_c;
         c(0) += value;
+        return ChebyshevExpansion(c, m_xmin, m_xmax);
+    }
+    ChebyshevExpansion ChebyshevExpansion::operator-(double value) const {
+        Eigen::VectorXd c = m_c;
+        c(0) -= value;
         return ChebyshevExpansion(c, m_xmin, m_xmax);
     }
     ChebyshevExpansion& ChebyshevExpansion::operator*=(double value) {
@@ -325,12 +364,16 @@ namespace ChebTools {
 
         // Roots of the Chebyshev expansion are eigenvalues of the companion matrix
         // obtained from the companion_matrix function
-        Eigen::VectorXcd eigvals = companion_matrix().eigenvalues();
+        Eigen::MatrixXd Abalanced, D;
+        balance_matrix(companion_matrix(), Abalanced, D);
+        Eigen::VectorXcd eigvals = Abalanced.eigenvalues();
 
         for (int i = 0; i < eigvals.size(); ++i) {
-            if (std::abs(eigvals(i).imag()) < 10 * DBL_EPSILON) {
+            double imag = eigvals(i).imag();
+            double real = eigvals(i).real();
+            if (std::abs(imag)/std::abs(real) < 10 * DBL_EPSILON) {
                 // Rescale back into real-world values
-                double x = ((m_xmax - m_xmin)*eigvals(i).real() + (m_xmax + m_xmin)) / 2.0;
+                double x = ((m_xmax - m_xmin)*real + (m_xmax + m_xmin)) / 2.0;
                 // Keep it if in the domain or if you want all real roots
                 if (!only_in_domain || (x <= m_xmax && x >= m_xmin)) {
                     roots.push_back(x);
@@ -340,6 +383,11 @@ namespace ChebTools {
         return roots;
     }
     std::vector<ChebyshevExpansion> ChebyshevExpansion::subdivide(std::size_t Nintervals, std::size_t Norder) const {
+
+        if (Nintervals == 1) {
+            return std::vector<ChebyshevExpansion>(1, *this);
+        }
+
         std::vector<ChebyshevExpansion> segments;
         double deltax = (m_xmax - m_xmin) / (Nintervals - 1);
 
@@ -353,7 +401,7 @@ namespace ChebTools {
         }
         return segments;
     }
-    std::vector<double> ChebyshevExpansion::real_roots_intervals(const std::vector<ChebyshevExpansion> &segments, bool only_in_domain) const {
+    std::vector<double> ChebyshevExpansion::real_roots_intervals(const std::vector<ChebyshevExpansion> &segments, bool only_in_domain) {
         std::vector<double> roots;
         for (auto &seg : segments) {
             const auto segroots = seg.real_roots(only_in_domain);
@@ -419,6 +467,17 @@ namespace ChebTools {
         return roots;
     }
 
+    /// Chebyshev-Lobatto nodes cos(pi*j/N), j = 0,..., N
+    Eigen::VectorXd ChebyshevExpansion::get_nodes_n11() {
+        std::size_t N = m_c.size()-1;
+        return extrema_library.get(N);
+    }
+    /// Values of the function at the Chebyshev-Lobatto nodes 
+    Eigen::VectorXd ChebyshevExpansion::get_node_function_values() {
+        std::size_t N = m_c.size()-1; 
+        return u_matrix_library.get(N)*m_c;
+    }
+
     ChebyshevExpansion ChebyshevExpansion::factoryf(const int N, const Eigen::VectorXd &f, const double xmin, const double xmax) {
         // Step 3: Get coefficients for the L matrix from the library of coefficients
         const Eigen::MatrixXd &L = l_matrix_library.get(N);
@@ -471,16 +530,17 @@ namespace ChebTools {
     void ChebyshevSummation::build_independent_matrix() {
         if (matrix_built){ return; } // no-op if matrix already built
         /// C is a matrix with as many rows as terms in the summation, and the coefficients for each term in increasing order in each row
-        Eigen::Index Nrows = terms.size(), Ncols = 0;
-        // Determine how many columns are needed 
-        for (auto &term : terms) { Ncols = (F_SPECIFIED) ? std::max(Ncols, term.G.coef().size()) : std::max(Ncols, term.F.coef().size()); }
+        Eigen::Index Nrows = 0, Ncols = terms.size();
+        // Determine how many rows are needed 
+        for (auto &term : terms) { Nrows = (F_SPECIFIED) ? std::max(Nrows, term.G.coef().size()) : std::max(Nrows, term.F.coef().size()); }
         // Fill matrix with all zeros (padding for shorter entries)
         C = Eigen::MatrixXd::Zero(Nrows, Ncols);
-        // Fill each row
+        // Fill each column
         std::size_t i = 0;
         for (auto &term : terms) {
+            // Get the appropriate set of coefficients (expansion in delta (G) when tau is given, or expansion in tau (F) when delta is given)
             const Eigen::VectorXd &coef = (F_SPECIFIED) ? term.G.coef() : term.F.coef();
-            C.row(i).head(coef.size()) = coef.transpose(); // Make column vector into row vector
+            C.col(i).head(coef.size()) = coef;
             i++;
         }
         matrix_built = true;
@@ -499,22 +559,117 @@ namespace ChebTools {
             }
             i++;
         }
-        // Each column gets multiplied by the vector n*F element-wise, then each column is summed
-        return C.transpose()*givenvec;
+        // Each row gets multiplied by the vector n*F element-wise, then each row is summed
+        return C*givenvec;
     };
 
-    ChebyshevExpansion ChebyshevMixture::get_expansion(double tau, const Eigen::VectorXd &z, double xmin, double xmax) {
+    ChebyshevExpansion ChebyshevMixture::get_expansion_of_interval(std::vector<ChebyshevSummation> &interval, double tau, const Eigen::VectorXd &z, double xmin, double xmax) {
         if (all_same_order){
-            // If they are all the same order, can skip the copy, and just write the column directly
-            for (std::size_t i = 0; i < contributions.size(); ++i) {
-                A.col(i) = contributions[i].get_coefficients(tau);
+            // For this interval, calculate the contributions for each fluid to the expansion
+
+            //if (std::abs(tau - previous_tau) > 1e-14) 
+            {
+                // If they are all the same order, can skip the copy+pad, and just write the column directly
+                for (std::size_t icomp = 0; icomp < interval.size(); ++icomp) {
+                    Eigen::VectorXd c = interval[icomp].get_coefficients(tau);
+                    A.col(icomp).head(c.size()) = c;
+                }
+                previous_tau = tau;
             }
+            
+            // Return an expansion for this interval in terms of delta of the mixture
+            return ChebyshevExpansion(A*z, xmin, xmax);
         }
         else {
             // TODO: not implemented for now
             throw -1;
         }
-        return ChebyshevExpansion(A*z, xmin, xmax);
+    }
+    std::vector<Eigen::MatrixXd> ChebyshevMixture::calc_companion_matrices(double rhorRT, double p_target, double tau, const Eigen::VectorXd &z) {
+        std::vector<Eigen::MatrixXd> mats;
+        // Iterate over the intervals forming the domain; in each, find any roots that you can
+        for (auto &interval : interval_expansions) {
+            auto p = rhorRT*(get_expansion_of_interval(interval, tau, z, interval[0].xmin(), interval[0].xmax()).times_x() + 1).times_x();
+            auto expansion = p - p_target;
+            mats.push_back(expansion.companion_matrix());
+        }
+        return mats;
+    }
+    bool ChebyshevMixture::unlikely_root(ChebyshevExpansion &pdiff, double ptolerance)
+    {
+        Eigen::VectorXd nodevals = pdiff.get_node_function_values();
+        double nodemin = nodevals.minCoeff(), nodemax = nodevals.maxCoeff(), nodeminabs = nodevals.cwiseAbs().minCoeff();
+        double xminval = pdiff.y_Clenshaw(pdiff.xmin()), xmaxval = pdiff.y_Clenshaw(pdiff.xmax());
+        if (nodemin*nodemax > 0.0 && xminval*xmaxval > 0.0 && nodeminabs > ptolerance) {
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
+    void ChebyshevMixture::calc_real_roots(double rhorRT, double p_target, double tau, const Eigen::VectorXd &z, double ptolerance) {
+        m_roots.clear();
+        // Iterate over the intervals forming the domain; in each, find any roots that you can
+        for (auto &interval : interval_expansions) {
+            auto expansion = rhorRT*(get_expansion_of_interval(interval, tau, z, interval[0].xmin(), interval[0].xmax()).times_x() + 1).times_x() - p_target;
+            if (unlikely_root(expansion, ptolerance)) {
+                continue;
+            }
+            const bool only_in_domain = true;
+            std::vector<double> roots = expansion.real_roots(only_in_domain);
+            m_roots.insert(m_roots.end(), roots.begin(), roots.end());
+        }
+    }
+    double ChebyshevMixture::time_calc_real_roots(double rhorRT, double p_target, double tau, const Eigen::VectorXd &z, double ptolerance) {
+        auto startTime = std::chrono::system_clock::now();
+        double N = 10;
+        double summer = 0;
+        for (int i = 0; i < N; ++i) {
+            calc_real_roots(rhorRT, p_target, tau, z, ptolerance);
+        }
+        auto endTime = std::chrono::system_clock::now();
+        auto elap_us = std::chrono::duration<double>(endTime - startTime).count() / N*1e6;
+        return elap_us;
+    }
+    std::vector<double> ChebyshevMixture::get_real_roots(){ return m_roots; }
+    ChebyshevExpansion ChebyshevMixture::get_p(std::vector<ChebyshevSummation> &interval,  double rhorRT, double tau, const Eigen::VectorXd &z) {
+        return rhorRT*(get_expansion_of_interval(interval, tau, z, interval[0].xmin(), interval[0].xmax()).times_x() + 1).times_x();
+    }
+    ChebyshevExpansion ChebyshevMixture::get_dalphar_ddelta(std::size_t i, double rhorRT, double tau, const Eigen::VectorXd &z) {
+        if (i > 1000){
+            return ChebyshevExpansion({ 0,1 }, -1, 1);
+        }
+        else{
+            std::vector<ChebyshevSummation> &interval = interval_expansions[i];
+            return get_expansion_of_interval(interval, tau, z, interval[0].xmin(), interval[0].xmax());
+        }
+    }
+
+    double ChebyshevMixture::time_get_p(double rhorRT, double tau, double p, const Eigen::VectorXd &z) {
+        auto startTime = std::chrono::system_clock::now();
+        double N = 10000;
+        double summer = 0;
+        for (int i = 0; i < N; ++i) {
+            for (std::size_t j = 0; j < interval_expansions.size(); ++j){
+                std::vector<ChebyshevSummation> &interval = interval_expansions[j];
+                auto pp = rhorRT*(get_expansion_of_interval(interval, tau, z, interval[0].xmin(), interval[0].xmax()).times_x() + 1).times_x() - p;
+                summer += pp.coef()[0];
+            }
+        }
+        auto endTime = std::chrono::system_clock::now();
+        auto elap_us = std::chrono::duration<double>(endTime - startTime).count() / N*1e6;
+        return elap_us;
+    }
+    
+    Eigen::VectorXcd ChebyshevMixture::eigenvalues(Eigen::MatrixXd &A, bool balance) {
+        if (balance) {
+            Eigen::MatrixXd Abalanced, D;
+            balance_matrix(A, Abalanced, D);
+            return Abalanced.eigenvalues();
+        }
+        else {
+            return A.eigenvalues();
+        }
     }
 
 }; /* namespace Chebtools */

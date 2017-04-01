@@ -28,6 +28,8 @@ namespace ChebTools{
             m_c = Eigen::Map<const Eigen::VectorXd>(&(c[0]), c.size());
             resize();
         };
+        double xmin(){ return m_xmin; }
+        double xmax(){ return m_xmax; }
 
         // Move constructor (C++11 only)
         ChebyshevExpansion(const vectype &&c, double xmin = -1, double xmax = 1) : m_c(c), m_xmin(xmin), m_xmax(xmax) { resize(); };
@@ -36,6 +38,7 @@ namespace ChebTools{
         ChebyshevExpansion& operator+=(const ChebyshevExpansion &donor);
         ChebyshevExpansion operator*(double value) const;
         ChebyshevExpansion operator+(double value) const;
+        ChebyshevExpansion operator-(double value) const;
         ChebyshevExpansion& operator*=(double value);
         // Multiply two Chebyshev expansions together; thanks to Julia code from Bradley Alpert, NIST
         ChebyshevExpansion operator*(const ChebyshevExpansion &ce2) const;
@@ -94,7 +97,7 @@ namespace ChebTools{
         */
         std::vector<double> real_roots(bool only_in_domain = true) const ;
         std::vector<ChebyshevExpansion> subdivide(std::size_t Nintervals, std::size_t Norder) const ;
-        std::vector<double> real_roots_intervals(const std::vector<ChebyshevExpansion> &segments, bool only_in_domain = true) const ;
+        static std::vector<double> real_roots_intervals(const std::vector<ChebyshevExpansion> &segments, bool only_in_domain = true);
 
         double real_roots_time(long N);
         std::vector<double> real_roots_approx(long Npoints);
@@ -145,6 +148,10 @@ namespace ChebTools{
         }
         /// Return the N-th derivative of this expansion, where N must be >= 1
         ChebyshevExpansion deriv(std::size_t Nderiv) const ;
+
+        Eigen::VectorXd ChebyshevExpansion::get_nodes_n11();
+        /// Values of the function at the Chebyshev-Lobatto nodes 
+        Eigen::VectorXd ChebyshevExpansion::get_node_function_values();
     };
 
     class SumElement {
@@ -162,29 +169,46 @@ namespace ChebTools{
         Eigen::VectorXd givenvec; ///< Buffer for calculated values
         bool F_SPECIFIED = true;
         bool matrix_built = false;
+        double m_xmin, m_xmax;
     public:
-        ChebyshevSummation(const std::vector<SumElement> &terms) : terms(terms) {}; 
-        ChebyshevSummation(const std::vector<SumElement> &&terms) : terms(terms) {};
+        ChebyshevSummation(const std::vector<SumElement> &terms, double xmin, double xmax) : terms(terms), m_xmin(xmin), m_xmax(xmax) {};
+        ChebyshevSummation(const std::vector<SumElement> &&terms, double xmin, double xmax) : terms(terms), m_xmin(xmin), m_xmax(xmax) {};
         /// Once you specify which variable will be given, you can build the independent variable matrix
         void build_independent_matrix();
         Eigen::MatrixXd get_matrix(){ return C; }
         Eigen::VectorXd get_coefficients(double input);
+        double xmin(){ return m_xmin; }
+        double xmax(){ return m_xmax; }
     };
 
     class ChebyshevMixture {
     private:
-        std::vector<ChebyshevSummation> contributions;
+        std::vector<std::vector<ChebyshevSummation> > interval_expansions; ///< A vector of intervals, in each interval, there is a vector of summations, each summation corresponding to one fluid
+        std::vector<double> m_roots;
         Eigen::MatrixXd A;
         bool all_same_order = true;
+        double previous_tau;
         void allocate(short Norder){
-            A.resize(Norder + 1, contributions.size());
+            A.resize(Norder + 1, interval_expansions[0].size());
+            previous_tau = 1e20;
         }
     public:
-        ChebyshevMixture(const std::vector<ChebyshevSummation> &contributions, short Norder) : contributions(contributions) {allocate(Norder);};
-        ChebyshevMixture(const std::vector<ChebyshevSummation> &&contributions, short Norder) : contributions(contributions) {allocate(Norder);};
+        ChebyshevMixture(const std::vector<std::vector<ChebyshevSummation> > &intervals, short Norder) : interval_expansions(intervals) {allocate(Norder);};
+        ChebyshevMixture(const std::vector<std::vector<ChebyshevSummation> > &&intervals, short Norder) : interval_expansions(intervals) {allocate(Norder);};
 
         Eigen::MatrixXd get_A() { return A; }
-        ChebyshevExpansion get_expansion(double tau, const Eigen::VectorXd &z, double xmin, double xmax);
+        ChebyshevExpansion get_expansion_of_interval(std::vector<ChebyshevSummation> &interval, double tau, const Eigen::VectorXd &z, double xmin, double xmax);
+        void calc_real_roots(double rhoRT, double p, double tau, const Eigen::VectorXd &z, double ptolerance);
+        double time_calc_real_roots(double rhorRT, double p_target, double tau, const Eigen::VectorXd &z, double ptolerance);
+        ChebyshevExpansion get_p(std::vector<ChebyshevSummation> &interval, double rhorRT, double tau, const Eigen::VectorXd &z);
+        double time_get_p(double rhorRT, double tau, double p, const Eigen::VectorXd &z);
+        ChebyshevExpansion get_dalphar_ddelta(std::size_t i, double rhorRT, double tau, const Eigen::VectorXd &z);
+        std::vector<double> get_real_roots();
+        bool unlikely_root(ChebyshevExpansion &pdiff, double ptolerance);
+        std::size_t Nintervals(){ return interval_expansions.size(); };
+        std::vector<std::vector<ChebyshevSummation> > get_intervals(){ return interval_expansions; };
+        std::vector<Eigen::MatrixXd> calc_companion_matrices(double rhorRT, double p_target, double tau, const Eigen::VectorXd &z);
+        Eigen::VectorXcd eigenvalues(Eigen::MatrixXd &mat, bool balance);
     };
 
 }; /* namespace ChebTools */
