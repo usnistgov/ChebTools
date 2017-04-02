@@ -583,17 +583,12 @@ namespace ChebTools {
         // In this case we do column-wise evaluations of the recurrence rule
         A(0) = 1;
         A(1) = xscaled;
-        for (int n = 1; n < Ncols-1; ++n) {
+        for (Eigen::Index n = 1; n < Ncols-1; ++n) {
             A(n + 1) = 2*xscaled*A(n) - A(n - 1);
         }
-        // In this form, the matrix-vector product will yield the y values
-        //std::cout << A*B << std::endl;
-        //std::cout << "A*(B.col(0)):" << A*(B.col(0)) << std::endl; 
-        //std::cout << "nF[0]:" << (A*B.col(0))*N(0) << std::endl;
-        //Eigen::VectorXd AB = A*B;
-        //Eigen::VectorXd nF = AB.array()*N.array();
-        //std::cout << "nF:" << nF << std::endl;
-        return (A*B).array()*B.array();
+        Eigen::VectorXd AB = A*B;
+        Eigen::VectorXd o = (AB.array())*(N.array());
+        return o;
     }
     Eigen::VectorXd ChebyshevSummation::get_nFcoefficients_serial(double input) {
         build_independent_matrix();
@@ -720,7 +715,7 @@ namespace ChebTools {
                 for (std::size_t j = 0; j < interval_expansions.size(); ++j) {
                     std::vector<ChebyshevSummation> &interval = interval_expansions[j];
                     for (auto &fluid : interval){
-                        summer += fluid.get_nFcoefficients_serial(tau)(0);
+                        summer += fluid.get_nFcoefficients_serial(tau)(5);
                     }
                 }
             }
@@ -730,7 +725,7 @@ namespace ChebTools {
                 for (std::size_t j = 0; j < interval_expansions.size(); ++j) {
                     std::vector<ChebyshevSummation> &interval = interval_expansions[j];
                     for (auto &fluid : interval) {
-                        summer += fluid.get_nFcoefficients_parallel(tau)(0);
+                        summer += fluid.get_nFcoefficients_parallel(tau)(5);
                     }
                 }
             }
