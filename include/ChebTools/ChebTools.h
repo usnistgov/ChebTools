@@ -149,9 +149,10 @@ namespace ChebTools{
         /// Return the N-th derivative of this expansion, where N must be >= 1
         ChebyshevExpansion deriv(std::size_t Nderiv) const ;
 
-        Eigen::VectorXd ChebyshevExpansion::get_nodes_n11();
+        /// Get the Chebyshev-Lobatto nodes
+        Eigen::VectorXd get_nodes_n11();
         /// Values of the function at the Chebyshev-Lobatto nodes 
-        Eigen::VectorXd ChebyshevExpansion::get_node_function_values();
+        Eigen::VectorXd get_node_function_values();
     };
 
     class SumElement {

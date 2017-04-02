@@ -637,7 +637,9 @@ namespace ChebTools {
     }
     ChebyshevExpansion ChebyshevMixture::get_dalphar_ddelta(std::size_t i, double rhorRT, double tau, const Eigen::VectorXd &z) {
         if (i > 1000){
-            return ChebyshevExpansion({ 0,1 }, -1, 1);
+            Eigen::VectorXd c(2,1);
+            c << 0,1;
+            return ChebyshevExpansion(c, -1, 1);
         }
         else{
             std::vector<ChebyshevSummation> &interval = interval_expansions[i];
