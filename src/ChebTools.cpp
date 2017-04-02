@@ -528,39 +528,94 @@ namespace ChebTools {
     
     /// Once you specify which variable will be given, you can build the independent variable matrix
     void ChebyshevSummation::build_independent_matrix() {
-        if (matrix_built){ return; } // no-op if matrix already built
+        if (matrix_indep_built){ return; } // no-op if matrix already built
         /// C is a matrix with as many rows as terms in the summation, and the coefficients for each term in increasing order in each row
         Eigen::Index Nrows = 0, Ncols = terms.size();
         // Determine how many rows are needed 
         for (auto &term : terms) { Nrows = (F_SPECIFIED) ? std::max(Nrows, term.G.coef().size()) : std::max(Nrows, term.F.coef().size()); }
         // Fill matrix with all zeros (padding for shorter entries)
         C = Eigen::MatrixXd::Zero(Nrows, Ncols);
+        B = Eigen::MatrixXd::Zero(Nrows, Ncols);
+        N.resize(Ncols);
         // Fill each column
-        std::size_t i = 0;
+        Eigen::Index i = 0;
         for (auto &term : terms) {
             // Get the appropriate set of coefficients (expansion in delta (G) when tau is given, or expansion in tau (F) when delta is given)
             const Eigen::VectorXd &coef = (F_SPECIFIED) ? term.G.coef() : term.F.coef();
             C.col(i).head(coef.size()) = coef;
             i++;
         }
-        matrix_built = true;
+        matrix_indep_built = true;
     };
-    Eigen::VectorXd ChebyshevSummation::get_coefficients(double input) {
+    /// Once you specify which variable will be given, you can build the independent variable matrix
+    void ChebyshevSummation::build_dependent_matrix() {
+        if (matrix_dep_built) { return; } // no-op if matrix already built
+                                      /// C is a matrix with as many rows as terms in the summation, and the coefficients for each term in increasing order in each row
+        Eigen::Index Nrows = 0, Ncols = terms.size();
+        // Determine how many rows are needed 
+        for (auto &term : terms) { Nrows = (!F_SPECIFIED) ? std::max(Nrows, term.G.coef().size()) : std::max(Nrows, term.F.coef().size()); }
+        // Fill matrix with all zeros (padding for shorter entries)
+        B = Eigen::MatrixXd::Zero(Nrows, Ncols);
+        N.resize(Ncols);
+        // Fill each column
+        Eigen::Index i = 0;
+        for (auto &term : terms) {
+            const Eigen::VectorXd &coef = (F_SPECIFIED) ? term.F.coef() : term.G.coef();
+            B.col(i).head(coef.size()) = coef;
+            N(i) = term.n_i;
+            i++;
+        }
+        matrix_dep_built = true;
+    };
+    Eigen::VectorXd ChebyshevSummation::get_nFcoefficients_parallel(double input) {
         build_independent_matrix();
+        build_dependent_matrix();
+        Eigen::Index Ncols = 0;
+        // Determine how many rows are needed 
+        for (auto &term : terms) { Ncols = (!F_SPECIFIED) ? std::max(Ncols, term.G.coef().size()) : std::max(Ncols, term.F.coef().size()); }
+
+        Eigen::RowVectorXd A(Ncols);
+        double inmin = (F_SPECIFIED) ? terms[0].F.xmin() : terms[0].G.xmin();
+        double inmax = (F_SPECIFIED) ? terms[0].F.xmax() : terms[0].G.xmax();
+        double xscaled = (2 * input - (inmax + inmin)) / (inmax - inmin);
+
+        // Use the recurrence relationships to evaluate the Chebyshev expansion
+        // In this case we do column-wise evaluations of the recurrence rule
+        A(0) = 1;
+        A(1) = xscaled;
+        for (int n = 1; n < Ncols-1; ++n) {
+            A(n + 1) = 2*xscaled*A(n) - A(n - 1);
+        }
+        // In this form, the matrix-vector product will yield the y values
+        //std::cout << A*B << std::endl;
+        //std::cout << "A*(B.col(0)):" << A*(B.col(0)) << std::endl; 
+        //std::cout << "nF[0]:" << (A*B.col(0))*N(0) << std::endl;
+        //Eigen::VectorXd AB = A*B;
+        //Eigen::VectorXd nF = AB.array()*N.array();
+        //std::cout << "nF:" << nF << std::endl;
+        return (A*B).array()*B.array();
+    }
+    Eigen::VectorXd ChebyshevSummation::get_nFcoefficients_serial(double input) {
+        build_independent_matrix();
+        build_dependent_matrix();
         // For the specified one, evaluate its Chebyshev expansion
         givenvec.resize(terms.size());
         std::size_t i = 0;
         for (const auto &term : terms) {
             if (F_SPECIFIED) {
-                givenvec(i) = term.n_i*term.F.y_Clenshaw(input);
+                givenvec(i) = N(i)*term.F.y_Clenshaw(input);
             }
             else {
                 throw - 1;
             }
             i++;
         }
-        // Each row gets multiplied by the vector n*F element-wise, then each row is summed
-        return C*givenvec;
+        return givenvec;
+    }
+    Eigen::VectorXd ChebyshevSummation::get_coefficients(double input) {
+        build_independent_matrix();
+        build_dependent_matrix();
+        return C*get_nFcoefficients_parallel(input);
     };
 
     ChebyshevExpansion ChebyshevMixture::get_expansion_of_interval(std::vector<ChebyshevSummation> &interval, double tau, const Eigen::VectorXd &z, double xmin, double xmax) {
@@ -647,19 +702,44 @@ namespace ChebTools {
         }
     }
 
-    double ChebyshevMixture::time_get_p(double rhorRT, double tau, double p, const Eigen::VectorXd &z) {
+    double ChebyshevMixture::time_get(std::string &thing, double rhorRT, double tau, double p, const Eigen::VectorXd &z) {
         auto startTime = std::chrono::system_clock::now();
         double N = 10000;
         double summer = 0;
-        for (int i = 0; i < N; ++i) {
-            for (std::size_t j = 0; j < interval_expansions.size(); ++j){
-                std::vector<ChebyshevSummation> &interval = interval_expansions[j];
-                auto pp = rhorRT*(get_expansion_of_interval(interval, tau, z, interval[0].xmin(), interval[0].xmax()).times_x() + 1).times_x() - p;
-                summer += pp.coef()[0];
+        if (thing == "p"){
+            for (int i = 0; i < N; ++i) {
+                for (std::size_t j = 0; j < interval_expansions.size(); ++j) {
+                    std::vector<ChebyshevSummation> &interval = interval_expansions[j];
+                    auto pp = rhorRT*(get_expansion_of_interval(interval, tau, z, interval[0].xmin(), interval[0].xmax()).times_x() + 1).times_x() - p;
+                    summer += pp.coef()[0];
+                }
             }
         }
+        else if (thing == "nF-serial"){
+            for (int i = 0; i < N; ++i) {
+                for (std::size_t j = 0; j < interval_expansions.size(); ++j) {
+                    std::vector<ChebyshevSummation> &interval = interval_expansions[j];
+                    for (auto &fluid : interval){
+                        summer += fluid.get_nFcoefficients_serial(tau)(0);
+                    }
+                }
+            }
+        }
+        else if (thing == "nF-parallel") {
+            for (int i = 0; i < N; ++i) {
+                for (std::size_t j = 0; j < interval_expansions.size(); ++j) {
+                    std::vector<ChebyshevSummation> &interval = interval_expansions[j];
+                    for (auto &fluid : interval) {
+                        summer += fluid.get_nFcoefficients_parallel(tau)(0);
+                    }
+                }
+            }
+        }
+        else {
+            throw std::range_error("Invalid thing:"+thing);
+        }
         auto endTime = std::chrono::system_clock::now();
-        auto elap_us = std::chrono::duration<double>(endTime - startTime).count() / N*1e6;
+        auto elap_us = std::chrono::duration<double>(endTime - startTime).count() / N*1e6 + sin(summer)/1e15;
         return elap_us;
     }
     

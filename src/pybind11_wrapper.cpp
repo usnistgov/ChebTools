@@ -42,7 +42,7 @@ PYBIND11_PLUGIN(ChebTools) {
         .def(py::init<const std::vector<std::vector<ChebyshevSummation> > &, short>())
         .def("get_A", &ChebyshevMixture::get_A)
         .def("get_p", &ChebyshevMixture::get_p)
-        .def("time_get_p", &ChebyshevMixture::time_get_p)
+        .def("time_get", &ChebyshevMixture::time_get)
         .def("get_dalphar_ddelta", &ChebyshevMixture::get_dalphar_ddelta)
         .def("Nintervals", &ChebyshevMixture::Nintervals)
         .def("get_intervals", &ChebyshevMixture::get_intervals)

@@ -166,18 +166,24 @@ namespace ChebTools{
     class ChebyshevSummation {
     private:
         Eigen::MatrixXd C; ///< Coefficient matrix for the coefficients associated with each ChebyshevExpansion in the non-provided variable
+        Eigen::MatrixXd B; ///< matrix of coefficients for each expansion
+        Eigen::VectorXd N; ///< Vector of coefficients n_i
         std::vector<SumElement> terms;
         Eigen::VectorXd givenvec; ///< Buffer for calculated values
         bool F_SPECIFIED = true;
-        bool matrix_built = false;
+        bool matrix_indep_built = false, matrix_dep_built = false;
         double m_xmin, m_xmax;
     public:
         ChebyshevSummation(const std::vector<SumElement> &terms, double xmin, double xmax) : terms(terms), m_xmin(xmin), m_xmax(xmax) {};
         ChebyshevSummation(const std::vector<SumElement> &&terms, double xmin, double xmax) : terms(terms), m_xmin(xmin), m_xmax(xmax) {};
         /// Once you specify which variable will be given, you can build the independent variable matrix
         void build_independent_matrix();
+        void build_dependent_matrix();
         Eigen::MatrixXd get_matrix(){ return C; }
         Eigen::VectorXd get_coefficients(double input);
+        Eigen::VectorXd get_nFcoefficients_parallel(double input);
+        Eigen::VectorXd get_nFcoefficients_serial(double input);
+        std::vector<SumElement> &get_terms(){ return terms; };
         double xmin(){ return m_xmin; }
         double xmax(){ return m_xmax; }
     };
@@ -202,7 +208,7 @@ namespace ChebTools{
         void calc_real_roots(double rhoRT, double p, double tau, const Eigen::VectorXd &z, double ptolerance);
         double time_calc_real_roots(double rhorRT, double p_target, double tau, const Eigen::VectorXd &z, double ptolerance);
         ChebyshevExpansion get_p(std::vector<ChebyshevSummation> &interval, double rhorRT, double tau, const Eigen::VectorXd &z);
-        double time_get_p(double rhorRT, double tau, double p, const Eigen::VectorXd &z);
+        double time_get(std::string &thing, double rhorRT, double tau, double p, const Eigen::VectorXd &z);
         ChebyshevExpansion get_dalphar_ddelta(std::size_t i, double rhorRT, double tau, const Eigen::VectorXd &z);
         std::vector<double> get_real_roots();
         bool unlikely_root(ChebyshevExpansion &pdiff, double ptolerance);
