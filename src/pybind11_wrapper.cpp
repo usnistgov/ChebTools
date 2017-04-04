@@ -41,7 +41,7 @@ PYBIND11_PLUGIN(ChebTools) {
         ;
 
     py::class_<ChebyshevMixture>(m, "ChebyshevMixture")
-        .def(py::init<const std::vector<std::vector<ChebyshevSummation> > &, short, short>())
+        .def(py::init<const std::vector<std::vector<ChebyshevSummation> > &>())
         .def("get_A", &ChebyshevMixture::get_A)
         .def("get_p", &ChebyshevMixture::get_p)
         .def("time_get", &ChebyshevMixture::time_get)

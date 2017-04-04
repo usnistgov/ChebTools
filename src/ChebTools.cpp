@@ -548,19 +548,19 @@ namespace ChebTools {
     /// Once you specify which variable will be given, you can build the independent variable matrix
     void ChebyshevSummation::build_independent_matrix() {
         if (matrix_indep_built){ return; } // no-op if matrix already built
-        /// C is a matrix with as many rows as terms in the summation, and the coefficients for each term in increasing order in each row
         Eigen::Index Nrows = 0, Ncols = terms.size();
         // Determine how many rows are needed 
-        for (auto &term : terms) { Nrows = (F_SPECIFIED) ? std::max(Nrows, term.G.coef().size()) : std::max(Nrows, term.F.coef().size()); }
+        for (auto &term : terms) { 
+            Nrows = std::max(Nrows, term.G.coef().size());
+        }
         // Fill matrix with all zeros (padding for shorter entries)
-        C = Eigen::MatrixXd::Zero(Nrows, Ncols);
-        N.resize(Ncols);
+        DELTAmat = Eigen::MatrixXd::Zero(Nrows, Ncols);
         // Fill each column
         Eigen::Index i = 0;
         for (auto &term : terms) {
-            // Get the appropriate set of coefficients (expansion in delta (G) when tau is given, or expansion in tau (F) when delta is given)
-            const Eigen::VectorXd &coef = (F_SPECIFIED) ? term.G.coef() : term.F.coef();
-            C.col(i).head(coef.size()) = coef;
+            // Get the appropriate set of coefficients
+            const Eigen::VectorXd &coef = term.G.coef();
+            DELTAmat.col(i).head(coef.size()) = coef;
             i++;
         }
         matrix_indep_built = true;
@@ -568,50 +568,49 @@ namespace ChebTools {
     /// Once you specify which variable will be given, you can build the independent variable matrix
     void ChebyshevSummation::build_dependent_matrix() {
         if (matrix_dep_built) { return; } // no-op if matrix already built
-                                      /// C is a matrix with as many rows as terms in the summation, and the coefficients for each term in increasing order in each row
         Eigen::Index Nrows = 0, Ncols = terms.size();
         // Determine how many rows are needed 
-        for (auto &term : terms) { Nrows = (!F_SPECIFIED) ? std::max(Nrows, term.G.coef().size()) : std::max(Nrows, term.F.coef().size()); }
+        for (auto &term : terms) { 
+            Nrows = std::max(Nrows, term.F.coef().size()); 
+        }
         // Fill matrix with all zeros (padding for shorter entries)
-        B = Eigen::MatrixXd::Zero(Nrows, Ncols);
+        TAUmat = Eigen::MatrixXd::Zero(Nrows, Ncols);
         N.resize(Ncols);
         // Fill each column
         Eigen::Index i = 0;
         for (auto &term : terms) {
-            const Eigen::VectorXd &coef = (F_SPECIFIED) ? term.F.coef() : term.G.coef();
-            B.col(i).head(coef.size()) = coef;
+            const Eigen::VectorXd &coef = term.F.coef();
+            TAUmat.col(i).head(coef.size()) = coef;
             N(i) = term.n_i;
             i++;
         }
         matrix_dep_built = true;
     };
-    Eigen::VectorXd ChebyshevSummation::get_nFcoefficients_parallel(double input) {
-        build_independent_matrix();
-        build_dependent_matrix();
-        Eigen::Index Ncols = 0;
-        // Determine how many rows are needed 
-        for (auto &term : terms) { Ncols = (!F_SPECIFIED) ? std::max(Ncols, term.G.coef().size()) : std::max(Ncols, term.F.coef().size()); }
+    Eigen::VectorXd ChebyshevSummation::get_nFcoefficients_parallel(double tau) {
 
-        Eigen::RowVectorXd A(Ncols);
-        double inmin = (F_SPECIFIED) ? terms[0].F.xmin() : terms[0].G.xmin();
-        double inmax = (F_SPECIFIED) ? terms[0].F.xmax() : terms[0].G.xmax();
-        double xscaled = (2 * input - (inmax + inmin)) / (inmax - inmin);
+        Eigen::Index Ncols = 0;
+        // Determine how many columnw are needed 
+        for (auto &term : terms) { 
+            Ncols = std::max(Ncols, term.F.coef().size()); 
+        }
+
+        Eigen::RowVectorXd r(Ncols);
+        double inmin = terms[0].F.xmin(), inmax = terms[0].F.xmax();
+        double xscaled = (2*tau - (inmax + inmin)) / (inmax - inmin); // scaled to [-1,1]
 
         // Use the recurrence relationships to evaluate the Chebyshev expansion
         // In this case we do column-wise evaluations of the recurrence rule
         // but A is actually a row vector
-        A(0) = 1;
-        A(1) = xscaled;
+        r(0) = 1;
+        r(1) = xscaled;
         for (Eigen::Index n = 1; n < Ncols-1; ++n) {
-            A(n + 1) = 2*xscaled*A(n) - A(n - 1);
+            r(n + 1) = 2*xscaled*r(n) - r(n - 1);
         }
-        Eigen::VectorXd AB = A*B;
+        Eigen::VectorXd AB = r*TAUmat;
         Eigen::VectorXd o = (AB.array())*(N.array());
         return o;
     }
     Eigen::VectorXd ChebyshevSummation::get_nFcoefficients_serial(double input) {
-        build_independent_matrix();
-        build_dependent_matrix();
         // For the specified one, evaluate its Chebyshev expansion
         givenvec.resize(terms.size());
         std::size_t i = 0;
@@ -627,25 +626,15 @@ namespace ChebTools {
         return givenvec;
     }
     Eigen::VectorXd ChebyshevSummation::get_coefficients(double input) {
-        build_independent_matrix();
-        build_dependent_matrix();
-        return C*get_nFcoefficients_parallel(input);
+        return DELTAmat*get_nFcoefficients_parallel(input);
     };
 
     ChebyshevExpansion ChebyshevMixture::get_expansion_of_interval(std::vector<ChebyshevSummation> &interval, double tau, const Eigen::VectorXd &z, double xmin, double xmax) {
         if (all_same_order){
             // For this interval, calculate the contributions for each fluid to the expansion
-
-            //if (std::abs(tau - previous_tau) > 1e-14) 
-            {
-                // If they are all the same order, can skip the copy+pad, and just write the column directly
-                for (std::size_t icomp = 0; icomp < interval.size(); ++icomp) {
-                    Eigen::VectorXd c = interval[icomp].get_coefficients(tau);
-                    A.col(icomp).head(c.size()) = c;
-                }
-                previous_tau = tau;
+            for (std::size_t icomp = 0; icomp < interval.size(); ++icomp) {
+                A.col(icomp) = interval[icomp].get_coefficients(tau);
             }
-            
             // Return an expansion for this interval in terms of delta of the mixture
             return ChebyshevExpansion(A*z, xmin, xmax);
         }
@@ -680,7 +669,8 @@ namespace ChebTools {
         m_roots.clear();
         // Iterate over the intervals forming the domain; in each, find any roots that you can
         for (auto &interval : interval_expansions) {
-            auto expansion = rhorRT*(get_expansion_of_interval(interval, tau, z, interval[0].xmin(), interval[0].xmax()).times_x() + 1).times_x() - p_target;
+            auto dardd = get_expansion_of_interval(interval, tau, z, interval[0].xmin(), interval[0].xmax());
+            auto expansion = rhorRT*(dardd.times_x() + 1).times_x() - p_target;
             if (unlikely_root(expansion, ptolerance)) {
                 continue;
             }

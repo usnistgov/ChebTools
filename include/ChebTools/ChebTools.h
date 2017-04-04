@@ -165,22 +165,26 @@ namespace ChebTools{
 
     class ChebyshevSummation {
     private:
-        Eigen::MatrixXd C; ///< Coefficient matrix for the coefficients associated with each ChebyshevExpansion in the non-provided variable
-        Eigen::MatrixXd B; ///< matrix of coefficients for each expansion
+        Eigen::MatrixXd TAUmat; ///< Coefficient matrix for the coefficients associated with each ChebyshevExpansion in the non-provided variable
+        Eigen::MatrixXd DELTAmat; ///< matrix of coefficients for each expansion
         Eigen::VectorXd N; ///< Vector of coefficients n_i
         std::vector<SumElement> terms;
         Eigen::VectorXd givenvec; ///< Buffer for calculated values
         bool F_SPECIFIED = true;
         bool matrix_indep_built = false, matrix_dep_built = false;
         double m_xmin, m_xmax;
+        void build_matrices() {
+            build_dependent_matrix();
+            build_independent_matrix();
+        }
     public:
-        ChebyshevSummation(const std::vector<SumElement> &terms, double xmin, double xmax) : terms(terms), m_xmin(xmin), m_xmax(xmax) {};
-        ChebyshevSummation(const std::vector<SumElement> &&terms, double xmin, double xmax) : terms(terms), m_xmin(xmin), m_xmax(xmax) {};
+        ChebyshevSummation(const std::vector<SumElement> &terms, double xmin, double xmax) : terms(terms), m_xmin(xmin), m_xmax(xmax) {build_matrices();};
+        ChebyshevSummation(const std::vector<SumElement> &&terms, double xmin, double xmax) : terms(terms), m_xmin(xmin), m_xmax(xmax) { build_matrices(); };
         /// Once you specify which variable will be given, you can build the independent variable matrix
         void build_independent_matrix();
         void build_dependent_matrix();
-        Eigen::MatrixXd get_dependent_matrix(){ build_dependent_matrix(); return C; }
-        Eigen::MatrixXd get_independent_matrix() { build_independent_matrix(); return B; }
+        Eigen::MatrixXd get_dependent_matrix(){ return DELTAmat; }
+        Eigen::MatrixXd get_independent_matrix() { return TAUmat; }
         Eigen::VectorXd get_coefficients(double input);
         Eigen::VectorXd get_nFcoefficients_parallel(double input);
         Eigen::VectorXd get_nFcoefficients_serial(double input);
@@ -196,13 +200,28 @@ namespace ChebTools{
         Eigen::MatrixXd A;
         bool all_same_order = true;
         double previous_tau;
-        void allocate(short Norderdelta, short Nordertau){
-            A.resize(Norderdelta+1, interval_expansions[0].size());
+        void allocate(){
+            std::vector<int> Nrows;
+            // Determine the order of each of the expansions for delta
+            for (auto &interval : interval_expansions) {
+                for (auto &fluid : interval) {
+                    for (auto &term : fluid.get_terms()) {
+                        Nrows.push_back(static_cast<int>(term.G.coef().size()));
+                    }
+                }
+            }
+            // Determine the maximum and minimum orders; they must be the same!
+            Eigen::Map<const Eigen::VectorXi> N_wrap(&(Nrows[0]), Nrows.size());
+            Eigen::Index Nmax = N_wrap.maxCoeff(), Nmin = N_wrap.minCoeff();
+            if (Nmax != Nmin) {
+                throw std::range_error("All delta expansions are not of the same order");
+            }
+            A.resize(Nmax, interval_expansions[0].size());
             previous_tau = 1e20;
         }
     public:
-        ChebyshevMixture(const std::vector<std::vector<ChebyshevSummation> > &intervals, short Norderdelta, short Nordertau) : interval_expansions(intervals) {allocate(Norderdelta, Nordertau);};
-        ChebyshevMixture(const std::vector<std::vector<ChebyshevSummation> > &&intervals, short Norderdelta, short Nordertau) : interval_expansions(intervals) {allocate(Norderdelta, Nordertau);};
+        ChebyshevMixture(const std::vector<std::vector<ChebyshevSummation> > &intervals) : interval_expansions(intervals) {allocate();};
+        ChebyshevMixture(const std::vector<std::vector<ChebyshevSummation> > &&intervals) : interval_expansions(intervals) {allocate();};
 
         Eigen::MatrixXd get_A() { return A; }
         ChebyshevExpansion get_expansion_of_interval(std::vector<ChebyshevSummation> &interval, double tau, const Eigen::VectorXd &z, double xmin, double xmax);
