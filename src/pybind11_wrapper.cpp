@@ -32,8 +32,10 @@ PYBIND11_PLUGIN(ChebTools) {
     py::class_<ChebyshevSummation>(m, "ChebyshevSummation")
         .def(py::init<const std::vector<SumElement> &, double, double>())
         .def("build_independent_matrix", &ChebyshevSummation::build_independent_matrix)
+        .def("build_dependent_matrix", &ChebyshevSummation::build_dependent_matrix)
         .def("get_coefficients", &ChebyshevSummation::get_coefficients)
-        .def("get_matrix", &ChebyshevSummation::get_matrix)
+        .def("get_independent_matrix", &ChebyshevSummation::get_independent_matrix)
+        .def("get_dependent_matrix", &ChebyshevSummation::get_dependent_matrix)
         .def("xmin", &ChebyshevSummation::xmin)
         .def("xmax", &ChebyshevSummation::xmax)
         ;

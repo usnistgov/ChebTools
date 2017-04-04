@@ -179,7 +179,8 @@ namespace ChebTools{
         /// Once you specify which variable will be given, you can build the independent variable matrix
         void build_independent_matrix();
         void build_dependent_matrix();
-        Eigen::MatrixXd get_matrix(){ return C; }
+        Eigen::MatrixXd get_dependent_matrix(){ return C; }
+        Eigen::MatrixXd get_independent_matrix() { return B; }
         Eigen::VectorXd get_coefficients(double input);
         Eigen::VectorXd get_nFcoefficients_parallel(double input);
         Eigen::VectorXd get_nFcoefficients_serial(double input);

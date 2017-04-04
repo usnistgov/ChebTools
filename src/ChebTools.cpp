@@ -34,10 +34,16 @@ double binomialCoefficient(const double n, const double k) {
 
 namespace ChebTools {
 
+    inline bool ValidNumber(double x){
+        // Idea from http://www.johndcook.com/IEEE_exceptions_in_cpp.html
+        return (x <= DBL_MAX && x >= -DBL_MAX);
+    };
+
     void balance_matrix(const Eigen::MatrixXd &A, Eigen::MatrixXd &Aprime, Eigen::MatrixXd &D) {
         // https://arxiv.org/pdf/1401.5766.pdf (Algorithm #3)
         const int p = 2;
         double beta = 2; // Radix base (2?)
+        int iter = 0;
         Aprime = A;
         D = Eigen::MatrixXd::Identity(A.rows(), A.cols());
         bool converged = false;
@@ -48,7 +54,11 @@ namespace ChebTools {
                 double r = Aprime.row(i).lpNorm<p>();
                 double s = pow(c, p) + pow(r, p);
                 double f = 1;
-                while (c < r / beta) {
+                if (!ValidNumber(c)){ 
+                    std::cout << A << std::endl;
+                    throw std::range_error("c is not a valid number in balance_matrix"); }
+                if (!ValidNumber(r)) { throw std::range_error("r is not a valid number in balance_matrix"); }
+                while (c < r/beta) {
                     c *= beta;
                     r /= beta;
                     f *= beta;
@@ -64,6 +74,10 @@ namespace ChebTools {
                     Aprime.col(i) *= f;
                     Aprime.row(i) /= f;
                 }
+            }
+            iter++;
+            if (iter > 50) {
+                break;
             }
         } while (!converged);
     }
@@ -344,16 +358,17 @@ namespace ChebTools {
     }
 
     Eigen::MatrixXd ChebyshevExpansion::companion_matrix() const {
-        std::size_t N = m_c.size() - 1;
-        Eigen::MatrixXd A = Eigen::MatrixXd::Zero(N, N);
-        Eigen::Map<const Eigen::VectorXd> c_wrap(&(m_c[0]), N);
+        std::size_t Norder = m_c.size() - 1;
+        Eigen::MatrixXd A = Eigen::MatrixXd::Zero(Norder, Norder);  
+        // c_wrap wraps the first 0...Norder elements of the coefficient vector
+        Eigen::Map<const Eigen::VectorXd> c_wrap(&(m_c[0]), Norder);
         // First row
         A(0, 1) = 1;
         // Last row
-        A(N - 1, N - 2) = 0.5;
-        A.row(N - 1) -= c_wrap / (2.0*m_c(N));
+        A.row(Norder - 1) = -c_wrap / (2.0*m_c(Norder)); 
+        A(Norder - 1, Norder - 2) += 0.5;
         // All the other rows
-        for (int j = 1; j < N - 1; ++j) {
+        for (int j = 1; j < Norder - 1; ++j) {
             A(j, j - 1) = 0.5;
             A(j, j + 1) = 0.5;
         }
