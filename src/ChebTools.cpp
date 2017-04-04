@@ -13,6 +13,10 @@
 #define DBL_EPSILON std::numeric_limits<double>::epsilon()
 #endif
 
+#ifndef DBL_MAX
+#define DBL_MAX std::numeric_limits<double>::max()
+#endif
+
 /// See python code in https://en.wikipedia.org/wiki/Binomial_coefficient#Binomial_coefficient_in_programming_languages
 /// This is a direct translation of that code to C++
 double binomialCoefficient(const double n, const double k) {
@@ -54,10 +58,10 @@ namespace ChebTools {
                 double r = Aprime.row(i).lpNorm<p>();
                 double s = pow(c, p) + pow(r, p);
                 double f = 1;
-                if (!ValidNumber(c)){ 
-                    std::cout << A << std::endl;
-                    throw std::range_error("c is not a valid number in balance_matrix"); }
-                if (!ValidNumber(r)) { throw std::range_error("r is not a valid number in balance_matrix"); }
+                //if (!ValidNumber(c)){ 
+                //    std::cout << A << std::endl;
+                //    throw std::range_error("c is not a valid number in balance_matrix"); }
+                //if (!ValidNumber(r)) { throw std::range_error("r is not a valid number in balance_matrix"); }
                 while (c < r/beta) {
                     c *= beta;
                     r /= beta;
@@ -550,7 +554,6 @@ namespace ChebTools {
         for (auto &term : terms) { Nrows = (F_SPECIFIED) ? std::max(Nrows, term.G.coef().size()) : std::max(Nrows, term.F.coef().size()); }
         // Fill matrix with all zeros (padding for shorter entries)
         C = Eigen::MatrixXd::Zero(Nrows, Ncols);
-        B = Eigen::MatrixXd::Zero(Nrows, Ncols);
         N.resize(Ncols);
         // Fill each column
         Eigen::Index i = 0;
