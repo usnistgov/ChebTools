@@ -179,8 +179,8 @@ namespace ChebTools{
         /// Once you specify which variable will be given, you can build the independent variable matrix
         void build_independent_matrix();
         void build_dependent_matrix();
-        Eigen::MatrixXd get_dependent_matrix(){ return C; }
-        Eigen::MatrixXd get_independent_matrix() { return B; }
+        Eigen::MatrixXd get_dependent_matrix(){ build_dependent_matrix(); return C; }
+        Eigen::MatrixXd get_independent_matrix() { build_independent_matrix(); return B; }
         Eigen::VectorXd get_coefficients(double input);
         Eigen::VectorXd get_nFcoefficients_parallel(double input);
         Eigen::VectorXd get_nFcoefficients_serial(double input);
@@ -196,13 +196,13 @@ namespace ChebTools{
         Eigen::MatrixXd A;
         bool all_same_order = true;
         double previous_tau;
-        void allocate(short Norder){
-            A.resize(Norder + 1, interval_expansions[0].size());
+        void allocate(short Norderdelta, short Nordertau){
+            A.resize(Norderdelta+1, interval_expansions[0].size());
             previous_tau = 1e20;
         }
     public:
-        ChebyshevMixture(const std::vector<std::vector<ChebyshevSummation> > &intervals, short Norder) : interval_expansions(intervals) {allocate(Norder);};
-        ChebyshevMixture(const std::vector<std::vector<ChebyshevSummation> > &&intervals, short Norder) : interval_expansions(intervals) {allocate(Norder);};
+        ChebyshevMixture(const std::vector<std::vector<ChebyshevSummation> > &intervals, short Norderdelta, short Nordertau) : interval_expansions(intervals) {allocate(Norderdelta, Nordertau);};
+        ChebyshevMixture(const std::vector<std::vector<ChebyshevSummation> > &&intervals, short Norderdelta, short Nordertau) : interval_expansions(intervals) {allocate(Norderdelta, Nordertau);};
 
         Eigen::MatrixXd get_A() { return A; }
         ChebyshevExpansion get_expansion_of_interval(std::vector<ChebyshevSummation> &interval, double tau, const Eigen::VectorXd &z, double xmin, double xmax);

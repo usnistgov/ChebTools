@@ -599,6 +599,7 @@ namespace ChebTools {
 
         // Use the recurrence relationships to evaluate the Chebyshev expansion
         // In this case we do column-wise evaluations of the recurrence rule
+        // but A is actually a row vector
         A(0) = 1;
         A(1) = xscaled;
         for (Eigen::Index n = 1; n < Ncols-1; ++n) {
