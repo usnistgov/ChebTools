@@ -19,6 +19,7 @@ PYBIND11_PLUGIN(ChebTools) {
 
     m.def("evaluation_speed_test", &evaluation_speed_test);
     m.def("eigs_speed_test", &eigs_speed_test);
+    m.def("eigenvalues", &eigenvalues);
     m.def("generate_Chebyshev_expansion", &ChebyshevExpansion::factory<std::function<double(double)> >);
     m.def("Eigen_nbThreads", []() { return Eigen::nbThreads(); });
     m.def("Eigen_setNbThreads", [](int Nthreads) { return Eigen::setNbThreads(Nthreads); });
@@ -53,7 +54,6 @@ PYBIND11_PLUGIN(ChebTools) {
         .def("get_real_roots", &ChebyshevMixture::get_real_roots)
         .def("calc_companion_matrices", &ChebyshevMixture::calc_companion_matrices)
         .def("unlikely_root", &ChebyshevMixture::unlikely_root)
-        .def("eigenvalues", &ChebyshevMixture::eigenvalues)
         ;
 
     py::class_<ChebyshevExpansion>(m, "ChebyshevExpansion")

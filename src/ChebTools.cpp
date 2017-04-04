@@ -681,13 +681,14 @@ namespace ChebTools {
     }
     double ChebyshevMixture::time_calc_real_roots(double rhorRT, double p_target, double tau, const Eigen::VectorXd &z, double ptolerance) {
         auto startTime = std::chrono::system_clock::now();
-        double N = 10;
+        double N = 1000;
         double summer = 0;
         for (int i = 0; i < N; ++i) {
             calc_real_roots(rhorRT, p_target, tau, z, ptolerance);
+            summer += get_real_roots().size();
         }
         auto endTime = std::chrono::system_clock::now();
-        auto elap_us = std::chrono::duration<double>(endTime - startTime).count() / N*1e6;
+        auto elap_us = std::chrono::duration<double>(endTime - startTime).count()/N*1e6 + sin(summer)/1e15;
         return elap_us;
     }
     std::vector<double> ChebyshevMixture::get_real_roots(){ return m_roots; }
@@ -708,14 +709,14 @@ namespace ChebTools {
 
     double ChebyshevMixture::time_get(std::string &thing, double rhorRT, double tau, double p, const Eigen::VectorXd &z) {
         auto startTime = std::chrono::system_clock::now();
-        double N = 10000;
+        double N = 1000;
         double summer = 0;
         if (thing == "p"){
             for (int i = 0; i < N; ++i) {
                 for (std::size_t j = 0; j < interval_expansions.size(); ++j) {
                     std::vector<ChebyshevSummation> &interval = interval_expansions[j];
                     auto pp = rhorRT*(get_expansion_of_interval(interval, tau, z, interval[0].xmin(), interval[0].xmax()).times_x() + 1).times_x() - p;
-                    summer += pp.coef()[0];
+                    summer += pp.coef().size();
                 }
             }
         }
@@ -747,7 +748,7 @@ namespace ChebTools {
         return elap_us;
     }
     
-    Eigen::VectorXcd ChebyshevMixture::eigenvalues(Eigen::MatrixXd &A, bool balance) {
+    Eigen::VectorXcd eigenvalues(const Eigen::MatrixXd &A, bool balance) {
         if (balance) {
             Eigen::MatrixXd Abalanced, D;
             balance_matrix(A, Abalanced, D);
