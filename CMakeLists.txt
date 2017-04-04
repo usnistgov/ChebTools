@@ -18,14 +18,20 @@ if (OPENMP_FOUND)
     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 endif()
 
-# Build pybind11 python module
-add_subdirectory("${CMAKE_SOURCE_DIR}/externals/pybind11")
-pybind11_add_module(ChebTools "${CMAKE_SOURCE_DIR}/src/pybind11_wrapper.cpp" ${SOURCES})
-target_compile_definitions(ChebTools PUBLIC -DPYBIND11)
+if (CHEBTOOLS_STATIC_LIBRARY OR NISTFIT_PYBIND11)
+    add_library(ChebTools STATIC ${APP_SOURCES})
+    # Add target include directories for easy linking with other applications
+    target_include_directories(ChebTools PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
+else()
+    # Build pybind11 python module
+    add_subdirectory("${CMAKE_SOURCE_DIR}/externals/pybind11")
+    pybind11_add_module(ChebTools "${CMAKE_SOURCE_DIR}/src/pybind11_wrapper.cpp" ${SOURCES})
+    target_compile_definitions(ChebTools PUBLIC -DPYBIND11)
 
-# Also build monolithic exe
-add_executable(ChebToolsMonolith "${CMAKE_SOURCE_DIR}/main.cpp" ${SOURCES})
+    # Also build monolithic exe
+    add_executable(ChebToolsMonolith "${CMAKE_SOURCE_DIR}/main.cpp" ${SOURCES})
 
-# Also build Catch testing module
-include_directories("${CMAKE_SOURCE_DIR}/externals/Catch/single_include")
-add_executable(ChebToolsCatchTests "${CMAKE_SOURCE_DIR}/tests/tests.cpp" ${SOURCES})
+    # Also build Catch testing module
+    include_directories("${CMAKE_SOURCE_DIR}/externals/Catch/single_include")
+    add_executable(ChebToolsCatchTests "${CMAKE_SOURCE_DIR}/tests/tests.cpp" ${SOURCES})
+endif()
