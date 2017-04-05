@@ -240,8 +240,8 @@ namespace ChebTools {
 
         std::size_t order1 = this->m_c.size()-1, 
                     order2 = ce2.coef().size()-1;
-        // The order of the product is the sum of the orders of the two expansions plus 1
-        std::size_t Norder_product = order1 + order2 + 1;
+        // The order of the product is the sum of the orders of the two expansions
+        std::size_t Norder_product = order1 + order2;
 
         // Create padded vectors, and copy into them the coefficients from this instance 
         // and that of the donor
