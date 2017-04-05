@@ -238,20 +238,27 @@ namespace ChebTools {
     }
     ChebyshevExpansion ChebyshevExpansion::operator*(const ChebyshevExpansion &ce2) const {
 
-        std::size_t len1 = this->m_c.size(), len2 = ce2.coef().size();
-        std::size_t n = len1 + len2 - 2;
+        std::size_t order1 = this->m_c.size()-1, 
+                    order2 = ce2.coef().size()-1;
+        // The order of the product is the sum of the orders of the two expansions plus 1
+        std::size_t Norder_product = order1 + order2 + 1;
 
         // Create padded vectors, and copy into them the coefficients from this instance 
         // and that of the donor
-        Eigen::VectorXd a = Eigen::VectorXd::Zero(n+1), b = Eigen::VectorXd::Zero(n+1);
-        a.head(len1) = this->m_c; b.head(len2) = ce2.coef();
+        Eigen::VectorXd a = Eigen::VectorXd::Zero(Norder_product+1), 
+                        b = Eigen::VectorXd::Zero(Norder_product+1);
+        a.head(order1+1) = this->m_c; b.head(order2+1) = ce2.coef();
 
-        // Get the matrices u and v
-        Eigen::MatrixXd u = u_matrix_library.get(n);
-        Eigen::MatrixXd v = l_matrix_library.get(n);
+        // Get the matrices U and V from the libraries
+        const Eigen::MatrixXd &U = u_matrix_library.get(Norder_product);
+        const Eigen::MatrixXd &V = l_matrix_library.get(Norder_product);
         
         // Carry out the calculation of the final coefficients
-        return ChebyshevExpansion(v*((u*a).array()*(u*b).array()).matrix(), m_xmin, m_xmax);
+        // U*a is the functional values at the Chebyshev-Lobatto nodes for the first expansion
+        // U*b is the functional values at the Chebyshev-Lobatto nodes for the second expansion
+        // The functional values are multiplied together in an element-wise sense - this is why both products are turned into arrays
+        // The pre-multiplication by V takes us back to coefficients
+        return ChebyshevExpansion(V*((U*a).array() * (U*b).array()).matrix(), m_xmin, m_xmax);
     };
     ChebyshevExpansion ChebyshevExpansion::times_x() const {
         double scale_factor = (m_xmax - m_xmin)/2.0;
