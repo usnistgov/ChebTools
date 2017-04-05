@@ -24,8 +24,8 @@ if (CHEBTOOLS_STATIC_LIBRARY OR NISTFIT_PYBIND11)
     target_include_directories(ChebTools PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 else()
     # Build pybind11 python module
-    add_subdirectory("${CMAKE_SOURCE_DIR}/externals/pybind11")
-    pybind11_add_module(ChebTools "${CMAKE_SOURCE_DIR}/src/pybind11_wrapper.cpp" ${SOURCES})
+    add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/externals/pybind11")
+    pybind11_add_module(ChebTools "${CMAKE_CURRENT_SOURCE_DIR}/src/pybind11_wrapper.cpp" ${SOURCES})
     target_compile_definitions(ChebTools PUBLIC -DPYBIND11)
 
     # Also build monolithic exe
