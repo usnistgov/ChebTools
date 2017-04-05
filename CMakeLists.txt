@@ -5,10 +5,10 @@ project(ChebTools)
 # Set the standard for C++ to c++11
 set(CMAKE_CXX_STANDARD 11)
 
-include_directories("${CMAKE_SOURCE_DIR}/externals/Eigen")
-include_directories("${CMAKE_SOURCE_DIR}/include")
+include_directories("${CMAKE_CURRENT_SOURCE_DIR}/externals/Eigen")
+include_directories("${CMAKE_CURRENT_SOURCE_DIR}/include")
 
-set(SOURCES "${CMAKE_SOURCE_DIR}/src/ChebTools.cpp" "${CMAKE_SOURCE_DIR}/src/speed_tests.cpp")
+set(SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/ChebTools.cpp" "${CMAKE_CURRENT_SOURCE_DIR}/src/speed_tests.cpp")
 
 # Check for the existence of OpenMP and enable it as needed
 # see also http://stackoverflow.com/a/12404666/1360263
@@ -19,7 +19,7 @@ if (OPENMP_FOUND)
 endif()
 
 if (CHEBTOOLS_STATIC_LIBRARY OR NISTFIT_PYBIND11)
-    add_library(ChebTools STATIC ${APP_SOURCES})
+    add_library(ChebTools STATIC ${SOURCES})
     # Add target include directories for easy linking with other applications
     target_include_directories(ChebTools PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 else()
@@ -29,9 +29,9 @@ else()
     target_compile_definitions(ChebTools PUBLIC -DPYBIND11)
 
     # Also build monolithic exe
-    add_executable(ChebToolsMonolith "${CMAKE_SOURCE_DIR}/main.cpp" ${SOURCES})
+    add_executable(ChebToolsMonolith "${CMAKE_CURRENT_SOURCE_DIR}/main.cpp" ${SOURCES})
 
     # Also build Catch testing module
-    include_directories("${CMAKE_SOURCE_DIR}/externals/Catch/single_include")
-    add_executable(ChebToolsCatchTests "${CMAKE_SOURCE_DIR}/tests/tests.cpp" ${SOURCES})
+    include_directories("${CMAKE_CURRENT_SOURCE_DIR}/externals/Catch/single_include")
+    add_executable(ChebToolsCatchTests "${CMAKE_CURRENT_SOURCE_DIR}/tests/tests.cpp" ${SOURCES})
 endif()
