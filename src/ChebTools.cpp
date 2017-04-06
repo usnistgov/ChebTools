@@ -261,15 +261,24 @@ namespace ChebTools {
         return ChebyshevExpansion(V*((U*a).array() * (U*b).array()).matrix(), m_xmin, m_xmax);
     };
     ChebyshevExpansion ChebyshevExpansion::times_x() const {
-        double scale_factor = (m_xmax - m_xmin)/2.0;
-        Eigen::VectorXd c = m_c*(m_xmax + m_xmin)/2.0; 
-        c.conservativeResize(m_c.size()+1); c.tail(1).setZero();
-        c(1) += m_c(0)*scale_factor;
-        for (std::size_t i = 1; i < m_c.size(); ++i) {
-            c(i-1) += 0.5*m_c[i]*scale_factor;
-            c(i+1) += 0.5*m_c[i]*scale_factor;
+        // First we treat the of chi*A multiplication in the domain [-1,1]
+        Eigen::VectorXd cc(m_c.size()+1); 
+        if (m_c.size() > 1) {
+            cc(0) = m_c(1)/2.0;
         }
-        return ChebyshevExpansion(c, m_xmin, m_xmax);
+        if (m_c.size() > 2) {
+            cc(1) = m_c(0) + m_c(2)/2.0;
+        }
+        for (Eigen::Index i = 2; i < cc.size(); ++i) {
+            cc(i) = (i + 1 < m_c.size()) ? 0.5*(m_c(i-1) + m_c(i+1)) : 0.5*(m_c(i - 1));
+        }
+        // Scale the values into the real world, which is given by
+        // C_scaled = (b-a)/2*x*A + ((b+a)/2)*A
+        // where the coefficients in the second term need to be padded with a zero to have 
+        // the same order as the product of x*A
+        Eigen::VectorXd c_padded(m_c.size()+1); c_padded << m_c, 0;
+        Eigen::VectorXd coefs = (((m_xmax - m_xmin)/2.0)*cc).array() + (m_xmax + m_xmin)/2.0*c_padded.array();
+        return ChebyshevExpansion(coefs, m_xmin, m_xmax);
     };
 
     const vectype &ChebyshevExpansion::coef() const {
@@ -525,19 +534,22 @@ namespace ChebTools {
         // and example in https ://github.com/numpy/numpy/blob/master/numpy/polynomial/chebyshev.py#L868-L964
         vectype c = m_c;
         for (std::size_t deriv_counter = 0; deriv_counter < Nderiv; ++deriv_counter) {
-            std::size_t N = c.size() - 1, Nd = N - 1;
+            std::size_t N = c.size() - 1, ///< Order of the expansion
+                        Nd = N - 1; ///< Order of the derivative expansion
             vectype cd(N);
-            for (std::size_t r = 0; r < Nd + 1; ++r) {
+            for (std::size_t r = 0; r <= Nd; ++r) {
                 cd(r) = 0;
-                for (std::size_t k = r + 1; k < Nd + 2; ++k) {
+                for (std::size_t k = r + 1; k <= N; ++k) {
+                    // Terms where k-r is odd have values, otherwise, they are zero
                     if ((k - r) % 2 == 1) {
                         cd(r) += 2*k*c(k);
                     }
                 }
+                // The first term with r = 0 is divided by 2 (the single prime in Mason and Handscomb, p. 34, Eq. 2.52)
                 if (r == 0) {
                     cd(r) /= 2;
                 }
-                // Rescale the values if the range is not [-1,1]
+                // Rescale the values if the range is not [-1,1].  Arrives from the derivative of d(xreal)/d(x_{-1,1})
                 cd(r) /= (m_xmax-m_xmin)/2.0;
             }
             if (Nderiv == 1) {

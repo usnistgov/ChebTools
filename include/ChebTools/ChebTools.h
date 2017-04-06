@@ -42,8 +42,16 @@ namespace ChebTools{
         ChebyshevExpansion operator+(double value) const;
         ChebyshevExpansion operator-(double value) const;
         ChebyshevExpansion& operator*=(double value);
-        // Multiply two Chebyshev expansions together; thanks to Julia code from Bradley Alpert, NIST
+        /*
+         * @brief Multiply two Chebyshev expansions together; thanks to Julia code from Bradley Alpert, NIST
+         * 
+         * Convertes padded expansions to nodal functional values, functional values are multiplied together, 
+         * and then inverse transformation is used to return to coefficients of the product
+         */
         ChebyshevExpansion operator*(const ChebyshevExpansion &ce2) const;
+        /*
+         * @brief Multiply a Chebyshev expansion by its independent variable \f$x\f$
+         */
         ChebyshevExpansion times_x() const;
 
         /// Friend function that allows for pre-multiplication by a constant value
@@ -51,6 +59,7 @@ namespace ChebTools{
             return ChebyshevExpansion(std::move(ce.coef()*value),ce.m_xmin, ce.m_xmax);
         };
 
+        /// Get the vector of coefficients
         const vectype &coef() const ;
         /**
         * @brief Do a single input/single output evaluation of the Chebyshev expansion with the inputs scaled in [xmin, xmax]

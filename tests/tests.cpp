@@ -127,13 +127,13 @@ From numpy:
 from numpy.polynomial.chebyshev import Chebyshev
 c1 = Chebyshev([1,2,3,4])
 c2 = Chebyshev([0.1,0.2,0.3])
-print (c1*c2).coef
+print (c1*c2).coef.tolist()
 */
 TEST_CASE("Product of expansions", "")
 {
     Eigen::VectorXd c1(4); c1 << 1, 2, 3, 4;
     Eigen::VectorXd c2(3); c2 << 0.1, 0.2, 0.3;
-    Eigen::VectorXd c_expected(6); c_expected << 0.75, 1.6, 1.2, 1.0, 0.85, 0.6;
+    Eigen::VectorXd c_expected(6); c_expected << 0.7499999999999999, 1.6, 1.2000000000000002, 1.0, 0.85, 0.6;
 
     auto C1 = ChebTools::ChebyshevExpansion(c1);
     auto C2 = ChebTools::ChebyshevExpansion(c2);
@@ -144,21 +144,36 @@ TEST_CASE("Product of expansions", "")
 }
 TEST_CASE("Expansion times x", "")
 {
-    Eigen::VectorXd c1(4); c1 << 1, 2, 3, 4;
+    Eigen::VectorXd c1(7); c1 << 1, 2, 3, 4, 5, 6, 7;
     SECTION("default range"){
         auto x = ChebTools::ChebyshevExpansion::factory(1, [](double x) { return x; }, -1, 1);
         auto C = ChebTools::ChebyshevExpansion(c1, -1, 1);
-        auto err = (C.times_x().coef().array() - (x*C).coef().array()).cwiseAbs().sum();
+        auto xCcoeffs = (x*C).coef();
+        auto times_x_coeffs = C.times_x().coef();
+        auto err = (times_x_coeffs.array() - xCcoeffs.array()).cwiseAbs().sum();
+        CAPTURE(xCcoeffs);
+        CAPTURE(times_x_coeffs);
         CAPTURE(err);
-        CHECK(err < 1e-14);
+        CHECK(err < 1e-12);
     }
     SECTION("non-default range") {
         double xmin = -0.3, xmax = 4.4;
         auto x = ChebTools::ChebyshevExpansion::factory(1, [](double x) { return x; }, xmin, xmax);
         auto C = ChebTools::ChebyshevExpansion(c1, xmin, xmax);
-        auto err = (C.times_x().coef().array() - (x*C).coef().array()).cwiseAbs().sum();
+        auto xCcoeffs = (x*C).coef();
+        auto times_x_coeffs = C.times_x().coef();
+        auto err = (times_x_coeffs.array() - xCcoeffs.array()).cwiseAbs().sum();
+        CAPTURE(xCcoeffs);
+        CAPTURE(times_x_coeffs); 
         CAPTURE(err);
-        CHECK(err < 1e-14);
+        CHECK(err < 1e-12);
+    }
+    SECTION("default range") {
+        auto x61 = ChebTools::ChebyshevExpansion::from_powxn(5,-1,1).times_x();
+        auto x62 = ChebTools::ChebyshevExpansion::from_powxn(6,-1, 1);
+        auto err = (x61.coef().array() - x62.coef().array()).cwiseAbs().sum();
+        CAPTURE(err);
+        CHECK(err < 1e-12);
     }
 }
 
