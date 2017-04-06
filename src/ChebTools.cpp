@@ -262,21 +262,22 @@ namespace ChebTools {
     };
     ChebyshevExpansion ChebyshevExpansion::times_x() const {
         // First we treat the of chi*A multiplication in the domain [-1,1]
-        Eigen::VectorXd cc(m_c.size()+1); 
-        if (m_c.size() > 1) {
+        Eigen::Index N = m_c.size()-1; // N is the order of A
+        Eigen::VectorXd cc(N+2); // Order of x*A is one higher than that of A
+        if (N > 1) {
             cc(0) = m_c(1)/2.0;
         }
-        if (m_c.size() > 2) {
+        if (N > 2) {
             cc(1) = m_c(0) + m_c(2)/2.0;
         }
         for (Eigen::Index i = 2; i < cc.size(); ++i) {
-            cc(i) = (i + 1 < m_c.size()) ? 0.5*(m_c(i-1) + m_c(i+1)) : 0.5*(m_c(i - 1));
+            cc(i) = (i+1 <= N) ? 0.5*(m_c(i-1) + m_c(i+1)) : 0.5*(m_c(i - 1));
         }
         // Scale the values into the real world, which is given by
-        // C_scaled = (b-a)/2*x*A + ((b+a)/2)*A
+        // C_scaled = (b-a)/2*(chi*A) + ((b+a)/2)*A
         // where the coefficients in the second term need to be padded with a zero to have 
         // the same order as the product of x*A
-        Eigen::VectorXd c_padded(m_c.size()+1); c_padded << m_c, 0;
+        Eigen::VectorXd c_padded(N+2); c_padded << m_c, 0;
         Eigen::VectorXd coefs = (((m_xmax - m_xmin)/2.0)*cc).array() + (m_xmax + m_xmin)/2.0*c_padded.array();
         return ChebyshevExpansion(coefs, m_xmin, m_xmax);
     };
