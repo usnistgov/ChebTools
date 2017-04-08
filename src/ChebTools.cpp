@@ -394,24 +394,21 @@ namespace ChebTools {
         return A;
     }
     std::vector<double> ChebyshevExpansion::real_roots(bool only_in_domain) const {
+
+        // The companion matrix is definitely lower Hessenberg, so we can skip the Hessenberg
+        // decomposition, and get the real eigenvalues directly.  These eigenvalues are defined
+        // in the domain [-1, 1], but it might also include values outside [-1, 1]
+        Eigen::VectorXd real_eigs = eigenvalues_upperHessenberg(companion_matrix().transpose(), /* balance = */ true);
+        
         std::vector<double> roots;
-
-        // Roots of the Chebyshev expansion are eigenvalues of the companion matrix
-        // obtained from the companion_matrix function
-        Eigen::MatrixXd Abalanced, D;
-        balance_matrix(companion_matrix(), Abalanced, D);
-        Eigen::VectorXcd eigvals = Abalanced.eigenvalues();
-
-        for (int i = 0; i < eigvals.size(); ++i) {
-            double imag = eigvals(i).imag();
-            double real = eigvals(i).real();
-            if (std::abs(imag)/std::abs(real) < 10 * DBL_EPSILON) {
-                // Rescale back into real-world values
-                double x = ((m_xmax - m_xmin)*real + (m_xmax + m_xmin)) / 2.0;
-                // Keep it if in the domain or if you want all real roots
-                if (!only_in_domain || (x <= m_xmax && x >= m_xmin)) {
-                    roots.push_back(x);
-                }
+        for (Eigen::Index i = 0; i < real_eigs.size(); ++i){
+            double val_n11 = real_eigs(i);
+            const bool is_in_domain = (val_n11 >= -1.0 || val_n11 <= 1.0);
+            // Rescale back into real-world values in [xmin,xmax] from [-1,1]
+            double x = ((m_xmax - m_xmin)*val_n11 + (m_xmax + m_xmin)) / 2.0;
+            // Keep it if it is in domain, or if you just want all real roots
+            if (!only_in_domain || is_in_domain){
+                roots.push_back(x);
             }
         }
         return roots;
