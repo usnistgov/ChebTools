@@ -562,6 +562,36 @@ namespace ChebTools {
         }
         return ChebyshevExpansion(std::move(c), m_xmin, m_xmax);
     };
+    
+    Eigen::VectorXd eigenvalues_upperHessenberg(const Eigen::MatrixXd &A, bool balance){
+        Eigen::VectorXd roots(A.cols());
+        Eigen::RealSchur<Eigen::MatrixXd> schur;
+        
+        if (balance) {
+            Eigen::MatrixXd Abalanced, D;
+            balance_matrix(A, Abalanced, D);
+            schur.computeFromHessenberg(Abalanced, Eigen::MatrixXd::Zero(Abalanced.rows(), Abalanced.cols()), false);
+        }
+        else {
+            schur.computeFromHessenberg(A, Eigen::MatrixXd::Zero(A.rows(), A.cols()), false);
+        }
+        
+        const Eigen::MatrixXd &T = schur.matrixT();
+        Eigen::Index j = 0;
+        for (int i = 0; i < T.cols(); ++i) {
+            if (i+1 < T.cols()-1 && std::abs(T(i+1,i)) > DBL_EPSILON){
+                // Nope, this is a 2x2 block, keep moving
+                i += 1;
+            }
+            else{
+                // This is a 1x1 block, keep this (real) eigenvalue
+                roots(j) = T(i, i);
+                j++;
+            }
+        }
+        roots.conservativeResize(j-1);
+        return roots;
+    }
 
     Eigen::VectorXcd eigenvalues(const Eigen::MatrixXd &A, bool balance) {
         if (balance) {

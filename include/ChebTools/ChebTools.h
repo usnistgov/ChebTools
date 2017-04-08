@@ -11,6 +11,7 @@ namespace ChebTools{
     const Eigen::VectorXd &get_extrema(std::size_t N);
 
     Eigen::VectorXcd eigenvalues(const Eigen::MatrixXd &A, bool balance);
+    Eigen::VectorXd eigenvalues_upperHessenberg(const Eigen::MatrixXd &A, bool balance);
 
     class ChebyshevExpansion {
     private:
