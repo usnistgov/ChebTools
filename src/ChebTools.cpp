@@ -286,9 +286,13 @@ namespace ChebTools {
         // C_scaled = (b-a)/2*(chi*A) + ((b+a)/2)*A
         // where the coefficients in the second term need to be padded with a zero to have 
         // the same order as the product of x*A
-        Eigen::VectorXd c_padded(N+2); c_padded << m_c, 0;
-        Eigen::VectorXd coefs = (((m_xmax - m_xmin)/2.0)*cc).array() + (m_xmax + m_xmin)/2.0*c_padded.array();
-        return ChebyshevExpansion(coefs, m_xmin, m_xmax);
+        return ChebyshevExpansion(
+            /* For efficiency's sake, we avoid temporaries, and do the entire evaluation 
+             in one statement, all of which becomes a move
+            */
+            (((m_xmax - m_xmin)/2.0)*cc).array() + (m_xmax + m_xmin)/2.0*(Eigen::VectorXd(N+2) << m_c, 0).finished().array(),
+            m_xmin, m_xmax
+        );
     };
 
     const vectype &ChebyshevExpansion::coef() const {
