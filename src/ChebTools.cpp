@@ -398,20 +398,40 @@ namespace ChebTools {
         // The companion matrix is definitely lower Hessenberg, so we can skip the Hessenberg
         // decomposition, and get the real eigenvalues directly.  These eigenvalues are defined
         // in the domain [-1, 1], but it might also include values outside [-1, 1]
-        Eigen::VectorXd real_eigs = eigenvalues_upperHessenberg(companion_matrix().transpose(), /* balance = */ true);
-        
+        Eigen::VectorXcd eigs = eigenvalues(companion_matrix(), /* balance = */ true);
+
         std::vector<double> roots;
-        for (Eigen::Index i = 0; i < real_eigs.size(); ++i){
-            double val_n11 = real_eigs(i);
-            const bool is_in_domain = (val_n11 >= -1.0 || val_n11 <= 1.0);
-            // Rescale back into real-world values in [xmin,xmax] from [-1,1]
-            double x = ((m_xmax - m_xmin)*val_n11 + (m_xmax + m_xmin)) / 2.0;
-            // Keep it if it is in domain, or if you just want all real roots
-            if (!only_in_domain || is_in_domain){
-                roots.push_back(x);
+        for (Eigen::Index i = 0; i < eigs.size(); ++i) {
+            if (std::abs(eigs(i).imag() / eigs(i).real()) < 1e-15) {
+                double val_n11 = eigs(i).real();
+                const bool is_in_domain = (val_n11 >= -1.0 && val_n11 <= 1.0);
+                // Keep it if it is in domain, or if you just want all real roots
+                if (!only_in_domain || is_in_domain) {
+                    // Rescale back into real-world values in [xmin,xmax] from [-1,1]
+                    double x = ((m_xmax - m_xmin)*val_n11 + (m_xmax + m_xmin)) / 2.0;
+                    roots.push_back(x);
+                }
             }
         }
         return roots;
+        
+        //// The companion matrix is definitely lower Hessenberg, so we can skip the Hessenberg
+        //// decomposition, and get the real eigenvalues directly.  These eigenvalues are defined
+        //// in the domain [-1, 1], but it might also include values outside [-1, 1]
+        //Eigen::VectorXd real_eigs = eigenvalues_upperHessenberg(companion_matrix().transpose(), /* balance = */ true);
+        //
+        //std::vector<double> roots;
+        //for (Eigen::Index i = 0; i < real_eigs.size(); ++i){
+        //    double val_n11 = real_eigs(i);
+        //    const bool is_in_domain = (val_n11 >= -1.0 && val_n11 <= 1.0);
+        //    // Keep it if it is in domain, or if you just want all real roots
+        //    if (!only_in_domain || is_in_domain){
+        //        // Rescale back into real-world values in [xmin,xmax] from [-1,1]
+        //        double x = ((m_xmax - m_xmin)*val_n11 + (m_xmax + m_xmin)) / 2.0;
+        //        roots.push_back(x);
+        //    }
+        //}
+        //return roots;
     }
     std::vector<ChebyshevExpansion> ChebyshevExpansion::subdivide(std::size_t Nintervals, std::size_t Norder) const {
 
