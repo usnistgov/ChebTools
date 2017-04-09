@@ -236,6 +236,15 @@ namespace ChebTools {
         m_c *= value;
         return *this;
     }
+    ChebyshevExpansion& ChebyshevExpansion::operator+=(double value) {
+        m_c[0] += value;
+        return *this;
+    }
+    ChebyshevExpansion& ChebyshevExpansion::operator-=(double value) {
+        m_c[0] -= value;
+        return *this;
+    }
+
     ChebyshevExpansion ChebyshevExpansion::operator*(const ChebyshevExpansion &ce2) const {
 
         std::size_t order1 = this->m_c.size()-1, 
