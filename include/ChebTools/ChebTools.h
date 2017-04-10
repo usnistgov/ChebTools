@@ -43,9 +43,6 @@ namespace ChebTools{
         ChebyshevExpansion operator+(double value) const;
         ChebyshevExpansion operator-(double value) const;
         ChebyshevExpansion& operator*=(double value);
-        ChebyshevExpansion& operator+=(double value);
-        ChebyshevExpansion& operator-=(double value);
-
         /*
          * @brief Multiply two Chebyshev expansions together; thanks to Julia code from Bradley Alpert, NIST
          * 
@@ -57,6 +54,8 @@ namespace ChebTools{
          * @brief Multiply a Chebyshev expansion by its independent variable \f$x\f$
          */
         ChebyshevExpansion times_x() const;
+
+        ChebyshevExpansion& times_x_inplace();
 
         /// Friend function that allows for pre-multiplication by a constant value
         friend ChebyshevExpansion operator*(double value, const ChebyshevExpansion &ce){

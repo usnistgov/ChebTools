@@ -175,6 +175,32 @@ TEST_CASE("Expansion times x", "")
         CAPTURE(err);
         CHECK(err < 1e-12);
     }
+    SECTION("default range; inplace") {
+        auto x = ChebTools::ChebyshevExpansion::factory(1, [](double x) { return x; }, -1, 1);
+        auto C = ChebTools::ChebyshevExpansion(c1, -1, 1);
+        auto xC2 = ChebTools::ChebyshevExpansion(c1, -1, 1);
+        xC2.times_x_inplace();
+        auto xCcoeffs = (x*C).coef();
+        auto xC2_coeffs = xC2.coef();
+        auto err = (xC2_coeffs.array() - xCcoeffs.array()).cwiseAbs().sum();
+        CAPTURE(xCcoeffs);
+        CAPTURE(xC2_coeffs);
+        CAPTURE(err);
+        CHECK(err < 1e-12);
+    }
+    SECTION("non-default range; inplace") {
+        auto x = ChebTools::ChebyshevExpansion::factory(1, [](double x) { return x; }, -2, 3.4);
+        auto C = ChebTools::ChebyshevExpansion(c1, -2, 3.4);
+        auto xC2 = ChebTools::ChebyshevExpansion(c1, -2, 3.4);
+        xC2.times_x_inplace();
+        auto xCcoeffs = (x*C).coef();
+        auto xC2_coeffs = xC2.coef();
+        auto err = (xC2_coeffs.array() - xCcoeffs.array()).cwiseAbs().sum();
+        CAPTURE(xCcoeffs);
+        CAPTURE(xC2_coeffs);
+        CAPTURE(err);
+        CHECK(err < 1e-12);
+    }
 }
 
 TEST_CASE("Sums of expansions", "")

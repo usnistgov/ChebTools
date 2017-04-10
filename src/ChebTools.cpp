@@ -236,15 +236,6 @@ namespace ChebTools {
         m_c *= value;
         return *this;
     }
-    ChebyshevExpansion& ChebyshevExpansion::operator+=(double value) {
-        m_c[0] += value;
-        return *this;
-    }
-    ChebyshevExpansion& ChebyshevExpansion::operator-=(double value) {
-        m_c[0] -= value;
-        return *this;
-    }
-
     ChebyshevExpansion ChebyshevExpansion::operator*(const ChebyshevExpansion &ce2) const {
 
         std::size_t order1 = this->m_c.size()-1, 
@@ -286,13 +277,29 @@ namespace ChebTools {
         // C_scaled = (b-a)/2*(chi*A) + ((b+a)/2)*A
         // where the coefficients in the second term need to be padded with a zero to have 
         // the same order as the product of x*A
-        return ChebyshevExpansion(
-            /* For efficiency's sake, we avoid temporaries, and do the entire evaluation 
-             in one statement, all of which becomes a move
-            */
-            (((m_xmax - m_xmin)/2.0)*cc).array() + (m_xmax + m_xmin)/2.0*(Eigen::VectorXd(N+2) << m_c, 0).finished().array(),
-            m_xmin, m_xmax
-        );
+        Eigen::VectorXd c_padded(N+2); c_padded << m_c, 0;
+        Eigen::VectorXd coefs = (((m_xmax - m_xmin)/2.0)*cc).array() + (m_xmax + m_xmin)/2.0*c_padded.array();
+        return ChebyshevExpansion(coefs, m_xmin, m_xmax);
+    };
+    ChebyshevExpansion& ChebyshevExpansion::times_x_inplace() {
+        Eigen::Index N = m_c.size() - 1; // N is the order of A
+        double diff = ((m_xmax - m_xmin) / 2.0), plus = (m_xmax + m_xmin) / 2.0;
+        Eigen::VectorXd cc(N + 2); // Order of x*A is one higher than that of A
+        if (N > 1) {
+            cc(0) = diff*m_c(1)/2.0 + plus*m_c(0);
+        }
+        if (N > 2) {
+            cc(1) = diff*(m_c(0) + m_c(2) / 2.0) + plus*m_c(1);
+        }
+        for (Eigen::Index i = 2; i < cc.size(); ++i) {
+            cc(i) = (i + 1 <= N) ? diff*(0.5*(m_c(i - 1) + m_c(i + 1)))+plus*m_c(i) : diff*(0.5*(m_c(i - 1))) + plus*((i<=N) ? m_c(i) : 0);
+        }
+        // Scale the values into the real world, which is given by
+        // C_scaled = (b-a)/2*(chi*A) + ((b+a)/2)*A
+        // where the coefficients in the second term need to be padded with a zero to have 
+        // the same order as the product of x*A
+        m_c = cc;
+        return *this;
     };
 
     const vectype &ChebyshevExpansion::coef() const {
