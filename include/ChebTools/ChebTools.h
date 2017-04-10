@@ -43,6 +43,8 @@ namespace ChebTools{
         ChebyshevExpansion operator+(double value) const;
         ChebyshevExpansion operator-(double value) const;
         ChebyshevExpansion& operator*=(double value);
+        ChebyshevExpansion& operator+=(double value);
+        ChebyshevExpansion& operator-=(double value);
         /*
          * @brief Multiply two Chebyshev expansions together; thanks to Julia code from Bradley Alpert, NIST
          * 
