@@ -27,3 +27,24 @@ to use a locally-compiled version for testing.  If you want to build a debug ver
 ```
 python setup.py build -g develop
 ```
+
+## Cmake build
+
+Starting in the root of the repo (a debug build with the default compiler, here on linux):
+
+``` 
+mkdir build
+cd build
+cmake ..
+cmake --build .
+```
+
+For Visual Studio 2015 (64-bit) in release mode, you would do:
+``` 
+mkdir build
+cd build
+cmake .. -G "Visual Studio 14 2015 Win64"
+cmake --build . --config Release
+```
+
+For other options, see the cmake docs
