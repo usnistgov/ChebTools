@@ -1,5 +1,5 @@
 # ChebTools
-C++ tools for working with Chebyshev expansion interpolants
+C++ tools for working with Chebyshev expansion interpolants. This library provides tools for computing Chebyshev expansions, finding the roots of those expansions, computing derivatives of the expansions, and more.
 
 [![Build Status](https://travis-ci.org/usnistgov/ChebTools.svg?branch=master)](https://travis-ci.org/usnistgov/ChebTools)
 
