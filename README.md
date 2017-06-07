@@ -33,18 +33,34 @@ python setup.py build -g develop
 Starting in the root of the repo (a debug build with the default compiler, here on linux):
 
 ``` 
+git clone --recursive https://github.com/usnistgov/ChebTools
+cd ChebTools
 mkdir build
 cd build
 cmake ..
 cmake --build .
 ```
-
+For those using Anaconda on Linux, please use the following for cmake:
+```
+mkdir build
+cd build
+cmake .. -DPYTHON_EXECUTABLE=`which python`
+cmake --build .
+```
 For Visual Studio 2015 (64-bit) in release mode, you would do:
 ``` 
+git clone --recursive https://github.com/usnistgov/ChebTools
+cd ChebTools
 mkdir build
 cd build
 cmake .. -G "Visual Studio 14 2015 Win64"
 cmake --build . --config Release
+```
+
+If you need to update your submodules (pybind11 and friends)
+
+```
+git submodule update --init
 ```
 
 For other options, see the cmake docs
