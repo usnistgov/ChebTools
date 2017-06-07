@@ -42,7 +42,7 @@ For those using Anaconda on Linux, please use the following for cmake:
 ```
 mkdir build
 cd build
-cmake .. -DPYTHON_EXECUTABLE='which python'
+cmake .. -DPYTHON_EXECUTABLE=`which python`
 cmake --build .
 ```
 For Visual Studio 2015 (64-bit) in release mode, you would do:
