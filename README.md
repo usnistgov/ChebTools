@@ -40,7 +40,13 @@ cd build
 cmake ..
 cmake --build .
 ```
-
+For those using Anaconda on Linux, please use the following for cmake:
+```
+mkdir build
+cd build
+cmake .. -DPYTHON_EXECUTABLE=`which python`
+cmake --build .
+```
 For Visual Studio 2015 (64-bit) in release mode, you would do:
 ``` 
 git clone --recursive https://github.com/usnistgov/ChebTools
