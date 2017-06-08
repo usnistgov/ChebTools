@@ -56,7 +56,7 @@ namespace ChebTools {
                 double r = Aprime.row(i).lpNorm<p>();
                 double s = pow(c, p) + pow(r, p);
                 double f = 1;
-                //if (!ValidNumber(c)){ 
+                //if (!ValidNumber(c)){
                 //    std::cout << A << std::endl;
                 //    throw std::range_error("c is not a valid number in balance_matrix"); }
                 //if (!ValidNumber(r)) { throw std::range_error("r is not a valid number in balance_matrix"); }
@@ -103,8 +103,8 @@ namespace ChebTools {
         }
     };
     static ChebyshevExtremaLibrary extrema_library;
-    const Eigen::VectorXd &get_extrema(std::size_t N){ 
-        return extrema_library.get(N); 
+    const Eigen::VectorXd &get_extrema(std::size_t N){
+        return extrema_library.get(N);
     }
 
     class ChebyshevRootsLibrary {
@@ -191,7 +191,7 @@ namespace ChebTools {
     ChebyshevExpansion ChebyshevExpansion::operator+(const ChebyshevExpansion &ce2) const {
         if (m_c.size() == ce2.coef().size()) {
             // Both are the same size, nothing creative to do, just add the coefficients
-            return ChebyshevExpansion(std::move(ce2.coef() + m_c), m_xmin, m_xmax); 
+            return ChebyshevExpansion(std::move(ce2.coef() + m_c), m_xmin, m_xmax);
         }
         else{
             if (m_c.size() > ce2.coef().size()) {
@@ -246,21 +246,21 @@ namespace ChebTools {
     }
     ChebyshevExpansion ChebyshevExpansion::operator*(const ChebyshevExpansion &ce2) const {
 
-        std::size_t order1 = this->m_c.size()-1, 
+        std::size_t order1 = this->m_c.size()-1,
                     order2 = ce2.coef().size()-1;
         // The order of the product is the sum of the orders of the two expansions
         std::size_t Norder_product = order1 + order2;
 
-        // Create padded vectors, and copy into them the coefficients from this instance 
+        // Create padded vectors, and copy into them the coefficients from this instance
         // and that of the donor
-        Eigen::VectorXd a = Eigen::VectorXd::Zero(Norder_product+1), 
+        Eigen::VectorXd a = Eigen::VectorXd::Zero(Norder_product+1),
                         b = Eigen::VectorXd::Zero(Norder_product+1);
         a.head(order1+1) = this->m_c; b.head(order2+1) = ce2.coef();
 
         // Get the matrices U and V from the libraries
         const Eigen::MatrixXd &U = u_matrix_library.get(Norder_product);
         const Eigen::MatrixXd &V = l_matrix_library.get(Norder_product);
-        
+
         // Carry out the calculation of the final coefficients
         // U*a is the functional values at the Chebyshev-Lobatto nodes for the first expansion
         // U*b is the functional values at the Chebyshev-Lobatto nodes for the second expansion
@@ -283,7 +283,7 @@ namespace ChebTools {
         }
         // Scale the values into the real world, which is given by
         // C_scaled = (b-a)/2*(chi*A) + ((b+a)/2)*A
-        // where the coefficients in the second term need to be padded with a zero to have 
+        // where the coefficients in the second term need to be padded with a zero to have
         // the same order as the product of x*A
         Eigen::VectorXd c_padded(N+2); c_padded << m_c, 0;
         Eigen::VectorXd coefs = (((m_xmax - m_xmin)/2.0)*cc).array() + (m_xmax + m_xmin)/2.0*c_padded.array();
@@ -304,7 +304,7 @@ namespace ChebTools {
         }
         // Scale the values into the real world, which is given by
         // C_scaled = (b-a)/2*(chi*A) + ((b+a)/2)*A
-        // where the coefficients in the second term need to be padded with a zero to have 
+        // where the coefficients in the second term need to be padded with a zero to have
         // the same order as the product of x*A
         m_c = cc;
         return *this;
@@ -341,7 +341,7 @@ namespace ChebTools {
         // Short circuit if not using recursive solution
         if (Norder == 0) { return m_c[0]; }
         if (Norder == 1) { return m_c[0] + m_c[1]*xscaled; }
-        
+
         double u_k = 0, u_kp1 = m_c[Norder], u_kp2 = 0;
         for (int k = Norder - 1; k >= 1; --k) {
             u_k = 2.0*xscaled*u_kp1 - u_kp2 + m_c(k);
@@ -376,7 +376,7 @@ namespace ChebTools {
         const std::size_t Norder = m_c.size() - 1;
 
         Eigen::MatrixXd A(xscaled.size(), Norder + 1);
-        
+
         if (Norder == 0) { return m_c[0]*Eigen::MatrixXd::Ones(A.rows(), A.cols()); }
         if (Norder == 1) { return m_c[0] + m_c[1]*xscaled.array(); }
 
@@ -406,13 +406,13 @@ namespace ChebTools {
 
     Eigen::MatrixXd ChebyshevExpansion::companion_matrix() const {
         std::size_t Norder = m_c.size() - 1;
-        Eigen::MatrixXd A = Eigen::MatrixXd::Zero(Norder, Norder);  
+        Eigen::MatrixXd A = Eigen::MatrixXd::Zero(Norder, Norder);
         // c_wrap wraps the first 0...Norder elements of the coefficient vector
         Eigen::Map<const Eigen::VectorXd> c_wrap(&(m_c[0]), Norder);
         // First row
         A(0, 1) = 1;
         // Last row
-        A.row(Norder - 1) = -c_wrap / (2.0*m_c(Norder)); 
+        A.row(Norder - 1) = -c_wrap / (2.0*m_c(Norder));
         A(Norder - 1, Norder - 2) += 0.5;
         // All the other rows
         for (int j = 1; j < Norder - 1; ++j) {
@@ -422,27 +422,51 @@ namespace ChebTools {
         return A;
     }
     std::vector<double> ChebyshevExpansion::real_roots(bool only_in_domain) const {
-
-        // The companion matrix is definitely lower Hessenberg, so we can skip the Hessenberg
-        // decomposition, and get the real eigenvalues directly.  These eigenvalues are defined
-        // in the domain [-1, 1], but it might also include values outside [-1, 1]
-        Eigen::VectorXcd eigs = eigenvalues(companion_matrix(), /* balance = */ true);
-
+      //vector of roots to be returned
         std::vector<double> roots;
-        for (Eigen::Index i = 0; i < eigs.size(); ++i) {
-            if (std::abs(eigs(i).imag() / eigs(i).real()) < 1e-15) {
-                double val_n11 = eigs(i).real();
-                const bool is_in_domain = (val_n11 >= -1.0 && val_n11 <= 1.0);
-                // Keep it if it is in domain, or if you just want all real roots
-                if (!only_in_domain || is_in_domain) {
-                    // Rescale back into real-world values in [xmin,xmax] from [-1,1]
-                    double x = ((m_xmax - m_xmin)*val_n11 + (m_xmax + m_xmin)) / 2.0;
-                    roots.push_back(x);
-                }
-            }
+
+        //if the Chebyshev polynomial is just a constant, then there are no roots
+        //if a_0=0 then there are infinite roots, but for our purposes, infinite roots doesnt make sense
+        if (m_c.size()<=1){ //we choose <=1 to account for the case of no coefficients
+          return roots; //roots is empty
+        }
+
+        //if the Chebyshev polynomial is linear, then the only possible root is -a_0/a_1
+        //we have this else if block because eigen is not a fan of 1x1 matrices
+        else if (m_c.size()==2){
+          double val_n11 = -m_c(0)/m_c(1);
+          const bool is_in_domain = (val_n11 >= -1.0 && val_n11 <= 1.0);
+          // Keep it if it is in domain, or if you just want all real roots
+          if (!only_in_domain || is_in_domain) {
+              // Rescale back into real-world values in [xmin,xmax] from [-1,1]
+              double x = ((m_xmax - m_xmin)*val_n11 + (m_xmax + m_xmin)) / 2.0;
+              roots.push_back(x);
+          }
+        }
+
+        //this for all cases of higher order polynomials
+        else{
+          // The companion matrix is definitely lower Hessenberg, so we can skip the Hessenberg
+          // decomposition, and get the real eigenvalues directly.  These eigenvalues are defined
+          // in the domain [-1, 1], but it might also include values outside [-1, 1]
+          Eigen::VectorXcd eigs = eigenvalues(companion_matrix(), /* balance = */ true);
+
+
+          for (Eigen::Index i = 0; i < eigs.size(); ++i) {
+              if (std::abs(eigs(i).imag() / eigs(i).real()) < 1e-15) {
+                  double val_n11 = eigs(i).real();
+                  const bool is_in_domain = (val_n11 >= -1.0 && val_n11 <= 1.0);
+                  // Keep it if it is in domain, or if you just want all real roots
+                  if (!only_in_domain || is_in_domain) {
+                      // Rescale back into real-world values in [xmin,xmax] from [-1,1]
+                      double x = ((m_xmax - m_xmin)*val_n11 + (m_xmax + m_xmin)) / 2.0;
+                      roots.push_back(x);
+                  }
+              }
+          }
         }
         return roots;
-        
+
         //// The companion matrix is definitely lower Hessenberg, so we can skip the Hessenberg
         //// decomposition, and get the real eigenvalues directly.  These eigenvalues are defined
         //// in the domain [-1, 1], but it might also include values outside [-1, 1]
@@ -470,7 +494,7 @@ namespace ChebTools {
         std::vector<ChebyshevExpansion> segments;
         double deltax = (m_xmax - m_xmin) / (Nintervals - 1);
 
-        // Vector of values in the range [-1,1] as roots of a high-order Chebyshev 
+        // Vector of values in the range [-1,1] as roots of a high-order Chebyshev
         Eigen::VectorXd xpts_n11 = (Eigen::VectorXd::LinSpaced(Norder + 1, 0, Norder)*EIGEN_PI / Norder).array().cos();
 
         for (std::size_t i = 0; i < Nintervals - 1; ++i) {
@@ -491,7 +515,7 @@ namespace ChebTools {
     std::vector<double> ChebyshevExpansion::real_roots_approx(long Npoints)
     {
         std::vector<double> roots;
-        // Vector of values in the range [-1,1] as roots of a high-order Chebyshev 
+        // Vector of values in the range [-1,1] as roots of a high-order Chebyshev
         Eigen::VectorXd xpts_n11 = (Eigen::VectorXd::LinSpaced(Npoints + 1, 0, Npoints)*EIGEN_PI / Npoints).array().cos();
         // Scale values into real-world values
         Eigen::VectorXd ypts = y_recurrence_xscaled(xpts_n11);
@@ -504,7 +528,7 @@ namespace ChebTools {
                 double xscaled = xpts_n11(i);
 
                 // Fit a quadratic given three points; i and i+1 bracket the root, so need one more constraint
-                // i0 is the leftmost of the three indices that will be used; when i == 0, use 
+                // i0 is the leftmost of the three indices that will be used; when i == 0, use
                 // indices i,i+1,i+2, otherwise i-1,i,i+1
                 size_t i0 = (i >= 1) ? i - 1 : i;
                 Eigen::Vector3d r;
@@ -551,9 +575,9 @@ namespace ChebTools {
         std::size_t N = m_c.size()-1;
         return extrema_library.get(N);
     }
-    /// Values of the function at the Chebyshev-Lobatto nodes 
+    /// Values of the function at the Chebyshev-Lobatto nodes
     Eigen::VectorXd ChebyshevExpansion::get_node_function_values() {
-        std::size_t N = m_c.size()-1; 
+        std::size_t N = m_c.size()-1;
         return u_matrix_library.get(N)*m_c;
     }
 
@@ -607,11 +631,11 @@ namespace ChebTools {
         }
         return ChebyshevExpansion(std::move(c), m_xmin, m_xmax);
     };
-    
+
     Eigen::VectorXd eigenvalues_upperHessenberg(const Eigen::MatrixXd &A, bool balance){
         Eigen::VectorXd roots(A.cols());
         Eigen::RealSchur<Eigen::MatrixXd> schur;
-        
+
         if (balance) {
             Eigen::MatrixXd Abalanced, D;
             balance_matrix(A, Abalanced, D);
@@ -620,7 +644,7 @@ namespace ChebTools {
         else {
             schur.computeFromHessenberg(A, Eigen::MatrixXd::Zero(A.rows(), A.cols()), false);
         }
-        
+
         const Eigen::MatrixXd &T = schur.matrixT();
         Eigen::Index j = 0;
         for (int i = 0; i < T.cols(); ++i) {

@@ -111,12 +111,12 @@ TEST_CASE("Expansion from single monomial term", "")
 
 TEST_CASE("Expansion from polynomial", "")
 {
-    Eigen::VectorXd c_poly(4); c_poly << 0, 1, 2, 3; 
+    Eigen::VectorXd c_poly(4); c_poly << 0, 1, 2, 3;
     Eigen::VectorXd c_expected(4); c_expected << 1.0, 3.25, 1.0, 0.75;
 
     // From https ://docs.scipy.org/doc/numpy/reference/generated/numpy.polynomial.chebyshev.poly2cheb.html
     auto ce = ChebTools::ChebyshevExpansion::from_polynomial(c_poly, 0, 10);
-    
+
     auto err = std::abs((c_expected - ce.coef()).sum());
     CAPTURE(err);
     CHECK(err < 1e-100);
@@ -164,7 +164,7 @@ TEST_CASE("Expansion times x", "")
         auto times_x_coeffs = C.times_x().coef();
         auto err = (times_x_coeffs.array() - xCcoeffs.array()).cwiseAbs().sum();
         CAPTURE(xCcoeffs);
-        CAPTURE(times_x_coeffs); 
+        CAPTURE(times_x_coeffs);
         CAPTURE(err);
         CHECK(err < 1e-12);
     }
@@ -213,7 +213,7 @@ TEST_CASE("Sums of expansions", "")
         Eigen::VectorXd c_expected(4); c_expected << 2,4,6,8;
         auto C1 = ChebTools::ChebyshevExpansion(c4, xmin, xmax);
         auto C2 = ChebTools::ChebyshevExpansion(c4, xmin, xmax);
-        
+
         auto err = std::abs((c_expected - (C1 + C2).coef()).sum());
         CAPTURE(err);
         CHECK(err < 1e-100);
@@ -255,13 +255,13 @@ TEST_CASE("Constant value 1.0", "")
     double err2 = (C.y(x2).array() - 1.0).cwiseAbs().sum();
     CAPTURE(err2);
     CHECK(err2 < 1e-100);
-    
+
 }
 
 TEST_CASE("Constant value y=x", "")
 {
     Eigen::VectorXd c(2); c << 0.0, 1.0;
-    Eigen::VectorXd x1(1); x1 << 0.5; 
+    Eigen::VectorXd x1(1); x1 << 0.5;
     Eigen::VectorXd x2(2); x2 << 0.5, 0.5;
 
     auto C = ChebTools::ChebyshevExpansion(c, -1, 1);
@@ -328,4 +328,48 @@ TEST_CASE("product commutativity with simple multiplication", "") {
     double err = (c0.array() - c1.array()).cwiseAbs().sum();
     CAPTURE(err);
     CHECK(err < 1e-14);
+}
+
+
+//some corner cases if someone wanted to try and initialize a linear ChebyshevExpansion
+TEST_CASE("corner cases with linear ChebyshevExpansion",""){
+  double error;
+  SECTION("root finding of linear ChebyshevExpansion"){
+    Eigen::VectorXd coeffs(2);
+    coeffs<<0,1;
+    ChebTools::ChebyshevExpansion linCheb = ChebTools::ChebyshevExpansion(coeffs,-1,1);
+    double root = linCheb.real_roots(true).at(0);
+    error = std::abs(root);
+    CAPTURE(error);
+    CHECK(error<1e-14);
+  }
+
+  SECTION("root finding of linear ChebyshevExpansion test 2"){
+    Eigen::VectorXd coeffs(3);
+    coeffs<<-1,1,0;
+    ChebTools::ChebyshevExpansion linCheb = ChebTools::ChebyshevExpansion(coeffs,-1,1);
+    double root = linCheb.real_roots(true).at(0);
+    error = std::abs(1-root);
+    CAPTURE(error);
+    CHECK(error<1e-14);
+  }
+
+  SECTION("root finding of linear ChebyshevExpansion test 3"){
+    Eigen::VectorXd coeffs(3);
+    coeffs<<0,1,0;
+    ChebTools::ChebyshevExpansion linCheb = ChebTools::ChebyshevExpansion(coeffs,-1,1);
+    double root = linCheb.real_roots(true).at(0);
+    error = std::abs(root);
+    CAPTURE(error);
+    CHECK(error<1e-14);
+  }
+
+  SECTION("root finding of linear ChebyshevExpansion test 4"){
+    Eigen::VectorXd coeffs(3);
+    coeffs<<0,0,0;
+    ChebTools::ChebyshevExpansion linCheb = ChebTools::ChebyshevExpansion(coeffs,-1,1);
+    int roots = linCheb.real_roots(true).size();
+    CAPTURE(roots);
+    CHECK(roots==0);
+  }
 }
