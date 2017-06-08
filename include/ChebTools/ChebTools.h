@@ -50,9 +50,7 @@ namespace ChebTools{
           }
           //neededSize gives us the number of coefficients that are nonzero
           //we will resize m_c such that there are essentially no trailing zeros
-          vectype place_holder = m_c.head(neededSize);
-          m_c.resize(neededSize);
-          m_c = place_holder;
+          m_c.conservativeResize(neededSize);
         }
 
     public:
