@@ -404,8 +404,8 @@ namespace ChebTools {
         return xscaled.array()*u_k.array() - u_kp1.array() + m_c(0);
     }
 
-    Eigen::MatrixXd ChebyshevExpansion::companion_matrix() const {
-        Eigen::VectorXd new_mc = reduce_zeros(m_c);
+    Eigen::MatrixXd ChebyshevExpansion::companion_matrix(const Eigen::VectorXd &coeffs) const {
+        Eigen::VectorXd new_mc = reduce_zeros(coeffs);
         std::size_t Norder = new_mc.size() - 1;
         Eigen::MatrixXd A = Eigen::MatrixXd::Zero(Norder, Norder);
         // c_wrap wraps the first 0...Norder elements of the coefficient vector
@@ -450,7 +450,7 @@ namespace ChebTools {
           // The companion matrix is definitely lower Hessenberg, so we can skip the Hessenberg
           // decomposition, and get the real eigenvalues directly.  These eigenvalues are defined
           // in the domain [-1, 1], but it might also include values outside [-1, 1]
-          Eigen::VectorXcd eigs = eigenvalues(companion_matrix(), /* balance = */ true);
+          Eigen::VectorXcd eigs = eigenvalues(companion_matrix(new_mc), /* balance = */ true);
 
 
           for (Eigen::Index i = 0; i < eigs.size(); ++i) {

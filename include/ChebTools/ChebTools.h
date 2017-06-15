@@ -26,7 +26,7 @@ namespace ChebTools{
 
         //reduce_zeros changes the m_c field so that our companion matrix doesnt have nan values in it
         //all this does is truncate m_c such that there are no trailing zero values
-        static Eigen::VectorXd reduce_zeros(Eigen:: VectorXd chebCoeffs){
+        static Eigen::VectorXd reduce_zeros(const Eigen:: VectorXd &chebCoeffs){
           //these give us a threshold for what coefficients are large enough
           double largeTerm = 1e-15;
           if (chebCoeffs.size()>=1 && std::abs(chebCoeffs(0))>largeTerm){
@@ -50,8 +50,7 @@ namespace ChebTools{
           }
           //neededSize gives us the number of coefficients that are nonzero
           //we will resize m_c such that there are essentially no trailing zeros
-          Eigen::VectorXd answer = chebCoeffs.head(neededSize);
-          return answer;
+          return chebCoeffs.head(neededSize);
         }
 
     public:
@@ -126,7 +125,7 @@ namespace ChebTools{
         *
         * See Boyd, SIAM review, 2013, http://dx.doi.org/10.1137/110838297, Appendix A.2
         */
-        Eigen::MatrixXd companion_matrix() const ;
+        Eigen::MatrixXd companion_matrix(const Eigen::VectorXd &coeffs) const ;
         /**
         * @brief Return the real roots of the Chebyshev expansion
         * @param only_in_domain If true, only real roots that are within the domain
