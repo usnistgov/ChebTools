@@ -194,9 +194,11 @@ namespace ChebTools{
         /// Return the N-th derivative of this expansion, where N must be >= 1
         ChebyshevExpansion deriv(std::size_t Nderiv) const ;
 
-        /// Get the Chebyshev-Lobatto nodes
+        /// Get the Chebyshev-Lobatto nodes in the domain [-1,1]
         Eigen::VectorXd get_nodes_n11();
-        /// Values of the function at the Chebyshev-Lobatto nodes
+		/// Get the Chebyshev-Lobatto nodes in the domain [xmin, xmax]
+		Eigen::VectorXd get_nodes_realworld();
+        /// Values of the function at the Chebyshev-Lobatto nodes 
         Eigen::VectorXd get_node_function_values();
     };
 

@@ -575,9 +575,13 @@ namespace ChebTools {
         std::size_t N = m_c.size()-1;
         return extrema_library.get(N);
     }
-    /// Values of the function at the Chebyshev-Lobatto nodes
+    Eigen::VectorXd ChebyshevExpansion::get_nodes_realworld() {
+        return ((m_xmax - m_xmin)*get_nodes_n11().array() + (m_xmax + m_xmin)) / 2.0;
+    }
+    
+    /// Values of the function at the Chebyshev-Lobatto nodes 
     Eigen::VectorXd ChebyshevExpansion::get_node_function_values() {
-        std::size_t N = m_c.size()-1;
+        std::size_t N = m_c.size()-1; 
         return u_matrix_library.get(N)*m_c;
     }
 
