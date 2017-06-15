@@ -405,14 +405,15 @@ namespace ChebTools {
     }
 
     Eigen::MatrixXd ChebyshevExpansion::companion_matrix() const {
-        std::size_t Norder = m_c.size() - 1;
+        Eigen::VectorXd new_mc = reduce_zeros(m_c);
+        std::size_t Norder = new_mc.size() - 1;
         Eigen::MatrixXd A = Eigen::MatrixXd::Zero(Norder, Norder);
         // c_wrap wraps the first 0...Norder elements of the coefficient vector
-        Eigen::Map<const Eigen::VectorXd> c_wrap(&(m_c[0]), Norder);
+        Eigen::Map<const Eigen::VectorXd> c_wrap(&(new_mc[0]), Norder);
         // First row
         A(0, 1) = 1;
         // Last row
-        A.row(Norder - 1) = -c_wrap / (2.0*m_c(Norder));
+        A.row(Norder - 1) = -c_wrap / (2.0*new_mc(Norder));
         A(Norder - 1, Norder - 2) += 0.5;
         // All the other rows
         for (int j = 1; j < Norder - 1; ++j) {
@@ -424,17 +425,17 @@ namespace ChebTools {
     std::vector<double> ChebyshevExpansion::real_roots(bool only_in_domain) const {
       //vector of roots to be returned
         std::vector<double> roots;
-
+        Eigen::VectorXd new_mc = reduce_zeros(m_c);
         //if the Chebyshev polynomial is just a constant, then there are no roots
         //if a_0=0 then there are infinite roots, but for our purposes, infinite roots doesnt make sense
-        if (m_c.size()<=1){ //we choose <=1 to account for the case of no coefficients
+        if (new_mc.size()<=1){ //we choose <=1 to account for the case of no coefficients
           return roots; //roots is empty
         }
 
         //if the Chebyshev polynomial is linear, then the only possible root is -a_0/a_1
         //we have this else if block because eigen is not a fan of 1x1 matrices
-        else if (m_c.size()==2){
-          double val_n11 = -m_c(0)/m_c(1);
+        else if (new_mc.size()==2){
+          double val_n11 = -new_mc(0)/new_mc(1);
           const bool is_in_domain = (val_n11 >= -1.0 && val_n11 <= 1.0);
           // Keep it if it is in domain, or if you just want all real roots
           if (!only_in_domain || is_in_domain) {
@@ -578,10 +579,10 @@ namespace ChebTools {
     Eigen::VectorXd ChebyshevExpansion::get_nodes_realworld() {
         return ((m_xmax - m_xmin)*get_nodes_n11().array() + (m_xmax + m_xmin)) / 2.0;
     }
-    
-    /// Values of the function at the Chebyshev-Lobatto nodes 
+
+    /// Values of the function at the Chebyshev-Lobatto nodes
     Eigen::VectorXd ChebyshevExpansion::get_node_function_values() {
-        std::size_t N = m_c.size()-1; 
+        std::size_t N = m_c.size()-1;
         return u_matrix_library.get(N)*m_c;
     }
 

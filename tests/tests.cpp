@@ -371,5 +371,6 @@ TEST_CASE("corner cases with linear ChebyshevExpansion",""){
     int roots = linCheb.real_roots(true).size();
     CAPTURE(roots);
     CHECK(roots==0);
+    CHECK(linCheb.coef().size()==3);
   }
 }
