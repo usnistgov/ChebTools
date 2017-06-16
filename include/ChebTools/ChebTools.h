@@ -26,23 +26,23 @@ namespace ChebTools{
 
         //reduce_zeros changes the m_c field so that our companion matrix doesnt have nan values in it
         //all this does is truncate m_c such that there are no trailing zero values
-        void reduce_zeros(){
+        static Eigen::VectorXd reduce_zeros(const Eigen:: VectorXd &chebCoeffs){
           //these give us a threshold for what coefficients are large enough
           double largeTerm = 1e-15;
-          if (m_c.size()>=1 && std::abs(m_c(0))>largeTerm){
-            largeTerm = m_c(0);
+          if (chebCoeffs.size()>=1 && std::abs(chebCoeffs(0))>largeTerm){
+            largeTerm = chebCoeffs(0);
           }
           //if the second coefficient is larger than the first, then make our tolerance
           //based on the second coefficient, this is useful for functions whose mean value
           //is zero on the interval
-          if (m_c.size()>=2 && std::abs(m_c(1))>largeTerm){
-            largeTerm = m_c(1);
+          if (chebCoeffs.size()>=2 && std::abs(chebCoeffs(1))>largeTerm){
+            largeTerm = chebCoeffs(1);
           }
           double tol = largeTerm*(1e-15);
-          double neededSize = m_c.size();
+          double neededSize = chebCoeffs.size();
           //loop over m_c backwards, if we run into large enough coefficient, then record the size and break
-          for (int i=m_c.size()-1;i>=0;i--){
-            if (std::abs(m_c(i))>tol){
+          for (int i=chebCoeffs.size()-1;i>=0;i--){
+            if (std::abs(chebCoeffs(i))>tol){
               neededSize = i+1;
               break;
             }
@@ -50,21 +50,21 @@ namespace ChebTools{
           }
           //neededSize gives us the number of coefficients that are nonzero
           //we will resize m_c such that there are essentially no trailing zeros
-          m_c.conservativeResize(neededSize);
+          return chebCoeffs.head(neededSize);
         }
 
     public:
 
-        ChebyshevExpansion(const vectype &c, double xmin = -1, double xmax = 1) : m_c(c), m_xmin(xmin), m_xmax(xmax) { resize(); reduce_zeros(); };
+        ChebyshevExpansion(const vectype &c, double xmin = -1, double xmax = 1) : m_c(c), m_xmin(xmin), m_xmax(xmax) { resize(); };
         ChebyshevExpansion(const std::vector<double> &c, double xmin = -1, double xmax = 1) : m_xmin(xmin), m_xmax(xmax) {
             m_c = Eigen::Map<const Eigen::VectorXd>(&(c[0]), c.size());
-            resize(); reduce_zeros();
+            resize();
         };
         double xmin(){ return m_xmin; }
         double xmax(){ return m_xmax; }
 
         // Move constructor (C++11 only)
-        ChebyshevExpansion(const vectype &&c, double xmin = -1, double xmax = 1) : m_c(c), m_xmin(xmin), m_xmax(xmax) { resize(); reduce_zeros(); };
+        ChebyshevExpansion(const vectype &&c, double xmin = -1, double xmax = 1) : m_c(c), m_xmin(xmin), m_xmax(xmax) { resize(); };
 
         ChebyshevExpansion operator+(const ChebyshevExpansion &ce2) const ;
         ChebyshevExpansion& operator+=(const ChebyshevExpansion &donor);
@@ -125,7 +125,7 @@ namespace ChebTools{
         *
         * See Boyd, SIAM review, 2013, http://dx.doi.org/10.1137/110838297, Appendix A.2
         */
-        Eigen::MatrixXd companion_matrix() const ;
+        Eigen::MatrixXd companion_matrix(const Eigen::VectorXd &coeffs) const ;
         /**
         * @brief Return the real roots of the Chebyshev expansion
         * @param only_in_domain If true, only real roots that are within the domain
@@ -198,7 +198,7 @@ namespace ChebTools{
         Eigen::VectorXd get_nodes_n11();
 		/// Get the Chebyshev-Lobatto nodes in the domain [xmin, xmax]
 		Eigen::VectorXd get_nodes_realworld();
-        /// Values of the function at the Chebyshev-Lobatto nodes 
+        /// Values of the function at the Chebyshev-Lobatto nodes
         Eigen::VectorXd get_node_function_values();
     };
 
