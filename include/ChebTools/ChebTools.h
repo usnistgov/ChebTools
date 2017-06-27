@@ -39,7 +39,7 @@ namespace ChebTools{
             largeTerm = chebCoeffs(1);
           }
           double tol = largeTerm*(1e-15);
-          double neededSize = chebCoeffs.size();
+          int neededSize = chebCoeffs.size();
           //loop over m_c backwards, if we run into large enough coefficient, then record the size and break
           for (int i=chebCoeffs.size()-1;i>=0;i--){
             if (std::abs(chebCoeffs(i))>tol){
