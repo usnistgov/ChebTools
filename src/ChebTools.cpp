@@ -88,7 +88,8 @@ namespace ChebTools {
     private:
         std::map<std::size_t, Eigen::VectorXd> vectors;
         void build(std::size_t N) {
-            vectors[N] = (Eigen::VectorXd::LinSpaced(N + 1, 0, N).array()*EIGEN_PI / N).cos();
+            double NN = static_cast<double>(N); // just a cast
+            vectors[N] = (Eigen::VectorXd::LinSpaced(N + 1, 0, NN).array()*EIGEN_PI / N).cos();
         }
     public:
         const Eigen::VectorXd & get(std::size_t N) {
@@ -111,7 +112,8 @@ namespace ChebTools {
     private:
         std::map<std::size_t, Eigen::VectorXd> vectors;
         void build(std::size_t N) {
-            vectors[N] = ((Eigen::VectorXd::LinSpaced(N, 0, N - 1).array() + 0.5)*EIGEN_PI / N).cos();
+            double NN = static_cast<double>(N); // just a cast
+            vectors[N] = ((Eigen::VectorXd::LinSpaced(N, 0, NN - 1).array() + 0.5)*EIGEN_PI / NN).cos();
         }
     public:
         const Eigen::VectorXd & get(std::size_t N) {
@@ -352,7 +354,7 @@ namespace ChebTools {
         if (Norder == 1) { return m_c[0] + m_c[1]*xscaled; }
 
         double u_k = 0, u_kp1 = m_c[Norder], u_kp2 = 0;
-        for (int k = Norder - 1; k >= 1; --k) {
+        for (int k = static_cast<int>(Norder) - 1; k >= 1; --k) {
             u_k = 2.0*xscaled*u_kp1 - u_kp2 + m_c(k);
             // Update summation values for all but the last step
             if (k > 1) {
@@ -403,7 +405,7 @@ namespace ChebTools {
         const std::size_t Norder = m_c.size() - 1;
         vectype u_k, u_kp1(xscaled.size()), u_kp2(xscaled.size());
         u_kp1.fill(m_c[Norder]); u_kp2.fill(0);
-        for (int k = Norder - 1; k >= 1; --k) {
+        for (int k = static_cast<int>(Norder) - 1; k >= 1; --k) {
             u_k = 2 * xscaled.array()*u_kp1.array() - u_kp2.array() + m_c(k);
             // Update summation values for all but the last step
             if (k > 1) {
@@ -495,7 +497,7 @@ namespace ChebTools {
         //}
         //return roots;
     }
-    std::vector<ChebyshevExpansion> ChebyshevExpansion::subdivide(std::size_t Nintervals, std::size_t Norder) const {
+    std::vector<ChebyshevExpansion> ChebyshevExpansion::subdivide(std::size_t Nintervals, const std::size_t Norder) const {
 
         if (Nintervals == 1) {
             return std::vector<ChebyshevExpansion>(1, *this);
@@ -505,7 +507,8 @@ namespace ChebTools {
         double deltax = (m_xmax - m_xmin) / (Nintervals - 1);
 
         // Vector of values in the range [-1,1] as roots of a high-order Chebyshev
-        Eigen::VectorXd xpts_n11 = (Eigen::VectorXd::LinSpaced(Norder + 1, 0, Norder)*EIGEN_PI / Norder).array().cos();
+        double NN = static_cast<double>(Norder);
+        Eigen::VectorXd xpts_n11 = (Eigen::VectorXd::LinSpaced(Norder + 1, 0, NN)*EIGEN_PI/NN).array().cos();
 
         for (std::size_t i = 0; i < Nintervals - 1; ++i) {
             double xmin = m_xmin + i*deltax, xmax = m_xmin + (i + 1)*deltax;
