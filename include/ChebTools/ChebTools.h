@@ -39,9 +39,9 @@ namespace ChebTools{
             largeTerm = chebCoeffs(1);
           }
           double tol = largeTerm*(1e-15);
-          double neededSize = chebCoeffs.size();
+          int neededSize = static_cast<int>(chebCoeffs.size());
           //loop over m_c backwards, if we run into large enough coefficient, then record the size and break
-          for (int i=chebCoeffs.size()-1;i>=0;i--){
+          for (int i=static_cast<int>(chebCoeffs.size())-1; i>=0; i--){
             if (std::abs(chebCoeffs(i))>tol){
               neededSize = i+1;
               break;
@@ -151,7 +151,7 @@ namespace ChebTools{
         //    return "[" + std::to_string(x) + ", " + std::to_string(y) + "]";
         //}
 
-        static ChebyshevExpansion factoryf(const int N, const Eigen::VectorXd &f, const double xmin, const double xmax) ;
+        static ChebyshevExpansion factoryf(const std::size_t N, const Eigen::VectorXd &f, const double xmin, const double xmax) ;
 
         /**
         * @brief Given a callable function, construct the N-th order Chebyshev expansion in [xmin, xmax]
@@ -163,7 +163,7 @@ namespace ChebTools{
         * See Boyd, SIAM review, 2013, http://dx.doi.org/10.1137/110838297, Appendix A.
         */
         template<class double_function>
-        static ChebyshevExpansion factory(const int N, double_function func, const double xmin, const double xmax)
+        static ChebyshevExpansion factory(const std::size_t N, double_function func, const double xmin, const double xmax)
         {
             // Get the precalculated extrema values
             const Eigen::VectorXd & x_extrema_n11 = get_extrema(N);

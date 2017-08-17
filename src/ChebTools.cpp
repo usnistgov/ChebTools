@@ -292,21 +292,30 @@ namespace ChebTools {
     ChebyshevExpansion& ChebyshevExpansion::times_x_inplace() {
         Eigen::Index N = m_c.size() - 1; // N is the order of A
         double diff = ((m_xmax - m_xmin) / 2.0), plus = (m_xmax + m_xmin) / 2.0;
-        Eigen::VectorXd cc(N + 2); // Order of x*A is one higher than that of A
+        double cim1old = 0, ciold = 0;
+        m_c.conservativeResize(N+2);
+        m_c(N+1) = 0.0; // Fill the last entry with a zero
         if (N > 1) {
-            cc(0) = diff*m_c(1)/2.0 + plus*m_c(0);
+            // 0-th element
+            cim1old = m_c(0); // store the current 0-th element in temporary variable
+            m_c(0) = diff*(0.5*m_c(1)) + plus*m_c(0);
         }
         if (N > 2) {
-            cc(1) = diff*(m_c(0) + m_c(2) / 2.0) + plus*m_c(1);
+            // 1-th element
+            ciold = m_c(1); // store the current 1-th element in temporary variable
+            m_c(1) = diff*(cim1old + 0.5*m_c(2)) + plus*m_c(1);
+            cim1old = ciold;
         }
-        for (Eigen::Index i = 2; i < cc.size(); ++i) {
-            cc(i) = (i + 1 <= N) ? diff*(0.5*(m_c(i - 1) + m_c(i + 1)))+plus*m_c(i) : diff*(0.5*(m_c(i - 1))) + plus*((i<=N) ? m_c(i) : 0);
+        for (Eigen::Index i = 2; i <= N-1; ++i) {
+            ciold = m_c(i); // store the current i-th element in temporary variable
+            m_c(i) = diff*(0.5*(cim1old + m_c(i + 1)))+plus*m_c(i);
+            cim1old = ciold;
         }
-        // Scale the values into the real world, which is given by
-        // C_scaled = (b-a)/2*(chi*A) + ((b+a)/2)*A
-        // where the coefficients in the second term need to be padded with a zero to have
-        // the same order as the product of x*A
-        m_c = cc;
+        for (Eigen::Index i = N; i <= N + 1; ++i) {
+            ciold = m_c(i); // store the current i-th element in temporary variable
+            m_c(i) = diff*(0.5*cim1old) + plus*m_c(i);
+            cim1old = ciold;
+        }
         return *this;
     };
 
@@ -586,7 +595,7 @@ namespace ChebTools {
         return u_matrix_library.get(N)*m_c;
     }
 
-    ChebyshevExpansion ChebyshevExpansion::factoryf(const int N, const Eigen::VectorXd &f, const double xmin, const double xmax) {
+    ChebyshevExpansion ChebyshevExpansion::factoryf(const std::size_t N, const Eigen::VectorXd &f, const double xmin, const double xmax) {
         // Step 3: Get coefficients for the L matrix from the library of coefficients
         const Eigen::MatrixXd &L = l_matrix_library.get(N);
         // Step 4: Obtain coefficients from vector - matrix product
