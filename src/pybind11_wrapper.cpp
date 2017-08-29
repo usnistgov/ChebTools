@@ -49,6 +49,7 @@ void init_ChebTools(py::module &m){
         .def("xmin", &ChebyshevExpansion::xmin)
         .def("xmax", &ChebyshevExpansion::xmax)
         .def("get_nodes_n11", &ChebyshevExpansion::get_nodes_n11)
+        .def("get_nodes_realworld", &ChebyshevExpansion::get_nodes_realworld)
         .def("get_node_function_values", &ChebyshevExpansion::get_node_function_values)
         ;
 }
