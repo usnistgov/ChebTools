@@ -5,6 +5,10 @@
 #include <iostream>
 #include <chrono>
 
+double f2(double x) {
+    return exp(-5*pow(x,2)) - 0.5;
+}
+
 double f(double x){
     return pow(x,3);
     //return exp(-5*pow(x,2)) - 0.5;
@@ -20,12 +24,35 @@ int main(){
     ee = ChebyshevExpansion::factory(40, f, -1, 1);
     std::cout << ee.coef() << std::endl;
 
+    auto ee2 = ChebyshevExpansion::factory(50, f2, -1, 1);
+    auto rt_vals = sqrt(-log(0.5)/5);
+    {
+        long N = 1; double s =0;
+        auto startTime = std::chrono::high_resolution_clock::now();
+        for (int i = 0; i < N; ++i) {
+            s += ee2.real_roots()[0];
+        }
+        auto endTime = std::chrono::high_resolution_clock::now();
+        auto elap_us = std::chrono::duration<double>(endTime - startTime).count()/N*1e6;
+        std::cout << "with eigs:" << elap_us << " " << s/N << std::endl;
+    }
+    {
+        long N = 100; double s = 0;
+        auto startTime = std::chrono::high_resolution_clock::now();
+        for (int i = 0; i < N; ++i) {
+            s += ee2.real_roots2()[0];
+        }
+        auto endTime = std::chrono::high_resolution_clock::now();
+        auto elap_us = std::chrono::duration<double>(endTime - startTime).count()/N*1e6;
+        std::cout << "with quads:" << elap_us << " " << s/N << std::endl;
+    }
+    std::cout << rt_vals << std::endl;
+
     Eigen::Vector4d ccccc;
     ccccc << 1,2,3,4;
     auto ce4 = ChebyshevExpansion(ccccc, -1, 1);
     std::cout << ce4.deriv(1).coef() << std::endl;
     std::cout << ce4.deriv(3).coef() << std::endl;
-
 
     {
         Eigen::MatrixXd mat = Eigen::MatrixXd::Random(20, 50);

@@ -17,6 +17,9 @@
 #define DBL_MAX std::numeric_limits<double>::max()
 #endif
 
+template <class T> T POW2(T x){ return x*x; }
+template <class T> bool inbetween(T bound1, T bound2, T val){ return val > std::min(bound1,bound2) && val < std::max(bound1,bound2); }
+
 /// See python code in https://en.wikipedia.org/wiki/Binomial_coefficient#Binomial_coefficient_in_programming_languages
 /// This is a direct translation of that code to C++
 double binomialCoefficient(const double n, const double k) {
@@ -432,6 +435,56 @@ namespace ChebTools {
             A(j, j + 1) = 0.5;
         }
         return A;
+    }
+    std::vector<double> ChebyshevExpansion::real_roots2(bool only_in_domain) const {
+        //vector of roots to be returned
+        std::vector<double> roots;
+        
+        Eigen::VectorXd xscaled = get_extrema(m_c.size()*2), yy = y_Clenshaw_xscaled(xscaled);
+        long N = m_c.size();
+        // a,b,c can also be obtained by solving the matrix system:
+        // [x_k^2, x_k, 1] = [b_k] for k in 1,2,3
+        for (auto i = 0; i < 2*N-3; i += 2){
+            const double &x_1 = xscaled[i + 0], &y_1 = yy[i + 0],
+                         &x_2 = xscaled[i + 1], &y_2 = yy[i + 1],
+                         &x_3 = xscaled[i + 2], &y_3 = yy[i + 2];
+            double d = (x_3 - x_2)*(x_2 - x_1)*(x_3 - x_1);
+            double a = ((x_3 - x_2)*y_1 - (x_3 - x_1)*y_2 + (x_2 - x_1)*y_3) / d;
+            double b = (-(POW2(x_3) - POW2(x_2))*y_1 + (POW2(x_3) - POW2(x_1))*y_2 - (POW2(x_2) - POW2(x_1))*y_3) / d;
+            double c = ((x_3 - x_2)*x_2*x_3*y_1 - (x_3 - x_1)*x_1*x_3*y_2 + (x_2 - x_1)*x_2*x_1*y_3) / d;
+
+            // Discriminant of quadratic
+            double D = b*b - 4*a*c;
+            if (D >= 0) {
+                if (D == 0) { // Unlikely due to numerical precision
+                    roots.push_back(-b / (2 * a));
+                }
+                else {
+                    // Numerically stable method for solving quadratic
+                    // From https://people.csail.mit.edu/bkph/articles/Quadratics.pdf
+                    double sqrtD = sqrt(D);
+                    double root1, root2;
+                    if (b >= 0){
+                        root1 = (-b - sqrtD)/(2*a);
+                        root2 = 2*c/(-b-sqrtD);
+                    }
+                    else {
+                        root1 = 2*c/(-b+sqrtD);
+                        root2 = (-b+sqrtD)/(2*a);
+                    }
+                    //
+                    if (inbetween(x_1, x_3, root1)) {
+                        // Rescale back into real-world values in [xmin,xmax] from [-1,1]
+                        roots.push_back(((m_xmax - m_xmin)*root1 + (m_xmax + m_xmin)) / 2.0);
+                    }
+                    if (inbetween(x_1, x_3, root2)) {
+                        // Rescale back into real-world values in [xmin,xmax] from [-1,1]
+                        roots.push_back(((m_xmax - m_xmin)*root2 + (m_xmax + m_xmin)) / 2.0);
+                    }
+                }
+            }
+        }
+        return roots;
     }
     std::vector<double> ChebyshevExpansion::real_roots(bool only_in_domain) const {
       //vector of roots to be returned
