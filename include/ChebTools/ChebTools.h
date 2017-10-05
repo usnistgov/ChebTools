@@ -101,6 +101,7 @@ namespace ChebTools{
         */
         double y_recurrence(const double x);
         double y_Clenshaw(const double x) const;
+        double y_Clenshaw_xscaled(const double x) const;
         /**
         * @brief Do a vectorized evaluation of the Chebyshev expansion with the inputs scaled in [xmin, xmax]
         * @param x A vectype of values in the domain [xmin,xmax]

@@ -366,6 +366,22 @@ namespace ChebTools {
         }
         return xscaled*u_k - u_kp1 + m_c(0);
     }
+    double ChebyshevExpansion::y_Clenshaw_xscaled(const double xscaled) const {
+        std::size_t Norder = m_c.size() - 1;
+        // Short circuit if not using recursive solution
+        if (Norder == 0) { return m_c[0]; }
+        if (Norder == 1) { return m_c[0] + m_c[1] * xscaled; }
+
+        double u_k = 0, u_kp1 = m_c[Norder], u_kp2 = 0;
+        for (int k = static_cast<int>(Norder) - 1; k >= 1; --k) {
+            u_k = 2.0*xscaled*u_kp1 - u_kp2 + m_c(k);
+            // Update summation values for all but the last step
+            if (k > 1) {
+                u_kp2 = u_kp1; u_kp1 = u_k;
+            }
+        }
+        return xscaled*u_k - u_kp1 + m_c(0);
+    }
     /**
     * @brief Do a vectorized evaluation of the Chebyshev expansion with the inputs scaled in [xmin, xmax]
     * @param x A vectype of values in the domain [xmin,xmax]
@@ -472,15 +488,38 @@ namespace ChebTools {
                         root1 = 2*c/(-b+sqrtD);
                         root2 = (-b+sqrtD)/(2*a);
                     }
-                    //
-                    if (inbetween(x_1, x_3, root1)) {
+                    bool in1 = inbetween(x_1, x_3, root1), in2 = inbetween(x_1,x_3,root2);
+                    const ChebyshevExpansion &e = *this;
+                    auto secant = [e](double a, double ya, double b, double yb, double yeps = 1e-14, double xeps = 1e-14) {
+                        for (auto i = 0; i < 50; ++i){
+                            auto c = b-yb*(b-a)/(yb-ya);
+                            auto yc = e.y_Clenshaw_xscaled(c);
+                            if (yc*ya > 0) {
+                                a=c; ya=yc;
+                            }
+                            else {
+                                b=c; yb=yc;
+                            }
+                            if (std::abs(b - a) < xeps) { break; }
+                            if (std::abs(yb) < yeps){ break; }
+                        }
+                        return a;
+                    };
+                    
+                    if (in1 + in2 == 2) {
+                        // Split the domain at the midline of the quadratic, polish each root against the underlying expansion
+                        double x_m = -b/a, y_m = e.y_Clenshaw_xscaled(x_m);
+                        root1 = secant(x_1, y_1, x_m, y_m);
+                        root2 = secant(x_m, y_m, x_3, y_3);
                         // Rescale back into real-world values in [xmin,xmax] from [-1,1]
-                        roots.push_back(((m_xmax - m_xmin)*root1 + (m_xmax + m_xmin)) / 2.0);
-                    }
-                    if (inbetween(x_1, x_3, root2)) {
-                        // Rescale back into real-world values in [xmin,xmax] from [-1,1]
+                        roots.push_back(((m_xmax - m_xmin)*root1 + (m_xmax + m_xmin)) / 2.0); 
                         roots.push_back(((m_xmax - m_xmin)*root2 + (m_xmax + m_xmin)) / 2.0);
                     }
+                    else if(in1 + in2 == 1) {
+                        root1 = secant(x_1, y_1, x_3, y_3);
+                        roots.push_back(((m_xmax - m_xmin)*root1 + (m_xmax + m_xmin)) / 2.0);
+                    }
+                    else {}
                 }
             }
         }
