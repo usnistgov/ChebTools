@@ -501,12 +501,12 @@ namespace ChebTools {
                                 b=c; yb=yc;
                             }
                             if (std::abs(b - a) < xeps) { break; }
-                            if (std::abs(yb) < yeps){ break; }
+                            if (std::abs(yc) < yeps){ break; }
                         }
                         return a;
                     };
-                    
-                    if (in1 + in2 == 2) {
+                    int Nroots_inside = static_cast<int>(in1) + static_cast<int>(in2);
+                    if (Nroots_inside == 2) {
                         // Split the domain at the midline of the quadratic, polish each root against the underlying expansion
                         double x_m = -b/a, y_m = e.y_Clenshaw_xscaled(x_m);
                         root1 = secant(x_1, y_1, x_m, y_m);
@@ -515,7 +515,7 @@ namespace ChebTools {
                         roots.push_back(((m_xmax - m_xmin)*root1 + (m_xmax + m_xmin)) / 2.0); 
                         roots.push_back(((m_xmax - m_xmin)*root2 + (m_xmax + m_xmin)) / 2.0);
                     }
-                    else if(in1 + in2 == 1) {
+                    else if(Nroots_inside == 1) {
                         root1 = secant(x_1, y_1, x_3, y_3);
                         roots.push_back(((m_xmax - m_xmin)*root1 + (m_xmax + m_xmin)) / 2.0);
                     }
