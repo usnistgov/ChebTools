@@ -474,14 +474,21 @@ namespace ChebTools {
             // Discriminant of quadratic
             double D = b*b - 4*a*c;
             if (D >= 0) {
-                if (D == 0) { // Unlikely due to numerical precision
-                    roots.push_back(-b / (2 * a));
+                double root1, root2;
+                if (a == 0){
+                    // Linear
+                    root1 = -c/b;
+                    root2 = -1000; // Something outside the domain; we are in scaled coordinates so this will definitely get rejected
+                }
+                else if (D == 0) { // Unlikely due to numerical precision
+                    // Two equal real roots
+                    root1 = -b/(2*a);
+                    root2 = -1000; // Something outside the domain; we are in scaled coordinates so this will definitely get rejected
                 }
                 else {
                     // Numerically stable method for solving quadratic
                     // From https://people.csail.mit.edu/bkph/articles/Quadratics.pdf
                     double sqrtD = sqrt(D);
-                    double root1, root2;
                     if (b >= 0){
                         root1 = (-b - sqrtD)/(2*a);
                         root2 = 2*c/(-b-sqrtD);
@@ -490,41 +497,41 @@ namespace ChebTools {
                         root1 = 2*c/(-b+sqrtD);
                         root2 = (-b+sqrtD)/(2*a);
                     }
-                    bool in1 = inbetween(x_1, x_3, root1), in2 = inbetween(x_1, x_3, root2);
-                    const ChebyshevExpansion &e = *this;
-                    auto secant = [e](double a, double ya, double b, double yb, double yeps = 1e-14, double xeps = 1e-14) {
-                        auto c = b - yb*(b - a) / (yb - ya);
-                        auto yc = e.y_Clenshaw_xscaled(c);
-                        for (auto i = 0; i < 50; ++i){
-                            if (yc*ya > 0) {
-                                a=c; ya=yc;
-                            }
-                            else {
-                                b=c; yb=yc;
-                            }
-                            if (std::abs(b - a) < xeps) { break; }
-                            if (std::abs(yc) < yeps){ break; }
-                            c = b - yb*(b - a) / (yb - ya);
-                            yc = e.y_Clenshaw_xscaled(c);
-                        }
-                        return c;
-                    };
-                    int Nroots_inside = static_cast<int>(in1) + static_cast<int>(in2);
-                    if (Nroots_inside == 2) {
-                        // Split the domain at the midline of the quadratic, polish each root against the underlying expansion
-                        double x_m = -b/a, y_m = e.y_Clenshaw_xscaled(x_m);
-                        root1 = secant(x_1, y_1, x_m, y_m);
-                        root2 = secant(x_m, y_m, x_3, y_3);
-                        // Rescale back into real-world values in [xmin,xmax] from [-1,1]
-                        roots.push_back(((m_xmax - m_xmin)*root1 + (m_xmax + m_xmin)) / 2.0); 
-                        roots.push_back(((m_xmax - m_xmin)*root2 + (m_xmax + m_xmin)) / 2.0);
-                    }
-                    else if(Nroots_inside == 1) {
-                        root1 = secant(x_1, y_1, x_3, y_3);
-                        roots.push_back(((m_xmax - m_xmin)*root1 + (m_xmax + m_xmin)) / 2.0);
-                    }
-                    else {}
                 }
+                bool in1 = inbetween(x_1, x_3, root1), in2 = inbetween(x_1, x_3, root2);
+                const ChebyshevExpansion &e = *this;
+                auto secant = [e](double a, double ya, double b, double yb, double yeps = 1e-14, double xeps = 1e-14) {
+                    auto c = b - yb*(b - a) / (yb - ya);
+                    auto yc = e.y_Clenshaw_xscaled(c);
+                    for (auto i = 0; i < 50; ++i){
+                        if (yc*ya > 0) {
+                            a=c; ya=yc;
+                        }
+                        else {
+                            b=c; yb=yc;
+                        }
+                        if (std::abs(b - a) < xeps) { break; }
+                        if (std::abs(yc) < yeps){ break; }
+                        c = b - yb*(b - a) / (yb - ya);
+                        yc = e.y_Clenshaw_xscaled(c);
+                    }
+                    return c;
+                };
+                int Nroots_inside = static_cast<int>(in1) + static_cast<int>(in2);
+                if (Nroots_inside == 2) {
+                    // Split the domain at the midline of the quadratic, polish each root against the underlying expansion
+                    double x_m = -b/(2*a), y_m = e.y_Clenshaw_xscaled(x_m);
+                    root1 = secant(x_1, y_1, x_m, y_m);
+                    root2 = secant(x_m, y_m, x_3, y_3);
+                    // Rescale back into real-world values in [xmin,xmax] from [-1,1]
+                    roots.push_back(((m_xmax - m_xmin)*root1 + (m_xmax + m_xmin)) / 2.0); 
+                    roots.push_back(((m_xmax - m_xmin)*root2 + (m_xmax + m_xmin)) / 2.0);
+                }
+                else if(Nroots_inside == 1) {
+                    root1 = secant(x_1, y_1, x_3, y_3);
+                    roots.push_back(((m_xmax - m_xmin)*root1 + (m_xmax + m_xmin)) / 2.0);
+                }
+                else {}
             }
         }
         return roots;
