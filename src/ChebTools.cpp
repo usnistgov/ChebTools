@@ -455,12 +455,14 @@ namespace ChebTools {
     std::vector<double> ChebyshevExpansion::real_roots2(bool only_in_domain) const {
         //vector of roots to be returned
         std::vector<double> roots;
+
+        auto N = m_c.size()-1;
+        auto Ndegree_scaled = N*2;
+        Eigen::VectorXd xscaled = get_extrema(Ndegree_scaled), yy = y_Clenshaw_xscaled(xscaled);
         
-        Eigen::VectorXd xscaled = get_extrema(m_c.size()*2), yy = y_Clenshaw_xscaled(xscaled);
-        long N = m_c.size();
         // a,b,c can also be obtained by solving the matrix system:
         // [x_k^2, x_k, 1] = [b_k] for k in 1,2,3
-        for (auto i = 0; i < 2*N-3; i += 2){
+        for (auto i = 0; i+2 < Ndegree_scaled+1; i += 2){
             const double &x_1 = xscaled[i + 0], &y_1 = yy[i + 0],
                          &x_2 = xscaled[i + 1], &y_2 = yy[i + 1],
                          &x_3 = xscaled[i + 2], &y_3 = yy[i + 2];
@@ -488,12 +490,12 @@ namespace ChebTools {
                         root1 = 2*c/(-b+sqrtD);
                         root2 = (-b+sqrtD)/(2*a);
                     }
-                    bool in1 = inbetween(x_1, x_3, root1), in2 = inbetween(x_1,x_3,root2);
+                    bool in1 = inbetween(x_1, x_3, root1), in2 = inbetween(x_1, x_3, root2);
                     const ChebyshevExpansion &e = *this;
                     auto secant = [e](double a, double ya, double b, double yb, double yeps = 1e-14, double xeps = 1e-14) {
+                        auto c = b - yb*(b - a) / (yb - ya);
+                        auto yc = e.y_Clenshaw_xscaled(c);
                         for (auto i = 0; i < 50; ++i){
-                            auto c = b-yb*(b-a)/(yb-ya);
-                            auto yc = e.y_Clenshaw_xscaled(c);
                             if (yc*ya > 0) {
                                 a=c; ya=yc;
                             }
@@ -502,8 +504,10 @@ namespace ChebTools {
                             }
                             if (std::abs(b - a) < xeps) { break; }
                             if (std::abs(yc) < yeps){ break; }
+                            c = b - yb*(b - a) / (yb - ya);
+                            yc = e.y_Clenshaw_xscaled(c);
                         }
-                        return a;
+                        return c;
                     };
                     int Nroots_inside = static_cast<int>(in1) + static_cast<int>(in2);
                     if (Nroots_inside == 2) {
