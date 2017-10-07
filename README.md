@@ -22,7 +22,7 @@ to install, or
 python setup.py develop
 ```
 
-to use a locally-compiled version for testing.  If you want to build a debug version, do can do so with
+to use a locally-compiled version for testing.  If you want to build a debug version, you can do so with
 
 ```
 python setup.py build -g develop
