@@ -686,16 +686,16 @@ namespace ChebTools {
         return roots;
     }
 
-    /// Chebyshev-Lobatto nodes cos(pi*j/N), j = 0,..., N
+    /// Chebyshev-Lobatto nodes cos(pi*j/N), j = 0,..., N in the range [-1,1]
     Eigen::VectorXd ChebyshevExpansion::get_nodes_n11() {
         std::size_t N = m_c.size()-1;
         return extrema_library.get(N);
     }
+    /// Chebyshev-Lobatto nodes cos(pi*j/N), j = 0,..., N mapped to the range [xmin, xmax]
     Eigen::VectorXd ChebyshevExpansion::get_nodes_realworld() {
-        return ((m_xmax - m_xmin)*get_nodes_n11().array() + (m_xmax + m_xmin)) / 2.0;
+        return ((m_xmax - m_xmin)*get_nodes_n11().array() + (m_xmax + m_xmin))*0.5;
     }
-
-    /// Values of the function at the Chebyshev-Lobatto nodes
+    /// Values of the function at the Chebyshev-Lobatto nodes 
     Eigen::VectorXd ChebyshevExpansion::get_node_function_values() {
         std::size_t N = m_c.size()-1;
         return u_matrix_library.get(N)*m_c;
