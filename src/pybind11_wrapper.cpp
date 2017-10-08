@@ -37,8 +37,8 @@ void init_ChebTools(py::module &m){
         //.def("__repr__", &Vector2::toString);
         .def("coef", &ChebyshevExpansion::coef)
         .def("companion_matrix", &ChebyshevExpansion::companion_matrix)
-        .def("y", (vectype(ChebyshevExpansion::*)(const vectype &)) &ChebyshevExpansion::y)
-        .def("y", (double (ChebyshevExpansion::*)(const double)) &ChebyshevExpansion::y)
+        .def("y", (vectype(ChebyshevExpansion::*)(const vectype &) const) &ChebyshevExpansion::y)
+        .def("y", (double (ChebyshevExpansion::*)(const double) const) &ChebyshevExpansion::y)
         .def("y_Clenshaw", &ChebyshevExpansion::y_Clenshaw)
         .def("real_roots", &ChebyshevExpansion::real_roots)
         .def("real_roots_time", &ChebyshevExpansion::real_roots_time)
