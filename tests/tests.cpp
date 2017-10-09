@@ -202,6 +202,20 @@ TEST_CASE("Expansion times x", "")
         CHECK(err < 1e-12);
     }
 }
+TEST_CASE("Transform y=x^3 by sin(y) to be y=sin(x^3)", "")
+{
+    auto C1 = ChebTools::ChebyshevExpansion::factory(30, [](double x) { return x*x*x; }, -2, 3.4);
+    std::function<Eigen::ArrayXd(const Eigen::ArrayXd &)> _sinf = [](const Eigen::ArrayXd &y){ return y.sin(); };
+    auto C2 = C1.apply(_sinf);
+    std::cout << C1.coef() << std::endl;
+    std::cout << C2.coef() << std::endl;
+    double y_expected = sin(0.7*0.7*0.7);
+    double y = C2.y(0.7);
+    
+    auto err = std::abs((y_expected - y)/y);
+    CAPTURE(err);
+    CHECK(err < 1e-14);
+}
 
 TEST_CASE("Sums of expansions", "")
 {

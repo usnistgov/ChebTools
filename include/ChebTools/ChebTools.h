@@ -92,6 +92,8 @@ namespace ChebTools{
         friend ChebyshevExpansion operator*(double value, const ChebyshevExpansion &ce){
             return ChebyshevExpansion(std::move(ce.coef()*value),ce.m_xmin, ce.m_xmax);
         };
+        
+        ChebyshevExpansion apply(std::function<Eigen::ArrayXd(const Eigen::ArrayXd &)> &f);
 
         /// Get the vector of coefficients
         const vectype &coef() const ;
