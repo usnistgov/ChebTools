@@ -34,6 +34,7 @@ void init_ChebTools(py::module &m){
         .def(py::self * py::self)
         .def("times_x", &ChebyshevExpansion::times_x)
         .def("times_x_inplace", &ChebyshevExpansion::times_x_inplace)
+        .def("apply", &ChebyshevExpansion::apply)
         //.def("__repr__", &Vector2::toString);
         .def("coef", &ChebyshevExpansion::coef)
         .def("companion_matrix", &ChebyshevExpansion::companion_matrix)
