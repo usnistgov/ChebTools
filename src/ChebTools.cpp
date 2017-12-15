@@ -402,7 +402,7 @@ namespace ChebTools {
     /**
     * @brief Do a vectorized evaluation of the Chebyshev expansion with the input scaled in the domain [-1,1]
     * @param xscaled A vectype of values scaled to the domain [-1,1] (the domain of the Chebyshev basis functions)
-    * @param y A vectype of values evaluated from the expansion
+    * @returns y A vectype of values evaluated from the expansion
     *
     * By using vectorizable types like Eigen::MatrixXd, without
     * any additional work, "magical" vectorization is happening
@@ -693,12 +693,12 @@ namespace ChebTools {
         return roots;
     }
 
-    /// Chebyshev-Lobatto nodes cos(pi*j/N), j = 0,..., N in the range [-1,1]
+    /// Chebyshev-Lobatto nodes \f$ \cos(\pi j/N), j = 0,..., N \f$ in the range [-1,1]
     Eigen::VectorXd ChebyshevExpansion::get_nodes_n11() {
         std::size_t N = m_c.size()-1;
         return extrema_library.get(N);
     }
-    /// Chebyshev-Lobatto nodes cos(pi*j/N), j = 0,..., N mapped to the range [xmin, xmax]
+    /// Chebyshev-Lobatto nodes \f$\cos(\pi j/N), j = 0,..., N \f$ mapped to the range [xmin, xmax]
     Eigen::VectorXd ChebyshevExpansion::get_nodes_realworld() {
         return ((m_xmax - m_xmin)*get_nodes_n11().array() + (m_xmax + m_xmin))*0.5;
     }

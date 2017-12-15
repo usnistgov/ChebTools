@@ -54,38 +54,75 @@ namespace ChebTools{
         }
 
     public:
-
+        /// Initializer with coefficients, and optionally a range provided
         ChebyshevExpansion(const vectype &c, double xmin = -1, double xmax = 1) : m_c(c), m_xmin(xmin), m_xmax(xmax) { resize(); };
+        /// Initializer with coefficients, and optionally a range provided
         ChebyshevExpansion(const std::vector<double> &c, double xmin = -1, double xmax = 1) : m_xmin(xmin), m_xmax(xmax) {
             m_c = Eigen::Map<const Eigen::VectorXd>(&(c[0]), c.size());
             resize();
         };
+        /// Move constructor (C++11 only)
+        ChebyshevExpansion(const vectype &&c, double xmin = -1, double xmax = 1) : m_c(c), m_xmin(xmin), m_xmax(xmax) { resize(); };
+        /// Get the minimum value of \f$x\f$ for the expansion
         double xmin(){ return m_xmin; }
+        /// Get the maximum value of \f$x\f$ for the expansion
         double xmax(){ return m_xmax; }
 
-        // Move constructor (C++11 only)
-        ChebyshevExpansion(const vectype &&c, double xmin = -1, double xmax = 1) : m_c(c), m_xmin(xmin), m_xmax(xmax) { resize(); };
+        /// Get the vector of coefficients in increasing order
+        const vectype &coef() const;
 
+        /// Return the N-th derivative of this expansion, where N must be >= 1
+        ChebyshevExpansion deriv(std::size_t Nderiv) const;
+        /// Get the Chebyshev-Lobatto nodes in the domain [-1,1]
+        Eigen::VectorXd get_nodes_n11();
+        /// Get the Chebyshev-Lobatto nodes in the domain [xmin, xmax]
+        Eigen::VectorXd get_nodes_realworld();
+        /// Values of the function at the Chebyshev-Lobatto nodes
+        Eigen::VectorXd get_node_function_values();
+
+        // ******************************************************************
+        // ***********************      OPERATORS     ***********************
+        // ******************************************************************
+
+        /// A ChebyshevExpansion plus another ChebyshevExpansion yields a new ChebyheveExpansion
         ChebyshevExpansion operator+(const ChebyshevExpansion &ce2) const ;
+        /** 
+        * @brief An inplace addition of two expansions
+        * @note The lower degree one is right-padded with zeros to have the same degree as the higher degree one
+        * @param donor The other expansion in the summation
+        */
         ChebyshevExpansion& operator+=(const ChebyshevExpansion &donor);
+        /// Multiplication of an expansion by a constant
         ChebyshevExpansion operator*(double value) const;
+        /// Addition of a constant to an expansion
         ChebyshevExpansion operator+(double value) const;
+        /// Subtraction of a constant from an expansion
         ChebyshevExpansion operator-(double value) const;
+        /// An inplace multiplication of an expansion by a constant
         ChebyshevExpansion& operator*=(double value);
+        /// An inplace addition of a constant to an expansion
         ChebyshevExpansion& operator+=(double value);
+        /// An inplace subtraction of a constant from an expansion
         ChebyshevExpansion& operator-=(double value);
-        /*
+        /**
          * @brief Multiply two Chebyshev expansions together; thanks to Julia code from Bradley Alpert, NIST
          *
-         * Convertes padded expansions to nodal functional values, functional values are multiplied together,
+         * Converts padded expansions to nodal functional values, functional values are multiplied together,
          * and then inverse transformation is used to return to coefficients of the product
+         * @param ce2 The other expansion
          */
         ChebyshevExpansion operator*(const ChebyshevExpansion &ce2) const;
-        /*
+        /**
          * @brief Multiply a Chebyshev expansion by its independent variable \f$x\f$
          */
         ChebyshevExpansion times_x() const;
 
+        /** 
+         * @brief Multiply a Chebyshev expansion by its independent variable \f$x\f$ in-place
+         *
+         * This operation is carried out in-place to minimize the amount of memory re-allocation
+         * which proved during profiling to be a major source of inefficiency
+         */
         ChebyshevExpansion& times_x_inplace();
 
         /// Friend function that allows for pre-multiplication by a constant value
@@ -93,10 +130,20 @@ namespace ChebTools{
             return ChebyshevExpansion(std::move(ce.coef()*value),ce.m_xmin, ce.m_xmax);
         };
         
+        /**
+         * @brief Apply a function to the expansion
+         *
+         * This function first converts the expansion to functional values at the 
+         * Chebyshev-Lobatto nodes, applies the function to the nodal values, and then
+         * does the inverse transformation to arrive at the coefficients of the expansion
+         * after applying the transformation
+         */
         ChebyshevExpansion apply(std::function<Eigen::ArrayXd(const Eigen::ArrayXd &)> &f);
 
-        /// Get the vector of coefficients
-        const vectype &coef() const ;
+        // ******************************************************************
+        // **********************      EVALUATORS     ***********************
+        // ******************************************************************
+
         /**
         * @brief Do a single input/single output evaluation of the Chebyshev expansion with the inputs scaled in [xmin, xmax]
         * @param x A value scaled in the domain [xmin,xmax]
@@ -107,12 +154,16 @@ namespace ChebTools{
         * @param x A value scaled in the domain [xmin,xmax]
         */
         double y_Clenshaw(const double x) const;
+        /**
+        * @brief Do a single input/single output evaluation of the Chebyshev expansion with the inputs scaled in [-1,1]
+        * @param x A value scaled in the domain [-1,1]
+        */
         double y_Clenshaw_xscaled(const double x) const;
         /**
         * @brief Do a vectorized evaluation of the Chebyshev expansion with the inputs scaled in [xmin, xmax]
         * @param x A vectype of values in the domain [xmin,xmax]
         */
-        vectype y(const vectype &x) const ;
+        vectype y(const vectype &x) const;
         /**
         * @brief Do a vectorized evaluation of the Chebyshev expansion with the inputs scaled in [xmin, xmax]
         * @param x A value scaled in the domain [xmin,xmax]
@@ -121,7 +172,7 @@ namespace ChebTools{
         /**
         * @brief Do a vectorized evaluation of the Chebyshev expansion with the input scaled in the domain [-1,1]
         * @param xscaled A vectype of values scaled to the domain [-1,1] (the domain of the Chebyshev basis functions)
-        * @param y A vectype of values evaluated from the expansion
+        * @returns y A vectype of values evaluated from the expansion
         *
         * By using vectorizable types like Eigen::MatrixXd, without
         * any additional work, "magical" vectorization is happening
@@ -129,6 +180,11 @@ namespace ChebTools{
         * testing, the increase was a factor of about 10x.
         */
         vectype y_recurrence_xscaled(const vectype &xscaled) const ;
+        /**
+        * @brief Do a vectorized evaluation of the Chebyshev expansion with the input scaled in the domain [-1,1] with Clenshaw's method
+        * @param xscaled A vectype of values scaled to the domain [-1,1] (the domain of the Chebyshev basis functions)
+        * @returns y A vectype of values evaluated from the expansion
+        */
         vectype y_Clenshaw_xscaled(const vectype &xscaled) const ;
 
         /**
@@ -153,17 +209,47 @@ namespace ChebTools{
         * solver in numpy tends to be more reliable.
         */
         std::vector<double> real_roots(bool only_in_domain = true) const ;
+        /**
+        * @brief The second-generation rootfinder of ChebyshevExpansions
+        * @param only_in_domain True: only keep roots that are in the domain of the expansion. False: all real roots
+        */
         std::vector<double> real_roots2(bool only_in_domain = true) const;
-        std::vector<ChebyshevExpansion> subdivide(std::size_t Nintervals, std::size_t Norder) const ;
+        /**
+        * @brief Subdivide the original interval into a set of subintervals that are linearly spaced
+        * @note A vector of ChebyshevExpansions are returned
+        * @param Nintervals The number of intervals
+        * @param Ndegree The degree of the Chebyshev expansion in each interval
+        */
+        std::vector<ChebyshevExpansion> subdivide(std::size_t Nintervals, std::size_t Ndegree) const ;
+
+        /**
+        * @brief For a vector of ChebyshevExpansions, find all roots in each interval
+        * @param segments The vector of ChebyshevExpansions
+        * @param only_in_domain True: only keep roots that are in the domain of the expansion. False: all real roots
+        */
         static std::vector<double> real_roots_intervals(const std::vector<ChebyshevExpansion> &segments, bool only_in_domain = true);
 
+        /**
+        * @brief Time how long (in seconds) it takes to evaluate the roots
+        * @param N How many repeats to do (maybe a million?  It's pretty fast for small degrees)
+        */
         double real_roots_time(long N);
+
         std::vector<double> real_roots_approx(long Npoints);
 
-        //std::string toString() const {
-        //    return "[" + std::to_string(x) + ", " + std::to_string(y) + "]";
-        //}
+        // ******************************************************************
+        // ***********************      BUILDERS      ***********************
+        // ******************************************************************
 
+        /**
+        * @brief Given a set of values at the Chebyshev-Lobatto nodes, perhaps obtained from the ChebyshevExpansion::factory function, 
+        * get the expansion
+        *
+        * @param N The degree of the expansion
+        * @param f The set of values at the Chebyshev-Lobatto nodes
+        * @param xmin The minimum value of x for the expansion
+        * @param xmax The maximum value of x for the expansion
+        */
         static ChebyshevExpansion factoryf(const std::size_t N, const Eigen::VectorXd &f, const double xmin, const double xmax) ;
 
         /**
@@ -195,6 +281,19 @@ namespace ChebTools{
         /// Convert a monomial term in the form \f$x^n\f$ to a Chebyshev expansion
         static ChebyshevExpansion from_powxn(const std::size_t n, const double xmin, const double xmax);
 
+        /** 
+        * @brief Convert a polynomial expansion in monomial form to a Chebyshev expansion
+        *
+        * The monomial expansion is of the form \f$ y = \displaystyle\sum_{i=0}^N c_ix_i\f$
+        *
+        * This transformation can be carried out analytically.  For convenience we repetitively use
+        * calls to ChebyshevExpansion::from_powxn to build up the expansion.  This is probably not
+        * the most efficient option, but it works.
+        *
+        * @param c The vector of coefficients of the monomial expansion in *increasing* degree: 
+        * @param xmin The minimum value of \f$x\f$ for the expansion
+        * @param xmax The maximum value of \f$x\f$ for the expansion
+        */
         template<class vector_type>
         static ChebyshevExpansion from_polynomial(vector_type c, const double xmin, const double xmax) {
             vectype c0(1); c0 << 0;
@@ -204,15 +303,6 @@ namespace ChebTools{
             }
             return s;
         }
-        /// Return the N-th derivative of this expansion, where N must be >= 1
-        ChebyshevExpansion deriv(std::size_t Nderiv) const ;
-
-        /// Get the Chebyshev-Lobatto nodes in the domain [-1,1]
-        Eigen::VectorXd get_nodes_n11();
-		/// Get the Chebyshev-Lobatto nodes in the domain [xmin, xmax]
-		Eigen::VectorXd get_nodes_realworld();
-        /// Values of the function at the Chebyshev-Lobatto nodes
-        Eigen::VectorXd get_node_function_values();
     };
 
 }; /* namespace ChebTools */
