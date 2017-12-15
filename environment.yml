@@ -1,0 +1,10 @@
+name: ChebTools
+dependencies:
+  - python=3.6   # or 2.7
+  - matplotlib
+  - numpy
+  - scipy
+  #- jupyter
+  #- notebook
+  - pip:
+    - "git+git://github.com/usnistgov/ChebTools.git"
