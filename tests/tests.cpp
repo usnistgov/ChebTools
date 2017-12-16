@@ -382,7 +382,7 @@ TEST_CASE("corner cases with linear ChebyshevExpansion",""){
     Eigen::VectorXd coeffs(3);
     coeffs<<0,0,0;
     ChebTools::ChebyshevExpansion linCheb = ChebTools::ChebyshevExpansion(coeffs,-1,1);
-    int roots = linCheb.real_roots(true).size();
+    auto roots = linCheb.real_roots(true).size();
     CAPTURE(roots);
     CHECK(roots==0);
     CHECK(linCheb.coef().size()==3);

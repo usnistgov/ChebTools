@@ -7,12 +7,20 @@
 namespace ChebTools{
 
     typedef Eigen::VectorXd vectype;
-
-    const Eigen::VectorXd &get_extrema(std::size_t N);
+    
+    /// Get the Chebyshev-Lobatto nodes for an expansion of degree \f$N\f$
+    const Eigen::VectorXd &get_CLnodes(std::size_t N);
 
     Eigen::VectorXcd eigenvalues(const Eigen::MatrixXd &A, bool balance);
     Eigen::VectorXd eigenvalues_upperHessenberg(const Eigen::MatrixXd &A, bool balance);
 
+    /**
+    * @brief This is the main underlying object that makes all of the code of ChebTools work.
+    *
+    * This class has accessor methods for getting things from the object, and static factory
+    * functions for generating new expansions.  It also has methods for calculating derivatives,
+    * roots, etc.
+    */
     class ChebyshevExpansion {
     private:
         vectype m_c;
@@ -235,6 +243,7 @@ namespace ChebTools{
         */
         double real_roots_time(long N);
 
+        /// A DEPRECATED function for approximating the roots (do not use)
         std::vector<double> real_roots_approx(long Npoints);
 
         // ******************************************************************
@@ -264,15 +273,15 @@ namespace ChebTools{
         template<class double_function>
         static ChebyshevExpansion factory(const std::size_t N, double_function func, const double xmin, const double xmax)
         {
-            // Get the precalculated extrema values
-            const Eigen::VectorXd & x_extrema_n11 = get_extrema(N);
+            // Get the precalculated Chebyshev-Lobatto nodes
+            const Eigen::VectorXd & x_nodes_n11 = get_CLnodes(N);
 
             // Step 1&2: Grid points functional values (function evaluated at the
             // extrema of the Chebyshev polynomial of order N - there are N+1 of them)
             Eigen::VectorXd f(N + 1);
             for (int k = 0; k <= N; ++k) {
                 // The extrema in [-1,1] scaled to real-world coordinates
-                double x_k = ((xmax - xmin)*x_extrema_n11(k) + (xmax + xmin)) / 2.0;
+                double x_k = ((xmax - xmin)*x_nodes_n11(k) + (xmax + xmin)) / 2.0;
                 f(k) = func(x_k);
             }
             return factoryf(N, f, xmin, xmax);
@@ -298,7 +307,7 @@ namespace ChebTools{
         static ChebyshevExpansion from_polynomial(vector_type c, const double xmin, const double xmax) {
             vectype c0(1); c0 << 0;
             ChebyshevExpansion s(c0, xmin, xmax);
-            for (std::size_t i = 0; i < c.size(); ++i) {
+            for (std::size_t i = 0; i < static_cast<std::size_t>(c.size()); ++i) {
                 s += c(i)*from_powxn(i, xmin, xmax);
             }
             return s;

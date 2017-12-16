@@ -1,1 +1,6 @@
 /build
+/doxy/html
+/doxy/latex
+/ChebTools.egg-info
+/dist
+/msvc

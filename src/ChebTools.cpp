@@ -87,7 +87,11 @@ namespace ChebTools {
         } while (!converged);
     }
 
-    class ChebyshevExtremaLibrary {
+    /**
+    * @brief A library that stores the Chebyshev-Lobatto nodes in the domain [-1,1]
+    * @note The Chebyshev-Lobatto nodes are a function of degree, but not of the coefficients
+    */
+    class ChebyshevLobattoNodesLibrary {
     private:
         std::map<std::size_t, Eigen::VectorXd> vectors;
         void build(std::size_t N) {
@@ -95,6 +99,7 @@ namespace ChebTools {
             vectors[N] = (Eigen::VectorXd::LinSpaced(N + 1, 0, NN).array()*EIGEN_PI / N).cos();
         }
     public:
+        /// Get the Chebyshev-Lobatto nodes for expansion of degree \f$N\f$
         const Eigen::VectorXd & get(std::size_t N) {
             auto it = vectors.find(N);
             if (it != vectors.end()) {
@@ -106,32 +111,38 @@ namespace ChebTools {
             }
         }
     };
-    static ChebyshevExtremaLibrary extrema_library;
-    const Eigen::VectorXd &get_extrema(std::size_t N){
-        return extrema_library.get(N);
+    static ChebyshevLobattoNodesLibrary CLnodes_library;
+    const Eigen::VectorXd &get_CLnodes(std::size_t N){
+        return CLnodes_library.get(N);
     }
 
-    class ChebyshevRootsLibrary {
-    private:
-        std::map<std::size_t, Eigen::VectorXd> vectors;
-        void build(std::size_t N) {
-            double NN = static_cast<double>(N); // just a cast
-            vectors[N] = ((Eigen::VectorXd::LinSpaced(N, 0, NN - 1).array() + 0.5)*EIGEN_PI / NN).cos();
-        }
-    public:
-        const Eigen::VectorXd & get(std::size_t N) {
-            auto it = vectors.find(N);
-            if (it != vectors.end()) {
-                return it->second;
-            }
-            else {
-                build(N);
-                return vectors.find(N)->second;
-            }
-        }
-    };
-    static ChebyshevRootsLibrary roots_library;
+    // DEPRECATED: but held around for future reference
+    //class ChebyshevRootsLibrary {
+    //private:
+    //    std::map<std::size_t, Eigen::VectorXd> vectors;
+    //    void build(std::size_t N) {
+    //        double NN = static_cast<double>(N); // just a cast
+    //        vectors[N] = ((Eigen::VectorXd::LinSpaced(N, 0, NN - 1).array() + 0.5)*EIGEN_PI / NN).cos();
+    //    }
+    //public:
+    //    const Eigen::VectorXd & get(std::size_t N) {
+    //        auto it = vectors.find(N);
+    //        if (it != vectors.end()) {
+    //            return it->second;
+    //        }
+    //        else {
+    //            build(N);
+    //            return vectors.find(N)->second;
+    //        }
+    //    }
+    //};
+    //static ChebyshevRootsLibrary roots_library;
 
+    /**
+    * @brief This class stores sets of L matrices (because they are a function only of the degree of the expansion)
+    *
+    * The L matrix is used to convert from functional values to coefficients, as in \f[ \vec{c} = \mathbf{L}\vec{f} \f]
+    */
     class LMatrixLibrary {
     private:
         std::map<std::size_t, Eigen::MatrixXd> matrices;
@@ -149,6 +160,7 @@ namespace ChebTools {
             matrices[N] = L;
         }
     public:
+        /// Get the \f$\mathbf{L}\f$ matrix of degree N
         const Eigen::MatrixXd & get(std::size_t N) {
             auto it = matrices.find(N);
             if (it != matrices.end()) {
@@ -162,6 +174,11 @@ namespace ChebTools {
     };
     static LMatrixLibrary l_matrix_library;
 
+    /**
+    * @brief This class stores sets of U matrices (because they are a function only of the degree of the expansion)
+    *
+    * The U matrix is used to convert from coefficients to functional values, as in \f[ \vec{f} = \mathbf{U}\vec{c} \f]
+    */
     class UMatrixLibrary {
     private:
         std::map<std::size_t, Eigen::MatrixXd> matrices;
@@ -177,6 +194,7 @@ namespace ChebTools {
             matrices[N] = U;
         }
     public:
+        /// Get the \f$\mathbf{U}\f$ matrix of degree N
         const Eigen::MatrixXd & get(std::size_t N) {
             auto it = matrices.find(N);
             if (it != matrices.end()) {
@@ -465,7 +483,7 @@ namespace ChebTools {
 
         auto N = m_c.size()-1;
         auto Ndegree_scaled = N*2;
-        Eigen::VectorXd xscaled = get_extrema(Ndegree_scaled), yy = y_Clenshaw_xscaled(xscaled);
+        Eigen::VectorXd xscaled = get_CLnodes(Ndegree_scaled), yy = y_Clenshaw_xscaled(xscaled);
         
         // a,b,c can also be obtained by solving the matrix system:
         // [x_k^2, x_k, 1] = [b_k] for k in 1,2,3
@@ -696,7 +714,7 @@ namespace ChebTools {
     /// Chebyshev-Lobatto nodes \f$ \cos(\pi j/N), j = 0,..., N \f$ in the range [-1,1]
     Eigen::VectorXd ChebyshevExpansion::get_nodes_n11() {
         std::size_t N = m_c.size()-1;
-        return extrema_library.get(N);
+        return CLnodes_library.get(N);
     }
     /// Chebyshev-Lobatto nodes \f$\cos(\pi j/N), j = 0,..., N \f$ mapped to the range [xmin, xmax]
     Eigen::VectorXd ChebyshevExpansion::get_nodes_realworld() {
