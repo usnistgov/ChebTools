@@ -1,9 +1,8 @@
 ---
 title: '``ChebTools``: C++11 (and Python) tools for working with Chebyshev expansions'
 tags:
-  - example
-  - tags
-  - for the paper
+  - Chebyshev
+  - mathematical operations
 authors:
  - name: Ian H. Bell
    orcid: 0000-0003-1091-9080
@@ -17,9 +16,9 @@ authors:
 affiliations:
  - name: National Institute of Standards and Technology, Boulder, CO, USA
    index: 1
- - name: George Mason University, XXXXXXXXXX, VA, USA
+ - name: George Mason University, Fairfax, VA, USA
    index: 2
-date: 
+date: January 29, 2018
 bibliography: paper.bib
 ---
 
