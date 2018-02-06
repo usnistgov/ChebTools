@@ -5,6 +5,10 @@ Try it in your browser: [![Binder](https://mybinder.org/badge.svg)](https://mybi
 
 Automatic tests status on TravisCI: [![Build Status](https://travis-ci.org/usnistgov/ChebTools.svg?branch=master)](https://travis-ci.org/usnistgov/ChebTools)
 
+## License
+
+*MIT licensed (see LICENSE for specifics), not subject to copyright in the USA.
+
 ## To install in one line from github
 
 ```
