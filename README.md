@@ -1,6 +1,6 @@
 # ChebTools
 
-Chebyshev-basis expansions, and more broadly, orthogonal polynomial expansions, are commonly used as numerical approximations of continuous functions on closed domains.   One of the most successful projects that makes use of the Chebyshev expansions is the ``chebfun`` library for MATLAB.  Other similar libraries are ``pychebfun``^[https://github.com/pychebfun], ``chebpy``^[https://github.com/chebpy/chebpy], and ``Approxfun``^[https://github.com/JuliaApproximation/ApproxFun.jl]. Our library ``ChebTools`` fills a similar niche as that of ``chebfun`` -- working with Chebyshev expansions.
+Chebyshev-basis expansions, and more broadly, orthogonal polynomial expansions, are commonly used as numerical approximations of continuous functions on closed domains.   One of the most successful projects that makes use of the Chebyshev expansions is the ``chebfun`` library for MATLAB.  Other similar libraries are [pychebfun](https://github.com/pychebfun), [chebpy](https://github.com/chebpy/chebpy), and [Approxfun](https://github.om/JuliaApproximation/ApproxFun.jl). Our library ``ChebTools`` fills a similar niche as that of ``chebfun`` -- working with Chebyshev expansions.
 
 The primary motivation for the development of ``ChebTools`` is the need for a highly optimized and fast C++11 library for working with Chebyshev expansions.
 
@@ -12,7 +12,7 @@ Try it in your browser: [![Binder](https://mybinder.org/badge.svg)](https://mybi
 
 Suppose we wanted to calculate the roots and extrema of the 0-th Bessel function in [0, 30].  That results in a picture like this: 
 
-![Roots and extrema of the 0-th Bessel function](JOSS/Bessel.png "Roots and extrema of the 0-th Bessel function")
+<img src="JOSS/Bessel.png" alt="Roots and extrema of the 0-th Bessel function" style="width: 200px;"/>
 
 For which the Python code would read
 ``` python
