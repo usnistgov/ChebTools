@@ -1,28 +1,71 @@
 # ChebTools
-C++ tools for working with Chebyshev expansion interpolants. This library provides tools for computing Chebyshev expansions, finding the roots of those expansions, computing derivatives of the expansions, and more.
+
+Chebyshev-basis expansions, and more broadly, orthogonal polynomial expansions, are commonly used as numerical approximations of continuous functions on closed domains.   One of the most successful projects that makes use of the Chebyshev expansions is the ``chebfun`` library for MATLAB.  Other similar libraries are ``pychebfun``^[https://github.com/pychebfun], ``chebpy``^[https://github.com/chebpy/chebpy], and ``Approxfun``^[https://github.com/JuliaApproximation/ApproxFun.jl]. Our library ``ChebTools`` fills a similar niche as that of ``chebfun`` -- working with Chebyshev expansions.
+
+The primary motivation for the development of ``ChebTools`` is the need for a highly optimized and fast C++11 library for working with Chebyshev expansions.
+
+Automatic tests status on TravisCI: [![Build Status](https://travis-ci.org/usnistgov/ChebTools.svg?branch=master)](https://travis-ci.org/usnistgov/ChebTools)
+
+## Example:
 
 Try it in your browser: [![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/v2/gh/usnistgov/ChebTools/master)
 
-Automatic tests status on TravisCI: [![Build Status](https://travis-ci.org/usnistgov/ChebTools.svg?branch=master)](https://travis-ci.org/usnistgov/ChebTools)
+Suppose we wanted to calculate the roots and extrema of the 0-th Bessel function in [0, 30].  That results in a picture like this: 
+
+![Roots and extrema of the 0-th Bessel function](JOSS/Bessel.png "Roots and extrema of the 0-th Bessel function")
+
+For which the Python code would read
+``` python
+import scipy.special
+import ChebTools
+# Only keep the roots that are in [-1,1] in scaled coordinates
+only_in_domain = True
+# The 0-th Bessel function (for code concision)
+def J0(x): return scipy.special.jn(0,x)
+# Make a 200-th order expansion of the 0-th Bessel function in [0,30]
+f = ChebTools.generate_Chebyshev_expansion(200, J0, 0, 30)
+# Roots of the function
+rts = f.real_roots(only_in_domain)
+# Extrema of the function (roots of the derivative, where dy/dx =0)
+extrema = f.deriv(1).real_roots(only_in_domain)
+```
 
 ## License
 
 *MIT licensed (see LICENSE for specifics), not subject to copyright in the USA.
 
-## To install in one line from github
+## Contributing
 
+If you would like to contribute to ``ChebTools``, please open a pull request or submit an issue if you run into troubles.  Especially welcome would be additional tests.
+
+## Installation
+
+### Prerequisites
+
+You will need:
+
+* cmake (on windows, install from cmake, on linux ``sudo apt install cmake`` should do it, on OSX, ``brew install cmake``)
+* Python (the anaconda distribution is used by the authors)
+* a compiler (on windows, Visual Studio 2015+ (express version is fine), g++ on linux/OSX)
+
+## To install in one line from github (easiest)
+
+This will download the sources into a temporary directory and build and install the python extension so long as you have the necessary prerequisites:
 ```
 pip install git+git://github.com/usnistgov/ChebTools.git
 ```
 
-Alternatively, you can clone and run
+### From a cloned repository
+
+Alternatively, you can clone (recursively!) and run the ``setup.py`` script
 
 ```
+git clone --recursive https://github.com/usnistgov/ChebTools
+cd ChebTools
 python setup.py install
 ```
 
 to install, or 
-
 
 ```
 python setup.py develop
@@ -33,8 +76,9 @@ to use a locally-compiled version for testing.  If you want to build a debug ver
 ```
 python setup.py build -g develop
 ```
+With a debug build, you can step into the debugger to debug the C++ code, for instance.  
 
-## Cmake build
+### Cmake build
 
 Starting in the root of the repo (a debug build with the default compiler, here on linux):
 
