@@ -48,6 +48,12 @@ You will need:
 * Python (the anaconda distribution is used by the authors)
 * a compiler (on windows, Visual Studio 2015+ (express version is fine), g++ on linux/OSX)
 
+If on linux you use Anaconda and end up with an error like
+```
+ImportError: /home/theuser/anaconda3/bin/../lib/libstdc++.so.6: version `GLIBCXX_3.4.20' not found (required by /home/theuser/anaconda3/lib/python3.5/site-packages/ChebTools.cpython-35m-x86_64-linux-gnu.so)
+```
+it can be sometimes fixed by installing ``libgcc`` with conda: ``conda install libgcc``.  [This is due to an issue in Anaconda](https://github.com/ContinuumIO/anaconda-issues/issues/483)
+
 ## To install in one line from github (easiest)
 
 This will download the sources into a temporary directory and build and install the python extension so long as you have the necessary prerequisites:
