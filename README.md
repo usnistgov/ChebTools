@@ -6,6 +6,8 @@ The primary motivation for the development of ``ChebTools`` is the need for a hi
 
 Automatic tests status on TravisCI: [![Build Status](https://travis-ci.org/usnistgov/ChebTools.svg?branch=master)](https://travis-ci.org/usnistgov/ChebTools)
 
+Paper about ChebTools in JOSS: [![DOI](http://joss.theoj.org/papers/10.21105/joss.00569/status.svg)](https://doi.org/10.21105/joss.00569)
+
 ## Example:
 
 Try it in your browser: [![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/v2/gh/usnistgov/ChebTools/master)
