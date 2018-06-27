@@ -36,9 +36,11 @@ extrema = f.deriv(1).real_roots(only_in_domain)
 
 *MIT licensed (see LICENSE for specifics), not subject to copyright in the USA.
 
-## Contributing
+Uses unmodified [Eigen](https://eigen.tuxfamily.org/dox/) for matrix operations
 
-If you would like to contribute to ``ChebTools``, please open a pull request or submit an issue if you run into troubles.  Especially welcome would be additional tests.
+## Contributing/Getting Help
+
+If you would like to contribute to ``ChebTools`` or report a problem, please open a pull request or submit an issue.  Especially welcome would be additional tests.
 
 ## Installation
 
