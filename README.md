@@ -12,7 +12,7 @@ Paper about ChebTools in JOSS: [![DOI](http://joss.theoj.org/papers/10.21105/jos
 
 Try it in your browser: [![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/v2/gh/usnistgov/ChebTools/master)
 
-Suppose we wanted to calculate the roots and extrema of the 0-th Bessel function in [0, 30].  That results in a picture like this: 
+Suppose we wanted to calculate the roots and extrema of the 0-th Bessel function in [0, 30].  That results in a picture like this:
 
 <img src="JOSS/Bessel.png" alt="Roots and extrema of the 0-th Bessel function" style="width: 200px;"/>
 
@@ -70,12 +70,12 @@ pip install git+git://github.com/usnistgov/ChebTools.git
 Alternatively, you can clone (recursively!) and run the ``setup.py`` script
 
 ```
-git clone --recursive https://github.com/usnistgov/ChebTools
+git clone --recursive --shallow-submodules https://github.com/usnistgov/ChebTools
 cd ChebTools
 python setup.py install
 ```
 
-to install, or 
+to install, or
 
 ```
 python setup.py develop
@@ -86,14 +86,14 @@ to use a locally-compiled version for testing.  If you want to build a debug ver
 ```
 python setup.py build -g develop
 ```
-With a debug build, you can step into the debugger to debug the C++ code, for instance.  
+With a debug build, you can step into the debugger to debug the C++ code, for instance.
 
 ### Cmake build
 
 Starting in the root of the repo (a debug build with the default compiler, here on linux):
 
-``` 
-git clone --recursive https://github.com/usnistgov/ChebTools
+```
+git clone --recursive --shallow-submodules https://github.com/usnistgov/ChebTools
 cd ChebTools
 mkdir build
 cd build
@@ -108,8 +108,8 @@ cmake .. -DPYTHON_EXECUTABLE=`which python`
 cmake --build .
 ```
 For Visual Studio 2015 (64-bit) in release mode, you would do:
-``` 
-git clone --recursive https://github.com/usnistgov/ChebTools
+```
+git clone --recursive --shallow-submodules https://github.com/usnistgov/ChebTools
 cd ChebTools
 mkdir build
 cd build
@@ -123,4 +123,4 @@ If you need to update your submodules (pybind11 and friends)
 git submodule update --init
 ```
 
-For other options, see the cmake docs
+For other options, see the cmake docs.
