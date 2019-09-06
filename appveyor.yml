@@ -1,0 +1,53 @@
+# Thanks to https://github.com/AndrewAnnex/SpiceyPy/blob/master/appveyor.yml
+# Taken from SpiceyPy with some modification
+
+build: false
+
+environment:
+  global:
+      WITH_COMPILER: "cmd /E:ON /V:ON /C .\\appveyor\\windows_sdk.cmd"
+  TWINE_PASSWORD:
+    secure: JjNZdPH3xLhd2obfOsF5YA==
+  TWINE_USERNAME: belli
+
+  matrix:
+      - PYTHON: "C:\\Python37-x64"
+        PYTHON_VERSION: "3.7.x"
+        ARCH: "64"
+        WINDOWS_SDK_VERSION: "v7.1"
+        PLAT_NAME: "win-amd64"
+        PY_TAG: "cp37"
+      - PYTHON: "C:\\Python36-x64"
+        PYTHON_VERSION: "3.6.x"
+        ARCH: "64"
+        WINDOWS_SDK_VERSION: "v7.1"
+        PLAT_NAME: "win-amd64"
+        PY_TAG: "cp36"
+
+platform:
+    -x64
+
+install:
+  # Log out the python version just so we know it
+  - ECHO "%PYTHON_VERSION%"
+
+test_script:
+    - "%PYTHON%/python -v"
+
+after_test:
+  - ECHO "DONE!"
+  - ECHO "BUILDING WHEELS..."
+  - cd ..
+  - "%PYTHON%/python setup.py bdist_wheel --plat-name=%PLAT_NAME%"
+  
+artifacts:
+  - path: dist\*
+    name: pypi_artifacts
+
+deploy_script:
+  - echo "Starting Artifact Deployment"
+  # upload to pypi for windows
+  - set PATH=%BK_PATH%
+  - set HOME=%USERPROFILE%
+  - ps: If ($env:APPVEYOR_REPO_TAG -eq "true") { Invoke-Expression "twine upload --verbose dist/*.whl" 2>$null } Else { write-output "Not on a tag, won't deploy to pypi"}
+  - echo "Finished Artifact Deployment to PYPI"
