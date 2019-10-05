@@ -32,6 +32,10 @@ rts = f.real_roots(only_in_domain)
 extrema = f.deriv(1).real_roots(only_in_domain)
 ```
 
+## Changelog
+
+1.1: Added ``integrate`` function for indefinite integral
+
 ## License
 
 *MIT licensed (see LICENSE for specifics), not subject to copyright in the USA.

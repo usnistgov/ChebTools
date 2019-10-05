@@ -207,14 +207,38 @@ TEST_CASE("Transform y=x^3 by sin(y) to be y=sin(x^3)", "")
     auto C1 = ChebTools::ChebyshevExpansion::factory(30, [](double x) { return x*x*x; }, -2, 3.4);
     std::function<Eigen::ArrayXd(const Eigen::ArrayXd &)> _sinf = [](const Eigen::ArrayXd &y){ return y.sin(); };
     auto C2 = C1.apply(_sinf);
-    std::cout << C1.coef() << std::endl;
-    std::cout << C2.coef() << std::endl;
     double y_expected = sin(0.7*0.7*0.7);
     double y = C2.y(0.7);
     
     auto err = std::abs((y_expected - y)/y);
     CAPTURE(err);
     CHECK(err < 1e-14);
+}
+
+TEST_CASE("Integrate y=exp(x)", "")
+{
+    SECTION("Default range foe") {
+        auto C1 = ChebTools::ChebyshevExpansion::factory(100, [](double x) { return exp(x); }, -1, 1);
+        auto C2 = C1.integrate();
+        // Indefinite integrals are equal up to an additive constant, so compare differnces to cancel the additive constant
+        double y_expected = exp(0.7) - exp(-1);
+        double y = C2.y(0.7)- C2.y(-1);
+        double diff = y_expected - y;
+        auto err = std::abs((y_expected - y) / y);
+        CAPTURE(err);
+        CHECK(err < 1e-15);
+    }
+
+    SECTION("Non-default range for cos") {
+        auto C1 = ChebTools::ChebyshevExpansion::factory(100, [](double x) { return cos(x); }, -4, 13);
+        auto C2 = C1.integrate();
+        double y_expected = sin(0.7)-sin(-1);
+        double y = C2.y(0.7)-C2.y(-1);
+        double diff = y_expected - y;
+        auto err = std::abs(diff / y);
+        CAPTURE(err);
+        CHECK(err < 1e-14);
+    }
 }
 
 TEST_CASE("Sums of expansions", "")

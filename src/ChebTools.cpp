@@ -776,6 +776,29 @@ namespace ChebTools {
         }
         return ChebyshevExpansion(std::move(c), m_xmin, m_xmax);
     };
+    ChebyshevExpansion ChebyshevExpansion::integrate(std::size_t Nintegral) const {
+        // See Mason and Handscomb, p. 33, Eq. 2.44 & 2.45
+        // and example in https ://github.com/numpy/numpy/blob/master/numpy/polynomial/chebyshev.py#L868-L964
+        if (Nintegral != 1) { throw std::invalid_argument("Only support one integral for now"); }
+        vectype c(m_c.size() + 1);
+        double width = m_xmax - m_xmin;
+        for (auto i = 1; i < m_c.size()+1; ++i) {
+            if (i == 1) {
+                // This special case is needed because the prime on the summation in Mason indicates the first coefficient 
+                // is to be divided by two
+                c[i] = (2*m_c[i - 1] - m_c[i + 1]) / (2 * i);
+            }
+            else if (i + 1 > m_c.size()-1) {
+                c[i] = (m_c[i - 1]) / (2 * i);
+            }
+            else {
+                c[i] = (m_c[i - 1] - m_c[i + 1]) / (2 * i);
+            }
+        }
+        c(0) = 0; // This is the arbitrary constant;
+        c *= width / 2;
+        return ChebyshevExpansion(std::move(c), m_xmin, m_xmax);
+    }
 
     Eigen::VectorXd eigenvalues_upperHessenberg(const Eigen::MatrixXd &A, bool balance){
         Eigen::VectorXd roots(A.cols());

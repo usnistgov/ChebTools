@@ -47,6 +47,7 @@ void init_ChebTools(py::module &m){
         .def("subdivide", &ChebyshevExpansion::subdivide)
         .def("real_roots_intervals", &ChebyshevExpansion::real_roots_intervals)
         .def("deriv", &ChebyshevExpansion::deriv)
+        .def("integrate", &ChebyshevExpansion::integrate)
         .def("xmin", &ChebyshevExpansion::xmin)
         .def("xmax", &ChebyshevExpansion::xmax)
         .def("get_nodes_n11", &ChebyshevExpansion::get_nodes_n11)
