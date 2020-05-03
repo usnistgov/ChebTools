@@ -124,6 +124,15 @@ namespace ChebTools{
          * @param ce2 The other expansion
          */
         ChebyshevExpansion operator*(const ChebyshevExpansion &ce2) const;
+
+        /**
+         * @brief Divide two expansions by each other.  Right's reciprocal is taken, multiplied by this expansion
+         *
+         * @param ce2 The other expansion
+         */
+        ChebyshevExpansion operator/(const ChebyshevExpansion& ce2) const {
+            return (*this) * ce2.reciprocal();
+        }
         /**
          * @brief Multiply a Chebyshev expansion by its independent variable \f$x\f$
          */
