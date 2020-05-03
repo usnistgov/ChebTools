@@ -156,7 +156,7 @@ namespace ChebTools{
          * does the inverse transformation to arrive at the coefficients of the expansion
          * after applying the transformation
          */
-        ChebyshevExpansion apply(std::function<Eigen::ArrayXd(const Eigen::ArrayXd &)> &f);
+        ChebyshevExpansion apply(std::function<Eigen::ArrayXd(const Eigen::ArrayXd &)> &f) const;
 
         // ******************************************************************
         // **********************      EVALUATORS     ***********************
