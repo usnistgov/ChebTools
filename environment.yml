@@ -3,6 +3,7 @@ dependencies:
   - python=3.6   # or 2.7
   - matplotlib
   - scipy
+  - pip
   #- jupyter # for local testing, uncomment, for binder, not needed
   #- notebook # for local testing, uncomment, for binder, not needed
   - pip:
