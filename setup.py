@@ -60,7 +60,7 @@ class CMakeBuild(build_ext):
 
 setup(
     name='ChebTools',
-    version='1.1.0',
+    version='1.2.0',
     author='Ian Bell',
     author_email='ian.bell@nist.gov',
     description='Tools for working with Chebyshev expansion',

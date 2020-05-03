@@ -114,6 +114,8 @@ namespace ChebTools{
         ChebyshevExpansion& operator+=(double value);
         /// An inplace subtraction of a constant from an expansion
         ChebyshevExpansion& operator-=(double value);
+        /// Unary negation operator
+        ChebyshevExpansion operator-() const;
         /**
          * @brief Multiply two Chebyshev expansions together; thanks to Julia code from Bradley Alpert, NIST
          *

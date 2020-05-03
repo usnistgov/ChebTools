@@ -326,6 +326,15 @@ TEST_CASE("Constant value y=x", "")
     }
 }
 
+TEST_CASE("unary negation operator", ""){
+    Eigen::VectorXd c(2); c << 0.0, 1.0;
+    auto C = ChebTools::ChebyshevExpansion(c, -1, 1);
+    auto C2 = -C;
+    double err = std::abs(C.y_recurrence(0.5) + C2.y_recurrence(0.5));
+    CAPTURE(err);
+    CHECK(err < 1e-100);
+}
+
 TEST_CASE("Constant value y=x with generation from factory", "")
 {
     Eigen::VectorXd x1(1); x1 << 0.5;

@@ -32,6 +32,9 @@ void init_ChebTools(py::module &m){
         .def(double() * py::self)
         .def(py::self *= double())
         .def(py::self * py::self)
+        // Unary operators
+        .def(-py::self)
+
         .def("times_x", &ChebyshevExpansion::times_x)
         .def("times_x_inplace", &ChebyshevExpansion::times_x_inplace)
         .def("apply", &ChebyshevExpansion::apply)

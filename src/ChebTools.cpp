@@ -255,6 +255,10 @@ namespace ChebTools {
         c(0) -= value;
         return ChebyshevExpansion(c, m_xmin, m_xmax);
     }
+    ChebyshevExpansion ChebyshevExpansion::operator-() const{
+        Eigen::VectorXd c = m_c;
+        return ChebyshevExpansion(-c, m_xmin, m_xmax);
+    }
     ChebyshevExpansion& ChebyshevExpansion::operator*=(double value) {
         m_c *= value;
         return *this;
