@@ -345,6 +345,16 @@ namespace ChebTools {
         }
         return *this;
     };
+    ChebyshevExpansion ChebyshevExpansion::reciprocal() const{
+        // 1. Transform Chebyshev-Lobatto node function values by the function f(y) -> 1/y
+        // 2. Go backwards to coefficients from node values c2 = V/y
+        const auto Ndegree = m_c.size() - 1;
+        const Eigen::MatrixXd& V = l_matrix_library.get(Ndegree);
+        // Values at the nodes in the x range of [-1, 1]
+        Eigen::VectorXd c = V*(1.0/get_node_function_values().array()).matrix();
+        
+        return ChebyshevExpansion(c, xmin(), xmax());
+    }
     ChebyshevExpansion ChebyshevExpansion::apply(std::function<Eigen::ArrayXd(const Eigen::ArrayXd &)> &f){
         // 1. Transform Chebyshev-Lobatto node function values by the function f(y) -> y2
         // 2. Go backwards to coefficients from node values c2 = V*y2
@@ -725,7 +735,7 @@ namespace ChebTools {
         return ((m_xmax - m_xmin)*get_nodes_n11().array() + (m_xmax + m_xmin))*0.5;
     }
     /// Values of the function at the Chebyshev-Lobatto nodes 
-    Eigen::VectorXd ChebyshevExpansion::get_node_function_values() {
+    Eigen::VectorXd ChebyshevExpansion::get_node_function_values() const{
         std::size_t N = m_c.size()-1;
         return u_matrix_library.get(N)*m_c;
     }

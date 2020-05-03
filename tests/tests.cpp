@@ -115,11 +115,11 @@ TEST_CASE("Expansion from polynomial", "")
     Eigen::VectorXd c_expected(4); c_expected << 1.0, 3.25, 1.0, 0.75;
 
     // From https ://docs.scipy.org/doc/numpy/reference/generated/numpy.polynomial.chebyshev.poly2cheb.html
-    auto ce = ChebTools::ChebyshevExpansion::from_polynomial(c_poly, 0, 10);
+    auto ce = ChebTools::ChebyshevExpansion::from_polynomial(c_poly, -1, 1);
 
     auto err = std::abs((c_expected - ce.coef()).sum());
     CAPTURE(err);
-    CHECK(err < 1e-100);
+    CHECK(err < 1e-13);
 }
 /*
 From numpy:
@@ -212,7 +212,7 @@ TEST_CASE("Transform y=x^3 by sin(y) to be y=sin(x^3)", "")
     
     auto err = std::abs((y_expected - y)/y);
     CAPTURE(err);
-    CHECK(err < 1e-14);
+    CHECK(err < 1e-13);
 }
 
 TEST_CASE("Integrate y=exp(x)", "")
@@ -333,6 +333,43 @@ TEST_CASE("unary negation operator", ""){
     double err = std::abs(C.y_recurrence(0.5) + C2.y_recurrence(0.5));
     CAPTURE(err);
     CHECK(err < 1e-100);
+}
+
+TEST_CASE("multiplication for domain [-1,1]", "") {
+    auto C1 = ChebTools::ChebyshevExpansion::factory(1, [](double x) { return x; }, -1, 1);
+    auto C2 = ChebTools::ChebyshevExpansion::factory(2, [](double x) { return x*x; }, -1, 1);
+    auto C = C1 * C2;
+    double err = std::abs(C.y_recurrence(0.7) - pow(0.7, 3));
+    CAPTURE(err);
+    CHECK(err < 1e-15);
+}
+
+TEST_CASE("multiplication for domain not equal to [-1,1]", "") {
+    auto C1 = ChebTools::ChebyshevExpansion::factory(1, [](double x) { return x; }, 0.01, 1);
+    auto C2 = ChebTools::ChebyshevExpansion::factory(2, [](double x) { return x*x; }, 0.01, 1);
+    auto C = C1 * C2;
+    double err = std::abs(C.y_recurrence(0.7) - pow(0.7, 3));
+    CAPTURE(err);
+    CHECK(err < 1e-15);
+}
+
+TEST_CASE("division operator", "") {
+
+    // Reference values for the exact solution
+    auto Cref = ChebTools::ChebyshevExpansion::factory(30, [](double x) { return 1 / (2+x*x); }, 0.01, 1);
+    auto yrecip = Cref.y_recurrence(0.7);
+    auto yrecipexact = (1 / (2 + 0.7*0.7));
+
+    auto C = ChebTools::ChebyshevExpansion::factory(30, [](double x) { return 2+x*x; }, 0.01, 1);
+    auto Cdiv = C.reciprocal();    std::function<Eigen::ArrayXd(const Eigen::ArrayXd & x)> f = [](const Eigen::ArrayXd& x) {return 1 / x; };
+    auto Cdiv2 = C.apply(f);
+    auto ydiv = Cdiv.y_recurrence(0.7);
+    auto ydiv2 = Cdiv2.y_recurrence(0.7); 
+    double err = std::abs(ydiv-yrecipexact);
+    CAPTURE(err);
+    double err2 = std::abs(ydiv2 - yrecipexact);
+    CAPTURE(err2);
+    CHECK(err < 1e-15);
 }
 
 TEST_CASE("Constant value y=x with generation from factory", "")

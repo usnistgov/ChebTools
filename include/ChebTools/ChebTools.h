@@ -72,9 +72,9 @@ namespace ChebTools{
         /// Move constructor (C++11 only)
         ChebyshevExpansion(const vectype &&c, double xmin = -1, double xmax = 1) : m_c(c), m_xmin(xmin), m_xmax(xmax) { resize(); };
         /// Get the minimum value of \f$x\f$ for the expansion
-        double xmin(){ return m_xmin; }
+        double xmin() const{ return m_xmin; }
         /// Get the maximum value of \f$x\f$ for the expansion
-        double xmax(){ return m_xmax; }
+        double xmax() const{ return m_xmax; }
 
         /// Get the vector of coefficients in increasing order
         const vectype &coef() const;
@@ -88,7 +88,7 @@ namespace ChebTools{
         /// Get the Chebyshev-Lobatto nodes in the domain [xmin, xmax]
         Eigen::VectorXd get_nodes_realworld();
         /// Values of the function at the Chebyshev-Lobatto nodes
-        Eigen::VectorXd get_node_function_values();
+        Eigen::VectorXd get_node_function_values() const;
 
         // ******************************************************************
         // ***********************      OPERATORS     ***********************
@@ -137,9 +137,15 @@ namespace ChebTools{
          */
         ChebyshevExpansion& times_x_inplace();
 
+        ChebyshevExpansion reciprocal() const;
+
         /// Friend function that allows for pre-multiplication by a constant value
         friend ChebyshevExpansion operator*(double value, const ChebyshevExpansion &ce){
             return ChebyshevExpansion(std::move(ce.coef()*value),ce.m_xmin, ce.m_xmax);
+        };
+        /// Friend function that allows expansion to be the denominator in division with double
+        friend ChebyshevExpansion operator/(double value, const ChebyshevExpansion& ce) {
+            return value * ce.reciprocal();
         };
         
         /**
