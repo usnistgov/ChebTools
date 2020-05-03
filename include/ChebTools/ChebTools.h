@@ -147,6 +147,14 @@ namespace ChebTools{
         friend ChebyshevExpansion operator/(double value, const ChebyshevExpansion& ce) {
             return value * ce.reciprocal();
         };
+        /// Friend function that allows pre-subtraction of expansion (value-expansion)
+        friend ChebyshevExpansion operator-(double value, const ChebyshevExpansion& ce) {
+            return -ce+value;
+        };
+        /// Friend function that allows pre-addition of expansion (value+expansion)
+        friend ChebyshevExpansion operator-(double value, const ChebyshevExpansion& ce) {
+            return ce + value;
+        };
         
         /**
          * @brief Apply a function to the expansion
