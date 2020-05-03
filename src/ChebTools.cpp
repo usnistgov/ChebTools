@@ -242,6 +242,37 @@ namespace ChebTools {
         }
         return *this;
     }
+    ChebyshevExpansion& ChebyshevExpansion::operator-=(const ChebyshevExpansion& donor) {
+        std::size_t Ndonor = donor.coef().size(), N1 = m_c.size();
+        std::size_t Nmin = std::min(N1, Ndonor), Nmax = std::max(N1, Ndonor);
+        // The first Nmin terms overlap between the two vectors
+        m_c.head(Nmin) -= donor.coef().head(Nmin);
+        // If the donor vector is longer than the current vector, resizing is needed
+        if (Ndonor > N1) {
+            // Resize but leave values as they were
+            m_c.conservativeResize(Ndonor);
+            // Copy the last Nmax-Nmin values from the donor
+            m_c.tail(Nmax - Nmin) = -donor.coef().tail(Nmax - Nmin);
+        }
+        return *this;
+    }
+    ChebyshevExpansion ChebyshevExpansion::operator-(const ChebyshevExpansion& ce2) const {
+        if (m_c.size() == ce2.coef().size()) {
+            // Both are the same size, nothing creative to do, just subtract the coefficients
+            return ChebyshevExpansion(std::move(ce2.coef() - m_c), m_xmin, m_xmax);
+        }
+        else {
+            if (m_c.size() > ce2.coef().size()) {
+                Eigen::VectorXd c(m_c.size()); c.setZero(); c.head(ce2.coef().size()) = ce2.coef();
+                return ChebyshevExpansion(m_c - c, m_xmin, m_xmax);
+            }
+            else {
+                std::size_t n = ce2.coef().size();
+                Eigen::VectorXd c(n); c.setZero(); c.head(m_c.size()) = m_c;
+                return ChebyshevExpansion(c - ce2.coef(), m_xmin, m_xmax);
+            }
+        }
+    };
     ChebyshevExpansion ChebyshevExpansion::operator*(double value) const {
         return ChebyshevExpansion(m_c*value, m_xmin, m_xmax);
     }

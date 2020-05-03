@@ -353,6 +353,27 @@ TEST_CASE("multiplication for domain not equal to [-1,1]", "") {
     CHECK(err < 1e-15);
 }
 
+TEST_CASE("subtraction for domain not equal to [-1,1]", "") {
+    auto C1 = ChebTools::ChebyshevExpansion::factory(1, [](double x) { return x; }, 0.01, 1);
+    auto C2 = ChebTools::ChebyshevExpansion::factory(10, [](double x) { return x * x; }, 0.01, 1);
+    SECTION("first one shorter") {
+        auto C = C2 - C1;
+        auto yexact = pow(0.7, 2) - pow(0.7, 1);
+        auto y = C.y_recurrence(0.7);
+        double err = std::abs(y - yexact);
+        CAPTURE(err);
+        CHECK(err < 1e-15);
+    }
+    SECTION("second one shorter") {
+        auto C = C1 - C2;
+        auto yexact = pow(0.7, 1) - pow(0.7, 2);
+        auto y = C.y_recurrence(0.7);
+        double err = std::abs(y - yexact);
+        CAPTURE(err);
+        CHECK(err < 1e-15);
+    }
+}
+
 TEST_CASE("division operator", "") {
 
     // Reference values for the exact solution

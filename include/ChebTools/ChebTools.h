@@ -116,6 +116,10 @@ namespace ChebTools{
         ChebyshevExpansion& operator-=(double value);
         /// Unary negation operator
         ChebyshevExpansion operator-() const;
+        /// An inplace subtraction of an expansion by another expansion
+        ChebyshevExpansion& operator-=(const ChebyshevExpansion &ce2);
+        /// An inplace subtraction of an expansion by another expansion
+        ChebyshevExpansion operator-(const ChebyshevExpansion& ce2) const;
         /**
          * @brief Multiply two Chebyshev expansions together; thanks to Julia code from Bradley Alpert, NIST
          *
@@ -161,7 +165,7 @@ namespace ChebTools{
             return -ce+value;
         };
         /// Friend function that allows pre-addition of expansion (value+expansion)
-        friend ChebyshevExpansion operator-(double value, const ChebyshevExpansion& ce) {
+        friend ChebyshevExpansion operator+(double value, const ChebyshevExpansion& ce) {
             return ce + value;
         };
         
