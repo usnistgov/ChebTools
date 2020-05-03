@@ -737,6 +737,12 @@ namespace ChebTools {
         return ChebyshevExpansion(L*f, xmin, xmax);
     }
     ChebyshevExpansion ChebyshevExpansion::from_powxn(const std::size_t n, const double xmin, const double xmax) {
+        if (xmin != -1) {
+            throw std::invalid_argument("xmin must be -1");
+        }
+        if (xmax != 1) {
+            throw std::invalid_argument("xmax must be 1");
+        }
         Eigen::VectorXd c = Eigen::VectorXd::Zero(n + 1);
         for (std::size_t k = 0; k <= n / 2; ++k) {
             std::size_t index = n - 2 * k;
