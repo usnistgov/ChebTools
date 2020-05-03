@@ -374,6 +374,46 @@ TEST_CASE("subtraction for domain not equal to [-1,1]", "") {
     }
 }
 
+TEST_CASE("inplace subtraction for domain not equal to [-1,1]", "") {
+    auto C1 = ChebTools::ChebyshevExpansion::factory(3, [](double x) { return x; }, 0.01, 1);
+    auto C2 = ChebTools::ChebyshevExpansion::factory(10, [](double x) { return x * x; }, 0.01, 1);
+    SECTION("first one shorter") {
+        auto C = C2;
+        C -= C1;
+        auto yexact = pow(0.7, 2) - pow(0.7, 1);
+        auto y = C.y_Clenshaw(0.7);
+        double err = std::abs(y - yexact);
+        CAPTURE(err);
+        CHECK(err < 1e-15);
+    }
+    SECTION("second one shorter") {
+        auto C = C1;
+        C -= C2;
+        auto yexact = pow(0.7, 1) - pow(0.7, 2);
+        auto y = C.y_Clenshaw(0.7);
+        double err = std::abs(y - yexact);
+        CAPTURE(err);
+        CHECK(err < 1e-15);
+    }
+}
+/////// ******* This test case fails, but it is not a problem with the library, rather it is a problem with approximation more generally
+//TEST_CASE("reciprocal, lots of zeros") {
+//    // Reference values for the exact solution
+//    auto x = 1789.0;
+//    auto Cexact = ChebTools::ChebyshevExpansion::factory(10, [](double x) { return 1/x; }, 0.0000001, 10000);
+//    auto yrecip = Cexact.y_Clenshaw(x);
+//    auto yexact = 1/x;
+//
+//    auto C = ChebTools::ChebyshevExpansion::factory(10, [](double x) { return x; }, 0.0000001, 10000);
+//    auto Crecip = 1/C;
+//    auto ydiv = Crecip.y_Clenshaw(x);
+//    double err1 = std::abs(ydiv - yexact);
+//    CAPTURE(err1);
+//    CHECK(err1 < 1e-15);
+//    double err2 = std::abs(ydiv - yexact);
+//    CAPTURE(err2);
+//    CHECK(err2 < 1e-15);
+//}
 TEST_CASE("division operator", "") {
 
     // Reference values for the exact solution
