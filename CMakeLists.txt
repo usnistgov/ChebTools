@@ -20,6 +20,13 @@ find_package(OpenMP)
 if (OPENMP_FOUND)
     set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+    # Try to help compilation on OSX without resorting to homebrew G++
+    if ("${CMAKE_SYSTEM_NAME}" MATCHES "Darwin")
+        check_cxx_source_compiles("#include \"omp.h\" int main() {return 0; }" HAS_OMP_H)
+        if (NOT HAS_OMP_H)
+            include_directories(/usr/local/opt/libomp/include)
+            link_directories(/usr/local/opt/libomp/lib)
+        endif()
 endif()
 
 if (CHEBTOOLS_STATIC_LIBRARY OR NISTFIT_PYBIND11)
