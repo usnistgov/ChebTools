@@ -27,6 +27,7 @@ if (OPENMP_FOUND)
             include_directories(/usr/local/opt/libomp/include)
             link_directories(/usr/local/opt/libomp/lib)
         endif()
+    endif()
 endif()
 
 if (CHEBTOOLS_STATIC_LIBRARY OR NISTFIT_PYBIND11)
