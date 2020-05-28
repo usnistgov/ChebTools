@@ -393,6 +393,12 @@ namespace ChebTools {
         const Eigen::MatrixXd &V = l_matrix_library.get(Ndegree);
         return ChebyshevExpansion(V*f(get_node_function_values()).matrix(), xmin(), xmax());
     }
+    bool ChebyshevExpansion::is_monotonic() const {
+        auto yvals = get_node_function_values();
+        auto N = yvals.size();
+        Eigen::ArrayXd diff = yvals.tail(N - 1) - yvals.head(N - 1);
+        return (diff < 0.0).all() || (diff > 0.0).all();
+    }
 
     const vectype &ChebyshevExpansion::coef() const {
         return m_c;

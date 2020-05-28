@@ -433,6 +433,12 @@ TEST_CASE("division operator", "") {
     CHECK(err < 1e-15);
 }
 
+TEST_CASE("Check monotonicity", "") 
+{
+    CHECK(!ChebTools::ChebyshevExpansion::from_powxn(2, -1, 1).is_monotonic());
+    CHECK(ChebTools::ChebyshevExpansion::from_powxn(3, -1, 1).is_monotonic());
+}
+
 TEST_CASE("Constant value y=x with generation from factory", "")
 {
     Eigen::VectorXd x1(1); x1 << 0.5;

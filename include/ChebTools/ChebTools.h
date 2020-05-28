@@ -89,6 +89,8 @@ namespace ChebTools{
         Eigen::VectorXd get_nodes_realworld();
         /// Values of the function at the Chebyshev-Lobatto nodes
         Eigen::VectorXd get_node_function_values() const;
+        /// Return true if the function values at the Chebyshev-Lobatto nodes are monotonic with the independent variable
+        bool is_monotonic() const;
 
         // ******************************************************************
         // ***********************      OPERATORS     ***********************
