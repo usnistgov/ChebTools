@@ -1,21 +1,18 @@
 language: cpp
+dist: focal # 20.04; bionic, 18.04
 compiler:
   - clang
   - gcc
 
 addons:
   apt:
-    # sources:
-    # - george-edison55-precise-backports
-    # - ubuntu-toolchain-r-test
-    # - llvm-toolchain-precise-3.6
     packages:
     - g++
-    - clang-7
+    - clang
 
 install:
 - if [ "$CXX" = "g++" ]; then export CXX="g++" CC="gcc"; fi
-- if [ "$CXX" = "clang++" ]; then export CXX="clang++-7" CC="clang-7"; fi
+- if [ "$CXX" = "clang++" ]; then export CXX="clang++" CC="clang"; fi
 
 # command to run tests
 script: 
