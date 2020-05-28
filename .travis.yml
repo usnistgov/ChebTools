@@ -1,5 +1,5 @@
 language: cpp
-dist: focal # 20.04; bionic, 18.04
+dist: focal # 20.04; bionic: 18.04, xenial: 16.04
 compiler:
   - clang
   - gcc
@@ -12,7 +12,7 @@ addons:
 
 install:
 - if [ "$CXX" = "g++" ]; then export CXX="g++" CC="gcc"; fi
-- if [ "$CXX" = "clang++" ]; then export CXX="clang++" CC="clang"; fi
+- if [ "$CXX" = "clang++" ]; then export CXX="clang++" CC="clang" LD_LIBRARY_PATH=/usr/local/clang/lib:$LD_LIBRARY_PATH ; fi
 
 # command to run tests
 script: 
