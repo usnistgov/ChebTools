@@ -15,7 +15,7 @@ addons:
     - gcc-5
     - g++-5
     - clang-3.6
-    - libomp-devel
+    - libomp-dev
 
 install:
 - if [ "$CXX" = "g++" ]; then export CXX="g++-5" CC="gcc-5"; fi
