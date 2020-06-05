@@ -3,6 +3,7 @@
 
 #include "Eigen/Dense"
 #include <vector>
+#include <queue>
 
 namespace ChebTools{
 
@@ -344,6 +345,38 @@ namespace ChebTools{
                 s += c(i)*from_powxn(i, xmin, xmax);
             }
             return s;
+        }
+
+        template<class double_function>
+        static auto dyadic_splitting(const std::size_t N, double_function func, const double xmin, const double xmax, const int M, const double tol, const int max_refine_passes = 8) {
+            
+            // Convenience function
+            auto get_err = [M](const ChebyshevExpansion& ce) { return ce.coef().tail(M).norm() / ce.coef().head(M).norm(); };
+            
+            // Start off with the full domain from xmin to xmax
+            std::deque<ChebyshevExpansion> expansions;
+            expansions.emplace_back(ChebyshevExpansion::factory(N, func, xmin, xmax));
+
+            // Now enter into refinement passes
+            for (auto refine_pass = 0; refine_pass < max_refine_passes; ++refine_pass) {
+                bool all_converged = true;
+                // Start at the right and move left because insertions will make the length increase
+                for (int iexpansion = static_cast<int>(expansions.size())-1; iexpansion >= 0; --iexpansion) {
+                    auto& expan = expansions[iexpansion];
+                    auto err = get_err(expan);
+                    if (err > tol) {
+                        // Splitting is required, do a dyadic split
+                        auto xmid = (expan.xmin() + expan.xmax()) / 2;
+                        auto newleft = ChebyshevExpansion::factory(N, func, expan.xmin(), xmid);
+                        auto newright = ChebyshevExpansion::factory(N, func, xmid, expan.xmax());
+                        std::swap(expan, newleft);
+                        expansions.insert(expansions.begin() + iexpansion+1, newright);
+                        all_converged = false;
+                    }
+                }
+                if (all_converged) { break; }
+            }
+            return expansions;
         }
     };
 

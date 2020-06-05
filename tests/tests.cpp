@@ -439,6 +439,37 @@ TEST_CASE("Check monotonicity", "")
     CHECK(ChebTools::ChebyshevExpansion::from_powxn(3, -1, 1).is_monotonic());
 }
 
+TEST_CASE("Check dyadic splitting", "")
+{
+    SECTION("EXP(x)") {
+        auto x = 0.7;
+        auto expans = ChebTools::ChebyshevExpansion::dyadic_splitting(8, [](double x)->double {return exp(x); }, -1, 1, 3, 1e-14);
+        for (auto& ex : expans) {
+            if (x > ex.xmin() && x < ex.xmax()) {
+                CHECK(ex.xmax() > ex.xmin());
+                auto diff = ex.y_Clenshaw(x) - exp(x);
+                CAPTURE(diff);
+                CHECK(std::abs(diff) < 1e-14);
+            }
+        }
+    }
+    SECTION("funky") {
+        auto x = 7;
+        auto f = [](double x)->double {return exp(x) * sin(x) * log(x + 1); };
+        auto expans = ChebTools::ChebyshevExpansion::dyadic_splitting(8, f, 0, 100, 2, 1e-11, 20);
+        for (auto& ex : expans) {
+            if (x > ex.xmin() && x < ex.xmax()) {
+                CHECK(ex.xmax() > ex.xmin());
+                auto y = f(x);
+                auto diff = std::abs(ex.y_Clenshaw(x) - f(x));
+                CAPTURE(diff);
+                CAPTURE(y);
+                CHECK(diff < 1e-14);
+            }
+        }
+    }
+}
+
 TEST_CASE("Constant value y=x with generation from factory", "")
 {
     Eigen::VectorXd x1(1); x1 << 0.5;
