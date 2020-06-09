@@ -19,6 +19,7 @@ void init_ChebTools(py::module &m){
     m.def("eigenvalues", &eigenvalues);
     m.def("eigenvalues_upperHessenberg", &eigenvalues_upperHessenberg);
     m.def("generate_Chebyshev_expansion", &ChebyshevExpansion::factory<std::function<double(double)> >);
+    m.def("dyadic_splitting", &ChebyshevExpansion::dyadic_splitting<std::function<double(double)> >);
     m.def("Eigen_nbThreads", []() { return Eigen::nbThreads(); });
     m.def("Eigen_setNbThreads", [](int Nthreads) { return Eigen::setNbThreads(Nthreads); });
 
