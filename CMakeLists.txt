@@ -2,8 +2,8 @@ cmake_minimum_required(VERSION 3.0)
 
 project(ChebTools)
 
-# Set the standard for C++ to c++11
-set(CMAKE_CXX_STANDARD 11)
+# Set the standard for C++ to c++14
+set(CMAKE_CXX_STANDARD 14)
 
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/externals/Eigen")
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/include")
