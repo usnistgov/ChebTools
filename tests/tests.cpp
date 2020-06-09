@@ -456,12 +456,12 @@ TEST_CASE("Check dyadic splitting", "")
     SECTION("funky") {
         auto x = 7;
         auto f = [](double x)->double {return exp(x) * sin(x) * log(x + 1); };
-        auto expans = ChebTools::ChebyshevExpansion::dyadic_splitting(8, f, 0, 100, 2, 1e-11, 20);
+        auto expans = ChebTools::ChebyshevExpansion::dyadic_splitting(8, f, 0, 100, 3, 1e-13, 10);
         for (auto& ex : expans) {
             if (x > ex.xmin() && x < ex.xmax()) {
                 CHECK(ex.xmax() > ex.xmin());
                 auto y = f(x);
-                auto diff = std::abs(ex.y_Clenshaw(x) - f(x));
+                auto diff = std::abs(ex.y_Clenshaw(x) - f(x))/y;
                 CAPTURE(diff);
                 CAPTURE(y);
                 CHECK(diff < 1e-14);
