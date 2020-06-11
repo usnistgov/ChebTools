@@ -347,10 +347,11 @@ namespace ChebTools{
             return s;
         }
 
+        using DyadicCallbackFunction = std::function<void(int, const std::deque<ChebyshevExpansion>&)>;
         template<class double_function>
-        static auto dyadic_splitting(const std::size_t N, double_function func, const double xmin, const double xmax, const int M, const double tol, const int max_refine_passes = 8) {
+        static auto dyadic_splitting(const std::size_t N, double_function func, const double xmin, const double xmax, const int M, const double tol, const int max_refine_passes = 8, const DyadicCallbackFunction &callback = {}) {
             
-            // Convenience function
+            // Convenience function to get the M-element norm
             auto get_err = [M](const ChebyshevExpansion& ce) { return ce.coef().tail(M).norm() / ce.coef().head(M).norm(); };
             
             // Start off with the full domain from xmin to xmax
@@ -358,7 +359,7 @@ namespace ChebTools{
             expansions.emplace_back(ChebyshevExpansion::factory(N, func, xmin, xmax));
 
             // Now enter into refinement passes
-            for (auto refine_pass = 0; refine_pass < max_refine_passes; ++refine_pass) {
+            for (int refine_pass = 0; refine_pass < max_refine_passes; ++refine_pass) {
                 bool all_converged = true;
                 // Start at the right and move left because insertions will make the length increase
                 for (int iexpansion = static_cast<int>(expansions.size())-1; iexpansion >= 0; --iexpansion) {
@@ -375,6 +376,9 @@ namespace ChebTools{
                     }
                 }
                 if (all_converged) { break; }
+                if (callback != nullptr) {
+                    callback(refine_pass, expansions);
+                }
             }
             return expansions;
         }
