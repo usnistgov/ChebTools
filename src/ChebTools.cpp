@@ -428,35 +428,21 @@ namespace ChebTools {
         std::size_t Norder = m_c.size() - 1;
         // Scale x linearly into the domain [-1, 1]
         double xscaled = (2 * x - (m_xmax + m_xmin)) / (m_xmax - m_xmin);
-        // Short circuit if not using recursive solution
-        if (Norder == 0) { return m_c[0]; }
-        if (Norder == 1) { return m_c[0] + m_c[1]*xscaled; }
-
-        double u_k = 0, u_kp1 = m_c[Norder], u_kp2 = 0;
-        for (int k = static_cast<int>(Norder) - 1; k >= 1; --k) {
-            u_k = 2.0*xscaled*u_kp1 - u_kp2 + m_c(k);
-            // Update summation values for all but the last step
-            if (k > 1) {
-                u_kp2 = u_kp1; u_kp1 = u_k;
-            }
-        }
-        return xscaled*u_k - u_kp1 + m_c(0);
+        // Return the scaled evaluation of the Chebyshev expansion
+        return y_Clenshaw_xscaled(xscaled);
     }
     double ChebyshevExpansion::y_Clenshaw_xscaled(const double xscaled) const {
+        // See https://en.wikipedia.org/wiki/Clenshaw_algorithm#Special_case_for_Chebyshev_series
         std::size_t Norder = m_c.size() - 1;
-        // Short circuit if not using recursive solution
-        if (Norder == 0) { return m_c[0]; }
-        if (Norder == 1) { return m_c[0] + m_c[1] * xscaled; }
-
         double u_k = 0, u_kp1 = m_c[Norder], u_kp2 = 0;
-        for (int k = static_cast<int>(Norder) - 1; k >= 1; --k) {
-            u_k = 2.0*xscaled*u_kp1 - u_kp2 + m_c(k);
-            // Update summation values for all but the last step
-            if (k > 1) {
-                u_kp2 = u_kp1; u_kp1 = u_k;
-            }
+        int k = 0;
+        for (k = static_cast<int>(Norder) - 1; k >= 1; --k) {
+            // Do the recurrent calculation
+            u_k = 2.0 * xscaled * u_kp1 - u_kp2 + m_c(k);
+            // Update the values
+            u_kp2 = u_kp1; u_kp1 = u_k;
         }
-        return xscaled*u_k - u_kp1 + m_c(0);
+        return m_c(0) + xscaled * u_kp1 - u_kp2;
     }
     /**
     * @brief Do a vectorized evaluation of the Chebyshev expansion with the inputs scaled in [xmin, xmax]
