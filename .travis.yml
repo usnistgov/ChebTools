@@ -21,7 +21,7 @@ script:
   - git submodule update --init
   - mkdir build
   - cd build
-  - cmake .. -DCHEBTOOLS_NO_PYBIND11=ON
+  - cmake .. -DCMAKE_BUILD_TYPE=Release
   - cmake --build . --config Release
   - ./ChebToolsCatchTests
 
