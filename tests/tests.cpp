@@ -470,6 +470,26 @@ TEST_CASE("Check dyadic splitting", "")
     }
 }
 
+constexpr double MY_PI = 3.14159265358979323846;
+
+TEST_CASE("FFT and DCT", "")
+{
+    auto n = 21;
+    auto nodes = ChebTools::get_CLnodes(n); 
+    Eigen::VectorXd f(nodes.size());
+    for (auto i = 0; i < f.size(); ++i) {
+        auto x = nodes[i];
+        f[i] = exp(x) * sin(MY_PI * x) + x;
+    }
+    auto ce = ChebTools::ChebyshevExpansion::factoryf(n, f, -1, 1);
+    auto ceFFT = ChebTools::ChebyshevExpansion::factoryfFFT(n, f, -1, 1);
+
+    auto coef1 = ce.coef();
+    auto coefFFT = ceFFT.coef();
+    CHECK((coef1 - coefFFT).cwiseAbs().maxCoeff() < 1e-10);
+    
+}
+
 TEST_CASE("Constant value y=x with generation from factory", "")
 {
     Eigen::VectorXd x1(1); x1 << 0.5;

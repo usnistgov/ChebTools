@@ -14,10 +14,55 @@ double f(double x){
     //return exp(-5*pow(x,2)) - 0.5;
 }
 
+constexpr double MY_PI = 3.14159265358979323846;
+
 // Monolithic build
 int main(){
 
     using namespace ChebTools;
+    {
+        for (auto repeat = 0; repeat < 10; ++repeat) {
+            ChebyshevExpansion ee = ChebyshevExpansion::from_powxn(8, -1, 1);
+            long N = 10000000; double s = 0;
+            auto startTime = std::chrono::high_resolution_clock::now();
+            for (int i = 0; i < N; ++i) {
+                s += ee.y_Clenshaw(0.4);
+            }
+            auto endTime = std::chrono::high_resolution_clock::now();
+            auto elap_us = std::chrono::duration<double>(endTime - startTime).count() / N * 1e6;
+            std::cout << "Clenshaw evaluation:" << elap_us << " us/call; value " << s / N << std::endl;
+        }
+    }
+    {
+        for (auto repeat = 0; repeat < 10; ++repeat) {
+            auto n = 21;
+            auto nodes = ChebTools::get_CLnodes(n);
+            Eigen::VectorXd f(nodes.size());
+            for (auto i = 0; i < f.size(); ++i) {
+                auto x = nodes[i];
+                f[i] = exp(x) * sin(MY_PI * x) + x;
+            }
+
+            long N = 1000; double s = 0;
+            auto startTime = std::chrono::high_resolution_clock::now();
+            for (int i = 0; i < N; ++i) {
+                s += ChebTools::ChebyshevExpansion::factoryf(n, f, -1, 1).coef()(0);
+            }
+            auto endTime = std::chrono::high_resolution_clock::now();
+            auto elap_us = std::chrono::duration<double>(endTime - startTime).count() / N * 1e6;
+            std::cout << "DCT construction:" << elap_us << " us/call; value " << s / N << std::endl;
+
+            s = 0;
+            startTime = std::chrono::high_resolution_clock::now();
+            for (int i = 0; i < N; ++i) {
+                s += ChebTools::ChebyshevExpansion::factoryfFFT(n, f, -1, 1).coef()(0);
+            }
+            endTime = std::chrono::high_resolution_clock::now();
+            elap_us = std::chrono::duration<double>(endTime - startTime).count() / N * 1e6;
+            std::cout << "FFT construction:" << elap_us << " us/call; value " << s / N << std::endl;
+        }
+    }
+    return EXIT_SUCCESS;
 
     ChebyshevExpansion ee = ChebyshevExpansion::from_powxn(3, -1, 1);
     std::cout << ee.coef() << std::endl;

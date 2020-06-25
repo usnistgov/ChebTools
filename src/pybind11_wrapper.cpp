@@ -18,6 +18,8 @@ void init_ChebTools(py::module &m){
     m.def("eigs_speed_test", &eigs_speed_test);
     m.def("eigenvalues", &eigenvalues);
     m.def("eigenvalues_upperHessenberg", &eigenvalues_upperHessenberg);
+    m.def("factoryfDCT", &ChebyshevExpansion::factoryf); 
+    m.def("factoryfFFT", &ChebyshevExpansion::factoryfFFT);
     m.def("generate_Chebyshev_expansion", &ChebyshevExpansion::factory<std::function<double(double)> >);
     m.def("dyadic_splitting", &ChebyshevExpansion::dyadic_splitting<std::function<double(double)> >);
     m.def("Eigen_nbThreads", []() { return Eigen::nbThreads(); });

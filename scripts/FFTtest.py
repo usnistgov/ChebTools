@@ -6,7 +6,7 @@ See: https://www.mathworks.com/matlabcentral/mlc-downloads/downloads/submissions
 """
 import timeit
 
-import ChebTools, numpy as np, matplotlib.pyplot as plt
+import ChebTools, numpy as np#, matplotlib.pyplot as plt
 
 f = lambda x: np.exp(x)*np.sin(np.pi*x) + x
 
@@ -31,23 +31,40 @@ def gen_Gil(f):
     c[0] /= 2
     return np.array(c)
 
+print('Gil')
+tic = timeit.default_timer()
 c = gen_Gil(f); 
-print('Gil      ', c.tolist())
-print('ChebTools', ChebTools.generate_Chebyshev_expansion(n, f, -1, 1).coef().tolist())
+toc = timeit.default_timer()
+print(c.tolist())
+print(toc-tic, 'seconds')
+
+tic = timeit.default_timer()
+for i in range(100):
+    ce = ChebTools.generate_Chebyshev_expansion(n, f, -1, 1)
+toc = timeit.default_timer()
+print('ChebTools (DCT)')
+print(ce.coef().tolist())
+print((toc-tic)/100,'seconds')
 
 jvec = np.arange(0, n+1)
 xnodes = np.cos(np.pi*jvec/n)
 fstar = f(xnodes)
+
+print(np.__version__)
+# print(np.show_config())
+import mkl_fft
+
 tic = timeit.default_timer()
 valsUnitDisc = np.array(fstar.tolist() + fstar[::-1][1:len(fstar)-1].tolist()) # starting at x=1, going to -1, then the same nodes, not including -1 and 1, in the opposite order
-FourierCoeffs = np.real(np.fft.fft(valsUnitDisc))
+FourierCoeffs = np.real(np.fft.rfft(valsUnitDisc))
+toc = timeit.default_timer()
 ChebCoeffs = FourierCoeffs[0:n+1]/n
 ChebCoeffs[0] /= 2
 ChebCoeffs[-1] /= 2
-toc = timeit.default_timer()
-print('FFT      ', ChebCoeffs.tolist())
-print(toc-tic)
+print('numpyFFT')
+print(ChebCoeffs.tolist())
+print(toc-tic, 'seconds')
 
-plt.plot(ChebTools.generate_Chebyshev_expansion(n, f, -1, 1).coef()/c-1)
-plt.plot(ChebCoeffs/c-1)
-plt.show()
+# plt.plot(ChebTools.generate_Chebyshev_expansion(n, f, -1, 1).coef()/c-1)
+# plt.plot(ChebCoeffs/c-1)
+# plt.show()

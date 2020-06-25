@@ -34,10 +34,11 @@ extrema = f.deriv(1).real_roots(only_in_domain)
 
 ## Changelog
 
-1.1: Added ``integrate`` function for indefinite integral
-1.2: Added some more operators, including division and unary negation
-1.3: Added ``is_monotonic`` function to ascertain whether the nodes are monotonically increasing or decreasing
-1.4: Added dyadic splitting into intervals (C++ only for now)
+* 1.1: Added ``integrate`` function for indefinite integral
+* 1.2: Added some more operators, including division and unary negation
+* 1.3: Added ``is_monotonic`` function to ascertain whether the nodes are monotonically increasing or decreasing
+* 1.4: Added dyadic splitting into intervals (C++ only for now)
+* 1.5: Added FFT-based function for getting expansion coefficient values from nodal values
 
 ## License
 

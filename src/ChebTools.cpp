@@ -1,5 +1,6 @@
 #include "ChebTools/ChebTools.h"
 #include "Eigen/Dense"
+#include <unsupported/Eigen/FFT>
 
 #include <algorithm>
 #include <functional>
@@ -768,6 +769,23 @@ namespace ChebTools {
         const Eigen::MatrixXd &L = l_matrix_library.get(N);
         // Step 4: Obtain coefficients from vector - matrix product
         return ChebyshevExpansion(L*f, xmin, xmax);
+    }
+    ChebyshevExpansion ChebyshevExpansion::factoryfFFT(const std::size_t N, const Eigen::VectorXd& f, const double xmin, const double xmax) {
+
+        Eigen::VectorXd valsUnitDisc(2 * f.size() - 2);
+        // Starting at x = 1, going to -1, then the same nodes, not including x=-1 and x=1, in the opposite order
+        valsUnitDisc.head(f.size()) = f;
+        valsUnitDisc.tail(f.size() - 2) = f.reverse().segment(1, f.size() - 2);
+        
+        Eigen::FFT<double> fft;
+        Eigen::VectorXcd FourierCoeffs(2 * f.size() - 2);
+        fft.fwd(FourierCoeffs, valsUnitDisc);
+        auto n = f.size() - 1;
+        Eigen::ArrayXd ChebCoeffs = FourierCoeffs.real().head(n+1)/n;
+        ChebCoeffs[0] /= 2;
+        ChebCoeffs[ChebCoeffs.size()-1] /= 2;
+
+        return ChebyshevExpansion(ChebCoeffs, xmin, xmax);
     }
     ChebyshevExpansion ChebyshevExpansion::from_powxn(const std::size_t n, const double xmin, const double xmax) {
         if (xmin != -1) {

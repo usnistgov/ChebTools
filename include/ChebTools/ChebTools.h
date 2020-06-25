@@ -286,7 +286,7 @@ namespace ChebTools{
 
         /**
         * @brief Given a set of values at the Chebyshev-Lobatto nodes, perhaps obtained from the ChebyshevExpansion::factory function, 
-        * get the expansion
+        * get the expansion, using the discrete cosine transform (DCT) approach
         *
         * @param N The degree of the expansion
         * @param f The set of values at the Chebyshev-Lobatto nodes
@@ -294,6 +294,18 @@ namespace ChebTools{
         * @param xmax The maximum value of x for the expansion
         */
         static ChebyshevExpansion factoryf(const std::size_t N, const Eigen::VectorXd &f, const double xmin, const double xmax) ;
+
+        /**
+        * @brief Given a set of values at the Chebyshev-Lobatto nodes, build the expansion, using the FFT approach
+        *
+        * See this clear example: https://www.mathworks.com/matlabcentral/mlc-downloads/downloads/submissions/23972/versions/22/previews/chebfun/examples/approx/html/ChebfunFFT.html
+        *
+        * @param N The degree of the expansion
+        * @param f The set of values at the Chebyshev-Lobatto nodes
+        * @param xmin The minimum value of x for the expansion
+        * @param xmax The maximum value of x for the expansion
+        */
+        static ChebyshevExpansion factoryfFFT(const std::size_t N, const Eigen::VectorXd& f, const double xmin, const double xmax);
 
         /**
         * @brief Given a callable function, construct the N-th order Chebyshev expansion in [xmin, xmax]
