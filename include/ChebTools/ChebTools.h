@@ -359,8 +359,7 @@ namespace ChebTools{
             return s;
         }
 
-        template<class double_function>
-        static auto dyadic_splitting(const std::size_t N, double_function func, const double xmin, const double xmax, 
+        static auto dyadic_splitting(const std::size_t N, const std::function<double(double)>& func, const double xmin, const double xmax, 
             const int M, const double tol, const int max_refine_passes = 8, 
             const std::function<void(int, const std::deque<ChebyshevExpansion>&)>&callback = {}) 
         {
