@@ -347,9 +347,11 @@ namespace ChebTools{
             return s;
         }
 
-        using DyadicCallbackFunction = std::function<void(int, const std::deque<ChebyshevExpansion>&)>;
         template<class double_function>
-        static auto dyadic_splitting(const std::size_t N, double_function func, const double xmin, const double xmax, const int M, const double tol, const int max_refine_passes = 8, const DyadicCallbackFunction &callback = {}) {
+        static auto dyadic_splitting(const std::size_t N, double_function func, const double xmin, const double xmax, 
+            const int M, const double tol, const int max_refine_passes = 8, 
+            const std::function<void(int, const std::deque<ChebyshevExpansion>&)>&callback = {}) 
+        {
             
             // Convenience function to get the M-element norm
             auto get_err = [M](const ChebyshevExpansion& ce) { return ce.coef().tail(M).norm() / ce.coef().head(M).norm(); };
