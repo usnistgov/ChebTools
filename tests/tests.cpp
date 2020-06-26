@@ -118,6 +118,22 @@ TEST_CASE("Roots of monotonic expansion", "")
         auto soln = ce.monotonic_solvex(y);
 
         auto err = std::abs(exact - soln);
+        CAPTURE(ce.xmin());
+        CAPTURE(ce.xmax());
+        CAPTURE(sign);
+        CAPTURE(err);
+        CHECK(err < 1e-13);
+    }
+    for (auto sign : { 1,-1 }) {
+        auto ce = ChebTools::ChebyshevExpansion::factory(20, [sign](double x) {return sign * exp(x); }, 0.725, 3.7854367894535964378);
+        auto y = sign * 2.3;
+        auto exact = log(sign * y);
+        auto soln = ce.monotonic_solvex(y);
+
+        auto err = std::abs(exact - soln);
+        CAPTURE(ce.xmin());
+        CAPTURE(ce.xmax());
+        CAPTURE(sign);
         CAPTURE(err);
         CHECK(err < 1e-13);
     }

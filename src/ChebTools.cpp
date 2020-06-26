@@ -425,13 +425,6 @@ namespace ChebTools {
         }
         return m_c.dot(o);
     }
-    double ChebyshevExpansion::y_Clenshaw(const double x) const {
-        std::size_t Norder = m_c.size() - 1;
-        // Scale x linearly into the domain [-1, 1]
-        double xscaled = (2 * x - (m_xmax + m_xmin)) / (m_xmax - m_xmin);
-        // Return the scaled evaluation of the Chebyshev expansion
-        return y_Clenshaw_xscaled(xscaled);
-    }
     double ChebyshevExpansion::y_Clenshaw_xscaled(const double xscaled) const {
         // See https://en.wikipedia.org/wiki/Clenshaw_algorithm#Special_case_for_Chebyshev_series
         std::size_t Norder = m_c.size() - 1;
@@ -670,8 +663,9 @@ namespace ChebTools {
         */
         auto& e = *this;
         auto secant = [e,y](double a, double ya, double b, double yb, double yeps = 1e-14, double xeps = 1e-14) {
-            double c = b - yb * (b - a) / (yb - ya), yc;
+            double c, yc;
             for (auto i = 0; i < 50; ++i) {
+                c = b - yb * (b - a) / (yb - ya);
                 yc = e.y_Clenshaw_xscaled(c)-y;
                 if (yc * ya > 0) {
                     a = c; ya = yc;
@@ -681,19 +675,35 @@ namespace ChebTools {
                 }
                 if (std::abs(b - a) < xeps) { break; }
                 if (std::abs(yc) < yeps) { break; }
-                c = b - yb * (b - a) / (yb - ya);
             }
             return c;
         };
         // Determine if the function is monotonically increasing or decreasing
-        auto& ynodes = get_node_function_values();
-        auto& nodes = get_nodes_n11();
+        auto ynodes = get_node_function_values();
+        auto nodes = get_nodes_n11();
         bool increasing = ynodes[ynodes.size() - 1] > ynodes[0]; // Nodes go from 1 to -1 (stuck with this), but increasing says whether the value at the last *index* (x=-1) is greater than that of the first index (x=1).
+        if (increasing) {
+            if (y > ynodes[ynodes.size() - 1]) {
+                throw std::invalid_argument("Argument is outside the range of the expansion");
+            }
+            if (y < ynodes[0]) {
+                throw std::invalid_argument("Argument is outside the range of the expansion");
+            }
+        }
+        else {
+            if (y < ynodes[ynodes.size() - 1]) {
+                throw std::invalid_argument("Argument is outside the range of the expansion");
+            }
+            if (y > ynodes[0]) {
+                throw std::invalid_argument("Argument is outside the range of the expansion");
+            }
+        }
 
         // Interval bisection to find the Chebyshev-Lobatto nodes that bound the solution by bisection
         int N = static_cast<int>(ynodes.size());
         Eigen::Index i = (increasing) ? get_increasingleftofval(ynodes, y, N) : get_decreasingleftofval(ynodes, y, N);
-        return secant(nodes(i), ynodes(i)-y, nodes(i + 1), ynodes(i + 1)-y);
+        auto xscaled = secant(nodes(i), ynodes(i)-y, nodes(i + 1), ynodes(i + 1)-y);
+        return unscale_x(xscaled);
     }
 
     std::vector<ChebyshevExpansion> ChebyshevExpansion::subdivide(std::size_t Nintervals, const std::size_t Norder) const {

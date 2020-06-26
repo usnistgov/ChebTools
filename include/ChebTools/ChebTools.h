@@ -123,6 +123,14 @@ namespace ChebTools{
         double xmin() const{ return m_xmin; }
         /// Get the maximum value of \f$x\f$ for the expansion
         double xmax() const{ return m_xmax; }
+        /// Go from a value in [xmin,xmax] to a value in [-1,1]
+        double scale_x(const double x) const {
+            return (2 * x - (m_xmax + m_xmin)) / (m_xmax - m_xmin);
+        }
+        /// Map from a value in [-1,1] to a value in [xmin,xmax]
+        double unscale_x(const double xscaled) const {
+            return ((m_xmax - m_xmin)*xscaled + (m_xmax + m_xmin))/2;
+        }
 
         /// Get the vector of coefficients in increasing order
         const vectype &coef() const;
@@ -242,7 +250,7 @@ namespace ChebTools{
         * @brief Do a single input/single output evaluation of the Chebyshev expansion with the inputs scaled in [xmin, xmax]
         * @param x A value scaled in the domain [xmin,xmax]
         */
-        double y_Clenshaw(const double x) const;
+        double y_Clenshaw(const double x) const { return y_Clenshaw_xscaled(scale_x(x));  }
         /**
         * @brief Do a single input/single output evaluation of the Chebyshev expansion with the inputs scaled in [-1,1]
         * @param x A value scaled in the domain [-1,1]
