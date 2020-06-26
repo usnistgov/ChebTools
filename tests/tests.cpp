@@ -109,6 +109,20 @@ TEST_CASE("Expansion from single monomial term", "")
     }
 }
 
+TEST_CASE("Roots of monotonic expansion", "")
+{
+    for (auto sign : { 1,-1 }) {
+        auto ce = ChebTools::ChebyshevExpansion::factory(20, [sign](double x) {return sign*exp(x); }, -1, 1);
+        auto y = sign*2.3;
+        auto exact = log(sign*y);
+        auto soln = ce.monotonic_solvex(y);
+
+        auto err = std::abs(exact - soln);
+        CAPTURE(err);
+        CHECK(err < 1e-13);
+    }
+}
+
 TEST_CASE("Expansion from polynomial", "")
 {
     Eigen::VectorXd c_poly(4); c_poly << 0, 1, 2, 3;

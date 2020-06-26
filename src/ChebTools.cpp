@@ -663,6 +663,39 @@ namespace ChebTools {
         //}
         //return roots;
     }
+    double ChebyshevExpansion::monotonic_solvex(double y) {
+        /*
+        Function is known to be monotonic, so we can shortcut some of the solving steps used
+        We don't use the eigenvalue method because it is too slow
+        */
+        auto& e = *this;
+        auto secant = [e,y](double a, double ya, double b, double yb, double yeps = 1e-14, double xeps = 1e-14) {
+            double c = b - yb * (b - a) / (yb - ya), yc;
+            for (auto i = 0; i < 50; ++i) {
+                yc = e.y_Clenshaw_xscaled(c)-y;
+                if (yc * ya > 0) {
+                    a = c; ya = yc;
+                }
+                else {
+                    b = c; yb = yc;
+                }
+                if (std::abs(b - a) < xeps) { break; }
+                if (std::abs(yc) < yeps) { break; }
+                c = b - yb * (b - a) / (yb - ya);
+            }
+            return c;
+        };
+        // Determine if the function is monotonically increasing or decreasing
+        auto& ynodes = get_node_function_values();
+        auto& nodes = get_nodes_n11();
+        bool increasing = ynodes[ynodes.size() - 1] > ynodes[0]; // Nodes go from 1 to -1 (stuck with this), but increasing says whether the value at the last *index* (x=-1) is greater than that of the first index (x=1).
+
+        // Interval bisection to find the Chebyshev-Lobatto nodes that bound the solution by bisection
+        int N = static_cast<int>(ynodes.size());
+        Eigen::Index i = (increasing) ? get_increasingleftofval(ynodes, y, N) : get_decreasingleftofval(ynodes, y, N);
+        return secant(nodes(i), ynodes(i)-y, nodes(i + 1), ynodes(i + 1)-y);
+    }
+
     std::vector<ChebyshevExpansion> ChebyshevExpansion::subdivide(std::size_t Nintervals, const std::size_t Norder) const {
 
         if (Nintervals == 1) {
@@ -760,10 +793,14 @@ namespace ChebTools {
     }
     /// Values of the function at the Chebyshev-Lobatto nodes 
     Eigen::VectorXd ChebyshevExpansion::get_node_function_values() const{
-        std::size_t N = m_c.size()-1;
-        return u_matrix_library.get(N)*m_c;
+        if (m_nodal_value_cache.size() > 0) {
+            return m_nodal_value_cache;
+        }
+        else {
+            std::size_t N = m_c.size() - 1;
+            return u_matrix_library.get(N) * m_c;
+        }
     }
-
     ChebyshevExpansion ChebyshevExpansion::factoryf(const std::size_t N, const Eigen::VectorXd &f, const double xmin, const double xmax) {
         // Step 3: Get coefficients for the L matrix from the library of coefficients
         const Eigen::MatrixXd &L = l_matrix_library.get(N);

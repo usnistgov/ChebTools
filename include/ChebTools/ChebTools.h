@@ -7,6 +7,48 @@
 
 namespace ChebTools{
 
+    // https://proquest.safaribooksonline.com/9780321637413
+    // https://web.stanford.edu/class/archive/cs/cs107/cs107.1202/lab1/
+    static int midpoint_Knuth(int x, int y) {
+        return (x & y) + ((x ^ y) >> 1);
+    };
+
+    /**
+    For a monotonically increasing vector, find the left index of the interval bracketing the given value
+    */
+    template<typename VecType>
+    int get_increasingleftofval(const VecType& breakpoints, double x, int N) {
+        int iL = 0, iR = N - 1, iM;
+        while (iR - iL > 1) {
+            iM = midpoint_Knuth(iL, iR);
+            if (x >= breakpoints[iM]) {
+                iL = iM;
+            }
+            else {
+                iR = iM;
+            }
+        }
+        return iL;
+    };
+
+    /**
+    For a monotonically decreasing vector, find the left index of the interval bracketing the given value
+    */
+    template<typename VecType>
+    int get_decreasingleftofval(const VecType& breakpoints, double x, int N) {
+        int iL = 0, iR = N - 1, iM;
+        while (iR - iL > 1) {
+            iM = midpoint_Knuth(iL, iR);
+            if (x <= breakpoints[iM]) {
+                iL = iM;
+            }
+            else {
+                iR = iM;
+            }
+        }
+        return iL;
+    };
+
     typedef Eigen::VectorXd vectype;
     
     /// Get the Chebyshev-Lobatto nodes for an expansion of degree \f$N\f$
@@ -28,6 +70,7 @@ namespace ChebTools{
         double m_xmin, m_xmax;
 
         vectype m_recurrence_buffer;
+        vectype m_nodal_value_cache;
         void resize() {
             m_recurrence_buffer.resize(m_c.size());
         }
@@ -71,6 +114,11 @@ namespace ChebTools{
         };
         /// Move constructor (C++11 only)
         ChebyshevExpansion(const vectype &&c, double xmin = -1, double xmax = 1) : m_c(c), m_xmin(xmin), m_xmax(xmax) { resize(); };
+
+        /// Cache nodal function values
+        void cache_nodal_function_values(vectype values) {
+            m_nodal_value_cache = values;
+        }
         /// Get the minimum value of \f$x\f$ for the expansion
         double xmin() const{ return m_xmin; }
         /// Get the maximum value of \f$x\f$ for the expansion
@@ -255,6 +303,20 @@ namespace ChebTools{
         * @param only_in_domain True: only keep roots that are in the domain of the expansion. False: all real roots
         */
         std::vector<double> real_roots2(bool only_in_domain = true) const;
+
+        /**
+        * @brief Calculate the value (only one) of x in [xmin, xmax] for which the expansion value is equal to given value
+        *
+        * Functionally the use is similar to real_roots except that:
+        * 1) nodal values are cached
+        * 2) only one solution is possible
+        *
+        Warning: the monotonicity of the expansion is assumed, but not checked
+        *
+        * @param yval Given value for which value of x is to be obtained
+        */
+        double monotonic_solvex(double yval);
+
         /**
         * @brief Subdivide the original interval into a set of subintervals that are linearly spaced
         * @note A vector of ChebyshevExpansions are returned
