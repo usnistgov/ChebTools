@@ -28,7 +28,6 @@ namespace ChebTools{
         double m_xmin, m_xmax;
 
         vectype m_recurrence_buffer;
-        Eigen::MatrixXd m_recurrence_buffer_matrix;
         void resize() {
             m_recurrence_buffer.resize(m_c.size());
         }
