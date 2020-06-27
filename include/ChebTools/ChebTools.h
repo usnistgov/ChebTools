@@ -141,8 +141,19 @@ namespace ChebTools{
         ChebyshevExpansion integrate(std::size_t Nintegral = 1) const;
         /// Get the Chebyshev-Lobatto nodes in the domain [-1,1]
         Eigen::VectorXd get_nodes_n11();
+        /// Get the Chebyshev-Lobatto nodes in the domain [-1,1]; thread-safe const variant
+        Eigen::VectorXd get_nodes_n11() const {
+            Eigen::Index N = m_c.size() - 1;
+            double NN = static_cast<double>(N);
+            return (Eigen::VectorXd::LinSpaced(N + 1, 0, NN).array() * EIGEN_PI / N).cos();
+        }
         /// Get the Chebyshev-Lobatto nodes in the domain [xmin, xmax]
         Eigen::VectorXd get_nodes_realworld();
+        /// Get the Chebyshev-Lobatto nodes in the domain [xmin, xmax]; thread-safe const variant
+        Eigen::VectorXd get_nodes_realworld() const {
+            return ((m_xmax - m_xmin) * get_nodes_n11().array() + (m_xmax + m_xmin)) * 0.5;
+        }
+
         /// Values of the function at the Chebyshev-Lobatto nodes
         Eigen::VectorXd get_node_function_values() const;
         /// Return true if the function values at the Chebyshev-Lobatto nodes are monotonic with the independent variable
