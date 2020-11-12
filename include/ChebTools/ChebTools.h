@@ -81,13 +81,13 @@ namespace ChebTools{
           //these give us a threshold for what coefficients are large enough
           double largeTerm = 1e-15;
           if (chebCoeffs.size()>=1 && std::abs(chebCoeffs(0))>largeTerm){
-            largeTerm = chebCoeffs(0);
+            largeTerm = std::abs(chebCoeffs(0));
           }
           //if the second coefficient is larger than the first, then make our tolerance
           //based on the second coefficient, this is useful for functions whose mean value
           //is zero on the interval
           if (chebCoeffs.size()>=2 && std::abs(chebCoeffs(1))>largeTerm){
-            largeTerm = chebCoeffs(1);
+            largeTerm = std::abs(chebCoeffs(1));
           }
           double tol = largeTerm*(1e-15);
           int neededSize = static_cast<int>(chebCoeffs.size());
