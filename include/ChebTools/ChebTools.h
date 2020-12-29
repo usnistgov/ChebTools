@@ -468,10 +468,10 @@ namespace ChebTools{
                         all_converged = false;
                     }
                 }
-                if (all_converged) { break; }
                 if (callback != nullptr) {
                     callback(refine_pass, expansions);
                 }
+                if (all_converged) { break; }
             }
             return expansions;
         }
