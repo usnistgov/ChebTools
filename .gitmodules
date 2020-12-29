@@ -3,7 +3,7 @@
 	url = https://github.com/pybind/pybind11.git
 [submodule "externals/Eigen"]
 	path = externals/Eigen
-	url = https://github.com/eigenteam/eigen-git-mirror.git
+	url = https://gitlab.com/libeigen/eigen
 [submodule "externals/Catch"]
 	path = externals/Catch
 	url = https://github.com/philsquared/Catch.git
