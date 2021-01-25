@@ -463,6 +463,19 @@ namespace ChebTools{
                         auto xmid = (expan.xmin() + expan.xmax()) / 2;
                         auto newleft = ChebyshevExpansion::factory(N, func, expan.xmin(), xmid);
                         auto newright = ChebyshevExpansion::factory(N, func, xmid, expan.xmax());
+                        using ArrayType = decltype(newleft.coef());
+
+                        // Function to check if any coefficients are invalid (evidence of a bad function value)
+                        auto all_coeffs_ok = [](const ArrayType& v) {
+                            for (auto i = 0; i < v.size(); ++i) { 
+                                if (!std::isfinite(v[i])) { return false; } 
+                            } 
+                            return true; 
+                        };
+                        // Check if any coefficients are invalid, stop if so
+                        if (!all_coeffs_ok(newleft.coef()) || !all_coeffs_ok(newright.coef())) {
+                            throw std::invalid_argument("At least one coefficient is non-finite");
+                        }
                         std::swap(expan, newleft);
                         expansions.insert(expansions.begin() + iexpansion+1, newright);
                         all_converged = false;
