@@ -28,7 +28,7 @@ def get_coeff_mat(f, *, m, n):
             a[i,j] = dsum
     return 4.0/((m+1)*(n+1))*a
 
-def eval(*, amat, x, y):
+def eval_naive(*, amat, x, y):
     m, n = amat.shape
     m -= 1
     n -= 1
@@ -46,11 +46,24 @@ def eval(*, amat, x, y):
             dsum += contrib
     return dsum
 
-x = 0.7
-y = 0.7
+def eval_Clenshaw(*, amat, x, y):
+    m, n = amat.shape
+    m -= 1
+    n -= 1
 
-f = lambda x, y: np.cos(x)*np.exp(-0.01*y**2)
+    def Clenshaw(c, ind):
+        N = len(c) - 1
+        u_k = 0; u_kp1 = 0; u_kp2 = 0
+        k = 0
+        for k in range(N, -1, -1):
+            # Do the recurrent calculation
+            u_k = 2.0*ind*u_kp1 - u_kp2 + c[k]
+            if k > 0:
+                # Update the values
+                u_kp2 = u_kp1; u_kp1 = u_k
+        return (u_k - u_kp2)/2
 
-a = get_coeff_mat(f, m=8, n=8)
-
-print(eval(amat=a, x=x, y=y), f(x, y))
+    b = np.zeros((m+1))
+    for i in range(len(b)):
+        b[i] = Clenshaw(amat[i,:], y)
+    return Clenshaw(b, x)
