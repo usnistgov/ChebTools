@@ -3,7 +3,8 @@
 	url = https://github.com/pybind/pybind11.git
 [submodule "externals/Eigen"]
 	path = externals/Eigen
-	url = https://gitlab.com/libeigen/eigen
+	url = https://gitlab.com/libeigen/eigen.git
+	branch = 3.3.4
 [submodule "externals/Catch"]
 	path = externals/Catch
 	url = https://github.com/philsquared/Catch.git
