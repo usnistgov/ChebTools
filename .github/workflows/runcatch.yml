@@ -9,8 +9,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-      with:
-        fetch-depth: 1
+    - name: checkout submodules
+      run: git submodule update --init --recursive
     - name: mkdir
       run: mkdir build && cd build
     - name: cmake config
