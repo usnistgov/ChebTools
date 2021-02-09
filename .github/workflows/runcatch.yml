@@ -12,9 +12,9 @@ jobs:
     - name: mkdir
       run: mkdir build && cd build
     - name: cmake config
-      run: cmake .. -DCMAKE_BUILD_TYPE=Release
+      run: cd build && cmake .. -DCMAKE_BUILD_TYPE=Release
     - name: cmake make
-      run: cmake --build .
+      run: cmake --build build
     # run tests
     - name: run Catch tests
-      run: ./ChebToolsCatchTests
+      run: build/ChebToolsCatchTests
