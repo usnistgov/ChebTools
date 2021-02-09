@@ -1,3 +1,5 @@
 project(Clenshawtest)
-
+set(CMAKE_CXX_STANDARD 17)
 add_executable(main Basu.cpp)
+add_executable(mainEigen BasuEigen.cpp)
+target_include_directories(mainEigen PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../../externals/Eigen")
