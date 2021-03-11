@@ -2,8 +2,8 @@ cmake_minimum_required(VERSION 3.0)
 
 project(ChebTools)
 
-# Set the standard for C++ to c++14
-set(CMAKE_CXX_STANDARD 14)
+# Set the standard for C++ to c++17
+set(CMAKE_CXX_STANDARD 17)
 
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/externals/Eigen")
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/include")
@@ -35,6 +35,10 @@ else()
     # Also build monolithic exe
     add_executable(ChebToolsMonolith "${CMAKE_CURRENT_SOURCE_DIR}/main.cpp" ${SOURCES})
     target_link_libraries(ChebToolsMonolith PUBLIC OpenMP::OpenMP_CXX)
+
+    # Build monolithic exe for testing 2D expansions
+    add_executable(ChebToolsMonolith2D "${CMAKE_CURRENT_SOURCE_DIR}/src/test_2D.cpp")
+    target_link_libraries(ChebToolsMonolith2D PUBLIC OpenMP::OpenMP_CXX)
     
     # Also build Catch testing module
     include_directories("${CMAKE_CURRENT_SOURCE_DIR}/externals/Catch/single_include")
