@@ -58,9 +58,9 @@ double Clenshaw2DEigen(const MatType& a, double x, double y) {
     return Clenshaw1D(b.matrix(), x);
 }
 
-int main(){
+template<int M>
+void do_one(){
     std::vector<std::vector<double>> a;
-    const int M = 8;
     for (auto i = 0; i <= M; ++i){
         a.push_back(std::vector<double>(M+1, 0.0)); // One would normally use Eigen here, but the challenge is to use only standard library elements...
     }
@@ -80,7 +80,7 @@ int main(){
         }
         auto endTime = std::chrono::system_clock::now();
         auto elap_us = std::chrono::duration<double>(endTime - startTime).count() / N * 1e6;
-        std::cout << elap_us << " us/call. value:" << (r / N) << " val: " << std::endl;
+        std::cout << M << " " << elap_us << " us/call. value:" << (r / N) << std::endl;
     }
     {
         constexpr int Rows = M + 1;// Eigen::Dynamic;
@@ -91,6 +91,7 @@ int main(){
             aa.resize(M + 1, M + 1);
         }
         aa.fill(0.0);
+        //aa.setRandom();
         for (auto i = 0; i < M + 1; ++i) {
             for (auto j = 0; j < M + 1; ++j) {
                 aa(i, j) = i + j;
@@ -105,6 +106,12 @@ int main(){
         }
         auto endTime = std::chrono::system_clock::now();
         auto elap_us = std::chrono::duration<double>(endTime - startTime).count() / N * 1e6;
-        std::cout << elap_us << " us/call. (Eigen-powered) value:" << (r / N) << " val: " << std::endl;
+        //std::cout << elap_us << " us/call. (Eigen-powered) value:" << (r / N) << std::endl;
     }
+}
+int main() {
+    do_one<11>();
+    do_one<13>();
+    do_one<17>();
+    do_one<21>();
 }

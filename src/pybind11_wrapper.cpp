@@ -1,4 +1,5 @@
 #include "ChebTools/ChebTools.h"
+#include "ChebTools2D/ChebTools2D.hpp"
 #include "ChebTools/speed_tests.h"
 
 #include <pybind11/pybind11.h>
@@ -59,6 +60,45 @@ void init_ChebTools(py::module &m){
         .def("get_nodes_n11", py::overload_cast<>(&ChebyshevExpansion::get_nodes_n11, py::const_), "Get the Chebyshev-Lobatto nodes in [-1,1]")
         .def("get_nodes_realworld", py::overload_cast<>(&ChebyshevExpansion::get_nodes_realworld, py::const_), "Get the Chebyshev-Lobatto nodes in [xmin, xmax]")
         .def("get_node_function_values", &ChebyshevExpansion::get_node_function_values)
+        ;
+    
+    using namespace ChebTools::TwoD;
+
+    using BoundsType = ChebyshevExpansion2DBounds<double>;
+    py::class_<BoundsType>(m, "ChebyshevExpansion2DBounds")
+        .def(py::init<>())
+        .def_readwrite("xmin", &BoundsType::xmin)
+        .def_readwrite("xmax", &BoundsType::xmax)
+        .def_readwrite("ymin", &BoundsType::ymin)
+        .def_readwrite("ymax", &BoundsType::ymax)
+        .def("dict", [](const BoundsType &b){ return std::map<std::string, double>{{"xmin", b.xmin},{"xmax", b.xmax},{"ymin", b.ymin},{"ymax", b.ymax}};})
+        ;
+
+    using mat = Eigen::ArrayXXd;
+    using Exp2DType = ChebyshevExpansion2D<mat>;
+    
+    m.def("generate_Chebyshev_expansion2D", &Exp2DType::factory<double>);
+
+    py::class_<Exp2DType>(m, "ChebyshevExpansion2D")
+        .def(py::init<const mat &, const BoundsType &>())
+
+        // .def(py::self + py::self)
+        // .def(py::self += py::self)
+        // .def(py::self + double())
+        // .def(py::self - double())
+        // .def(py::self * double())
+        // .def(double() * py::self)
+        // .def(py::self *= double())
+        // .def(py::self * py::self)
+        // // Unary operators
+        // .def(-py::self)
+
+        .def("coef", &Exp2DType::get_mat)
+        .def("bounds", &Exp2DType::get_bounds)
+        .def("eval_Clenshaw", &Exp2DType::eval_Clenshaw)
+        // .def("get_nodes_n11", py::overload_cast<>(&ChebyshevExpansion::get_nodes_n11, py::const_), "Get the Chebyshev-Lobatto nodes in [-1,1]")
+        // .def("get_nodes_realworld", py::overload_cast<>(&ChebyshevExpansion::get_nodes_realworld, py::const_), "Get the Chebyshev-Lobatto nodes in [xmin, xmax]")
+        // .def("get_node_function_values", &ChebyshevExpansion::get_node_function_values)
         ;
 }
 

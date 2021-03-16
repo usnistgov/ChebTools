@@ -4,6 +4,7 @@ project(ChebTools)
 
 # Set the standard for C++ to c++17
 set(CMAKE_CXX_STANDARD 17)
+add_definitions(-DCATCH_CPP14_OR_GREATER)
 
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/externals/Eigen")
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/include")

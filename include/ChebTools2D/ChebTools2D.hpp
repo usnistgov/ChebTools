@@ -76,39 +76,41 @@ namespace ChebTools{
             bool _resize_required = false;
             
         public:
+            auto get_mat(){ return mat; };
+            auto get_bounds(){ return bounds; };
 
-            ChebyshevExpansion2D(CoeffMatType&mat, ChebyshevExpansion2DBounds<NumType> &bounds)
+            ChebyshevExpansion2D(const CoeffMatType&mat, const ChebyshevExpansion2DBounds<NumType> &bounds)
                 : mat(mat), bounds(bounds), Nx(mat.cols()-1), Ny(mat.rows()-1)
             {
                 int rr =0 ;
             }
             /// Scale input x value from real-world into [-1,1]
             template <typename T>
-            auto scalex(T x) const {
+            auto scalex(const T &x) const {
                 return (2 * x - (bounds.xmax + bounds.xmin)) / (bounds.xmax - bounds.xmin);
             }
             /// Scale input x value in [-1,1] into real-world values
             template <typename T>
-            auto unscalex(T xn11) const {    
+            auto unscalex(const T &xn11) const {    
                 return (xn11 * (bounds.xmax - bounds.xmin) + (bounds.xmax + bounds.xmin)) / 2;
             }
             /// Scale input y value from real-world into [-1,1]
             template <typename T>
-            auto scaley(T y) const {    
+            auto scaley(const T &y) const {    
                 return (2 * y - (bounds.ymax + bounds.ymin)) / (bounds.ymax - bounds.ymin);
             }
             /// Scale input y value in [-1,1] into real-world values
             template <typename T>
-            auto unscaley(T yn11) const {
+            auto unscaley(const T &yn11) const {
                 return (yn11 * (bounds.ymax - bounds.ymin) + (bounds.ymax + bounds.ymin)) / 2;
             }
 
-            /// Get the x locations where the m+1 expansion crosses zero
+            /// Get the x locations in [-1,1] where the m+1 expansion crosses zero
             template <typename T>
             static auto get_xroots(T m) {
                 return ((2 * ArrayType::LinSpaced(m + 1, 0, static_cast<NumType>(m)) + 1) * EIGEN_PI / (2 * (m + 1))).cos();
             }
-            /// Get the y locations where the n+1 expansion crosses zero
+            /// Get the y locations in [-1,1] where the n+1 expansion crosses zero
             template <typename T>
             static auto get_yroots(T n) {
                 return ((2 * ArrayType::LinSpaced(n + 1, 0, static_cast<NumType>(n)) + 1) * EIGEN_PI / (2 * (n + 1))).cos();
@@ -153,9 +155,16 @@ namespace ChebTools{
 
             // This implementation is an improved implementation of Eq. 11 of Basu, SIAM, 1973
             template<typename Integer, typename Function>
-            static auto build_matrix(Integer m, Integer n, Function f){
-                
-                ArrayType xroots = get_xroots(m), yroots = get_yroots(n);
+            static auto build_matrix(Integer m, Integer n, Function f, const ChebyshevExpansion2DBounds<NumType> &bounds){
+
+                auto unscalex_ = [&bounds](const auto &xn11) {    
+                    return (xn11 * (bounds.xmax - bounds.xmin) + (bounds.xmax + bounds.xmin)) / 2;
+                };
+                auto unscaley_ = [&bounds](const auto &yn11) {    
+                    return (yn11 * (bounds.ymax - bounds.ymin) + (bounds.ymax + bounds.ymin)) / 2;
+                };
+                ArrayType xroots_n11 = get_xroots(m), yroots_n11 = get_yroots(n);
+                ArrayType xroots = unscalex_(xroots_n11), yroots = unscaley_(yroots_n11);
 
                 // Evaluate the function at the tensor product of roots
                 CoeffMatType F; F.resize(m + 1, n + 1); F.setZero();
@@ -172,8 +181,8 @@ namespace ChebTools{
                         auto dsum = 0.0;
                         for (auto r = 0; r < m+1; ++r){
                             for (auto s = 0; s < n+1; ++s){
-                                auto xr = xroots[r];
-                                auto ys = yroots[s];
+                                auto xr = xroots_n11[r];
+                                auto ys = yroots_n11[s];
                                 dsum += F(r, s)*TCheb(i, xr)*TCheb(j, ys);
                             }
                         }
@@ -188,7 +197,7 @@ namespace ChebTools{
             static auto factory(
                     const std::function<T(T, T)> &f, 
                     const std::tuple<std::size_t, std::size_t> &orders, 
-                    std::optional<ChebyshevExpansion2DBounds<T>> bounds_ = std::nullopt
+                    const std::optional<ChebyshevExpansion2DBounds<T>> bounds_ = std::nullopt
             )
             {
                 // Use provided bounds, or [-1,1]x[-1,1] if not specified
@@ -196,7 +205,7 @@ namespace ChebTools{
                 // Get the orders in each direction
                 auto [Nx, Ny] = orders;
                 // Build matrix
-                CoeffMatType mat = build_matrix(Nx, Ny, f);
+                CoeffMatType mat = build_matrix(Nx, Ny, f, bounds);
                 // Return expansion
                 return ChebyshevExpansion2D(mat, bounds);
             }

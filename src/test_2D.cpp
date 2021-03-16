@@ -13,7 +13,7 @@ void one(const int Nx, const int Ny){
 
 	using MatType = Eigen::Matrix<double, -1, -1>;
 	using ExpType = ChebyshevExpansion2D<MatType>;
-	auto e = ExpType::factory<double>(f, orders);
+	auto e = ExpType::factory<double>(f, orders, ChebyshevExpansion2DBounds<double>{});
 
 	volatile auto x = 0.7, y = 0.3, ff = 0.0;
 	int Nrep = 10000;
