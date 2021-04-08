@@ -60,6 +60,12 @@ void init_ChebTools(py::module &m){
         .def("get_nodes_realworld", py::overload_cast<>(&ChebyshevExpansion::get_nodes_realworld, py::const_), "Get the Chebyshev-Lobatto nodes in [xmin, xmax]")
         .def("get_node_function_values", &ChebyshevExpansion::get_node_function_values)
         ;
+
+    using Container = ChebyshevCollection::Container;
+    py::class_<ChebyshevCollection>(m, "ChebyshevCollection")
+        .def(py::init<const Container&>())
+        .def("__call__", [](const ChebyshevCollection& c, const double x) { return c(x); }, py::is_operator())
+        ;
 }
 
 PYBIND11_MODULE(ChebTools, m) {

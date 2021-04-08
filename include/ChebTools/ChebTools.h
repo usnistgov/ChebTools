@@ -490,5 +490,50 @@ namespace ChebTools{
         }
     };
 
+
+    class ChebyshevCollection {
+    public:
+        using Container = std::vector<ChebyshevExpansion>;
+    private:
+        Container m_exps;
+
+        /// Return the index of the expansion that is desired
+        int get_index(double x) const {
+            int iL = 0, iR = static_cast<int>(m_exps.size()) - 1, iM;
+            while (iR - iL > 1) {
+                iM = midpoint_Knuth(iL, iR);
+                if (x >= m_exps[iM].xmin()) {
+                    iL = iM;
+                }
+                else {
+                    iR = iM;
+                }
+            }
+            return (x < m_exps[iL].xmax()) ? iL : iR;
+        };
+
+    public:
+        using Container = std::vector<ChebyshevExpansion>;
+        ChebyshevCollection(Container exps) : m_exps(exps) {
+
+            // Check the sorting
+            for (auto i = 0; i < m_exps.size(); ++i) {
+                if (m_exps[i].xmin() >= m_exps[i].xmax()) {
+                    throw std::invalid_argument("expansion w/ index " + std::to_string(i) + " is not sorted with xmax > xmin");
+                }
+                if (i + 1 < m_exps.size() && m_exps[i + 1].xmin() <= m_exps[i].xmin()) {
+                    throw std::invalid_argument("expansions are not sorted in increasing values of x");
+                }
+            }
+        };
+
+        auto operator ()(double x) const{
+            // Bisection to find the expansion we need
+            auto i = get_index(x);
+            // Evaluate the expansion
+            return m_exps[i].y(x);
+        };
+    };
+
 }; /* namespace ChebTools */
 #endif
