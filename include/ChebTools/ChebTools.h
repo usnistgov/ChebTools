@@ -513,7 +513,6 @@ namespace ChebTools{
         };
 
     public:
-        using Container = std::vector<ChebyshevExpansion>;
         ChebyshevCollection(Container exps) : m_exps(exps) {
 
             // Check the sorting
