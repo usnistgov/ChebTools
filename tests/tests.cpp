@@ -271,6 +271,33 @@ TEST_CASE("Integrate y=exp(x)", "")
     }
 }
 
+TEST_CASE("Integrate f(x) with collection", "")
+{
+    SECTION("Default range for exponential function") {
+        using namespace ChebTools;
+        using Container = std::vector<ChebyshevExpansion>;
+        auto C1 = ChebyshevExpansion::dyadic_splitting<Container>(18, [](double x) { return exp(x); }, -1, 1, 3, 1e-10, 8);
+        auto C2 = ChebyshevCollection(C1);
+        double appro = C2.integrate(-0.3, 0.7);
+        double exact = exp(0.7) - exp(-0.3);
+        auto err = std::abs((appro - exact) / exact);
+        CAPTURE(err);
+        CHECK(err < 1e-15);
+    }
+
+    SECTION("Non-default range for cos") {
+        using namespace ChebTools;
+        using Container = std::vector<ChebyshevExpansion>;
+        auto C1 = ChebyshevExpansion::dyadic_splitting<Container>(18, [](double x) { return cos(x); }, -10, 10, 3, 1e-10, 8);
+        auto C2 = ChebyshevCollection(C1);
+        auto appro = C2.integrate(-0.9, 0.7);
+        auto exact = sin(0.7) - sin(-0.9);
+        auto err = std::abs((appro - exact) / exact);
+        CAPTURE(err);
+        CHECK(err < 1e-15);
+    }
+}
+
 TEST_CASE("Sums of expansions", "")
 {
     Eigen::VectorXd c4(4); c4 << 1, 2, 3, 4;

@@ -439,16 +439,17 @@ namespace ChebTools{
             return s;
         }
 
+        template<typename Container = std::deque<ChebyshevExpansion>>
         static auto dyadic_splitting(const std::size_t N, const std::function<double(double)>& func, const double xmin, const double xmax, 
             const int M, const double tol, const int max_refine_passes = 8, 
-            const std::function<void(int, const std::deque<ChebyshevExpansion>&)>&callback = {}) 
+            const std::function<void(int, const Container&)>&callback = {}) -> Container
         {
             
             // Convenience function to get the M-element norm
             auto get_err = [M](const ChebyshevExpansion& ce) { return ce.coef().tail(M).norm() / ce.coef().head(M).norm(); };
             
             // Start off with the full domain from xmin to xmax
-            std::deque<ChebyshevExpansion> expansions;
+            Container expansions;
             expansions.emplace_back(ChebyshevExpansion::factory(N, func, xmin, xmax));
 
             // Now enter into refinement passes
@@ -532,6 +533,35 @@ namespace ChebTools{
             // Evaluate the expansion
             return m_exps[i].y(x);
         };
+
+        auto integrate(double xmin, double xmax) const {
+            // Bisection to find the expansions we need
+            auto imin = get_index(xmin), imax = get_index(xmax);
+            if (imax == imin) {
+                auto I = m_exps[imin].integrate(1);
+                return I.y(xmax) - I.y(xmin);
+            }
+            else {
+                // All the intervals between the two ones containing the limits (non-inclusive)
+                // contribute the full amount, integrating from xmin to xmax
+                double s = 0;
+                for (auto i = imin + 1; i < imax; ++i) {
+                    auto I = m_exps[i].integrate(1);
+                    s += I.y(I.xmax()) - I.y(I.xmin());
+                }
+                // Bottom is from value to right edge
+                {
+                    auto I = m_exps[imin].integrate(1);
+                    s += I.y(I.xmax()) - I.y(xmin);
+                }
+                // Top is from value to left edge
+                {
+                    auto I = m_exps[imax].integrate(1);
+                    s += I.y(xmax) - I.y(I.xmin());
+                }
+                return s;
+            }
+        }
     };
 
 }; /* namespace ChebTools */
