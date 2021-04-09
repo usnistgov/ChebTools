@@ -21,7 +21,7 @@ void init_ChebTools(py::module &m){
     m.def("factoryfDCT", &ChebyshevExpansion::factoryf); 
     m.def("factoryfFFT", &ChebyshevExpansion::factoryfFFT);
     m.def("generate_Chebyshev_expansion", &ChebyshevExpansion::factory<std::function<double(double)> >);
-    m.def("dyadic_splitting", &ChebyshevExpansion::dyadic_splitting);
+    m.def("dyadic_splitting", &ChebyshevExpansion::dyadic_splitting<std::vector<ChebyshevExpansion>>);
     m.def("Eigen_nbThreads", []() { return Eigen::nbThreads(); });
     m.def("Eigen_setNbThreads", [](int Nthreads) { return Eigen::setNbThreads(Nthreads); });
 
@@ -65,6 +65,7 @@ void init_ChebTools(py::module &m){
     py::class_<ChebyshevCollection>(m, "ChebyshevCollection")
         .def(py::init<const Container&>())
         .def("__call__", [](const ChebyshevCollection& c, const double x) { return c(x); }, py::is_operator())
+        .def("integrate", &ChebyshevCollection::integrate)
         ;
 }
 
