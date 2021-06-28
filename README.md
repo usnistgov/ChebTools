@@ -40,6 +40,7 @@ extrema = f.deriv(1).real_roots(only_in_domain)
 * 1.4: Added dyadic splitting into intervals (C++ only for now)
 * 1.5: Added FFT-based function for getting expansion coefficient values from nodal values
 * 1.7: Added ``ChebyshevCollection`` container class for fast evaluation of collection of expansions (generated from dyadic splitting maybe?)
+* 1.8: Added ``__version__`` attribute
 
 ## License
 

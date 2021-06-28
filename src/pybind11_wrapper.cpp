@@ -7,6 +7,8 @@
 #include <pybind11/eigen.h>
 #include <pybind11/functional.h>
 
+#include "ChebToolsVersion.hpp"
+
 namespace py = pybind11;
 using namespace ChebTools;
 
@@ -71,5 +73,6 @@ void init_ChebTools(py::module &m){
 
 PYBIND11_MODULE(ChebTools, m) {
     m.doc() = "C++ tools for working with Chebyshev expansions";
+    m.attr("__version__") = CHEBTOOLSVERSION;
     init_ChebTools(m);
 }

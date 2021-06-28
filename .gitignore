@@ -5,3 +5,4 @@
 /dist
 /msvc
 /bld
+/src/ChebToolsVersion.hpp

@@ -10,6 +10,9 @@ from setuptools import setup, Extension
 from setuptools.command.build_ext import build_ext
 from distutils.version import LooseVersion
 
+VERSION = '1.8.0'
+with open('src/ChebToolsVersion.hpp','w') as fp:
+    fp.write(f'#include <string>\nconst std::string CHEBTOOLSVERSION = "{VERSION}";')
 
 class CMakeExtension(Extension):
     def __init__(self, name, sourcedir=''):
@@ -60,7 +63,7 @@ class CMakeBuild(build_ext):
 
 setup(
     name='ChebTools',
-    version='1.7.0',
+    version=VERSION,
     author='Ian Bell',
     author_email='ian.bell@nist.gov',
     description='Tools for working with Chebyshev expansion',
