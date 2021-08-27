@@ -61,6 +61,7 @@ void init_ChebTools(py::module &m){
         .def("get_nodes_n11", py::overload_cast<>(&ChebyshevExpansion::get_nodes_n11, py::const_), "Get the Chebyshev-Lobatto nodes in [-1,1]")
         .def("get_nodes_realworld", py::overload_cast<>(&ChebyshevExpansion::get_nodes_realworld, py::const_), "Get the Chebyshev-Lobatto nodes in [xmin, xmax]")
         .def("get_node_function_values", &ChebyshevExpansion::get_node_function_values)
+        .def("monotonic_solvex", &ChebyshevExpansion::monotonic_solvex)
         ;
 
     using Container = ChebyshevCollection::Container;
@@ -68,6 +69,7 @@ void init_ChebTools(py::module &m){
         .def(py::init<const Container&>())
         .def("__call__", [](const ChebyshevCollection& c, const double x) { return c(x); }, py::is_operator())
         .def("integrate", &ChebyshevCollection::integrate)
+        .def("get_exps", &ChebyshevCollection::get_exps)
         ;
 }
 

@@ -526,6 +526,9 @@ namespace ChebTools{
                 }
             }
         };
+        auto get_exps() const {
+            return m_exps;
+        }
 
         auto operator ()(double x) const{
             // Bisection to find the expansion we need
