@@ -39,5 +39,5 @@ jobs:
       - name: upload wheel
         run: |
           pip install twine
-          twine upload dist/*
+          twine upload *.whl
         continue-on-error: true
