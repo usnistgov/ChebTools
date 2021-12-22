@@ -565,6 +565,52 @@ namespace ChebTools{
                 return s;
             }
         }
+
+        auto solve_for_x(double y) {
+            std::vector<double> solns;
+            for (auto& ex : m_exps) {
+                bool only_in_domain = true;
+                for (auto& rt : (ex - y).real_roots(only_in_domain)) {
+                    solns.emplace_back(rt);
+                }
+            }
+            return solns;
+        }
+
+        /** 
+        * @brief Make an inverse collection for x(y) from this collection
+        *
+        * The definition is based upon values of x because y might be multi-valued and it is required that the domain [xmin, xmax] is a one-to-one function
+        *
+        * @param N The degree of the expansions
+        * @param xmin The minimum value of \f$x\f$ for the expansion
+        * @param xmax The maximum value of \f$x\f$ for the expansion
+        * @param Mnorm Norms have the first and last Mnorm elements
+        * @param tol The tolerance to say the expansion is converged
+        * @param max_refine_passes How many refinement passes are allowed
+        */
+        auto make_inverse(const std::size_t N, const double xmin, const double xmax,
+            const int Mnorm, const double tol, const int max_refine_passes = 8) {
+            auto yxmin = (*this)(xmin), yxmax = (*this)(xmax);
+            auto f = [&](double y) {
+                // Solve for values of x given this value of y
+                auto xsolns = solve_for_x(y);
+                decltype(xsolns) good_solns;
+                for (auto & xsoln : xsolns) {
+                    if (xsoln >= xmin && xsoln <= xmax) {
+                        good_solns.push_back(xsoln);
+                    }
+                }
+                if (good_solns.size() == 1) {
+                    return good_solns.front();
+                }
+                else {
+                    throw std::invalid_argument("function is not one-to-one");
+                }
+            };
+            auto exps = ChebyshevExpansion::dyadic_splitting<Container>(N, f, yxmin, yxmax, Mnorm, tol, max_refine_passes);
+            return ChebyshevCollection(exps);
+        }
     };
 
 }; /* namespace ChebTools */

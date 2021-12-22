@@ -298,6 +298,24 @@ TEST_CASE("Integrate f(x) with collection", "")
     }
 }
 
+TEST_CASE("Inverse functions with collection", "")
+{
+    SECTION("Non-default range for sin") {
+        using namespace ChebTools;
+        using Container = std::vector<ChebyshevExpansion>;
+        auto C2 = ChebyshevCollection(ChebyshevExpansion::dyadic_splitting<Container>(18, [](double x) { return sin(x); }, -11, 10, 3, 1e-10, 8));
+
+        auto inv = C2.make_inverse(18, -0.51, 0.5, 3, 1e-12, 8);
+        
+        auto appro = inv(0.1);
+        auto exact = asin(0.1);
+
+        auto err = std::abs((appro - exact) / exact);
+        CAPTURE(err);
+        CHECK(err < 1e-14);
+    }
+}
+
 TEST_CASE("Sums of expansions", "")
 {
     Eigen::VectorXd c4(4); c4 << 1, 2, 3, 4;
