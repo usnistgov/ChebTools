@@ -514,7 +514,7 @@ namespace ChebTools{
         };
 
     public:
-        ChebyshevCollection(Container exps) : m_exps(exps) {
+        ChebyshevCollection(const Container & exps) : m_exps(exps) {
 
             // Check the sorting
             for (auto i = 0; i < m_exps.size(); ++i) {
@@ -526,7 +526,7 @@ namespace ChebTools{
                 }
             }
         };
-        auto get_exps() const {
+        auto & get_exps() const {
             return m_exps;
         }
 
