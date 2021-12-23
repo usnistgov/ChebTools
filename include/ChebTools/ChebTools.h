@@ -589,7 +589,7 @@ namespace ChebTools{
             std::vector<double> solns;
             for (auto& ex : m_exps) {
                 bool only_in_domain = true;
-                for (auto& rt : (ex - y).real_roots(only_in_domain)) {
+                for (auto& rt : (ex - y).real_roots2(only_in_domain)) {
                     solns.emplace_back(rt);
                 }
             }
@@ -609,7 +609,7 @@ namespace ChebTools{
         * @param max_refine_passes How many refinement passes are allowed
         */
         auto make_inverse(const std::size_t N, const double xmin, const double xmax,
-            const int Mnorm, const double tol, const int max_refine_passes = 8, const bool force_endpoints = true) const {
+            const int Mnorm, const double tol, const int max_refine_passes = 8, const bool assume_monotonic = true) const {
             auto yxmin = (*this)(xmin), yxmax = (*this)(xmax), xmin_ = xmin, xmax_ = xmax;
             if (yxmin > yxmax) {
                 std::swap(yxmin, yxmax);
@@ -618,26 +618,39 @@ namespace ChebTools{
             std::size_t counter = 0;
 
             // These are the values of y at the Chebyshev-Lobatto nodes for the inverse function
+            // in the first pass
             Eigen::ArrayXd ynodes = ((yxmax - yxmin) * ChebTools::get_CLnodes(N).array() + (yxmax + yxmin)) * 0.5;
             // A small fudge factor is needed because there is a tiny loss in precision in calculation of ynodes
             // so it is not adequate to check direct float equality
             auto ytol = 2.2e-14*(ynodes.maxCoeff() - ynodes.minCoeff());
 
             auto f = [&](double y) {
-                auto is_in_range = [](double x1, double x2, double xA) { return xA >= x1 && xA <= x2; };
+                auto ranges_overlap = [](double x1, double x2, double y1, double y2) { return x1 <= y2 && y1 <= x2; };
                 std::vector<double> xsolns;
                 
                 // If a value of y precisely matches a value at the node, return the value of x at the node
                 // This is important if the value of y is an extremum
-                if (std::abs(y-ynodes[0]) < ytol) { xsolns = {xmax_}; }
-                else if (std::abs(y-ynodes[ynodes.size()-1]) < ytol) { xsolns = {xmin_}; }
+                if (std::abs(y-ynodes[0]) < ytol && assume_monotonic) { xsolns = {xmax_}; }
+                else if (std::abs(y-ynodes[ynodes.size()-1]) < ytol && assume_monotonic) { xsolns = {xmin_}; }
                 else {
                     // Solve for values of x given this value of y
                     for (auto& ex : m_exps) {
-                        bool only_in_domain = true;
-                        if (is_in_range(ex.xmin(), ex.xmax(), xmin) || is_in_range(ex.xmin(), ex.xmax(), xmax)) {
-                            for (auto& rt : (ex - y).real_roots(only_in_domain)) {
-                                xsolns.emplace_back(rt);
+                        if (assume_monotonic) {
+                            auto& yvals = ex.get_node_function_values();
+                            auto ymin = yvals(0), ymax = yvals(yvals.size() - 1);
+                            if (ymin > ymax) {
+                                std::swap(ymin, ymax);
+                            }
+                            if (y >= ymin && y <= ymax) {
+                                xsolns.emplace_back(ex.monotonic_solvex(y));
+                            }
+                        }
+                        else {
+                            bool only_in_domain = true;
+                                if (ranges_overlap(ex.xmin(), ex.xmax(), xmin, xmax)) {
+                                for (auto& rt : (ex - y).real_roots2(only_in_domain)) {
+                                    xsolns.emplace_back(rt);
+                                }
                             }
                         }
                     }
