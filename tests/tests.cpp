@@ -312,7 +312,46 @@ TEST_CASE("Inverse functions with collection", "")
 
         auto err = std::abs((appro - exact) / exact);
         CAPTURE(err);
-        CHECK(err < 1e-14);
+        CHECK(err < 1e-13);
+    }
+    SECTION("cos(x) over two periods") {
+        using namespace ChebTools;
+        using Container = std::vector<ChebyshevExpansion>;
+        double PI = EIGEN_PI;
+        auto C2 = ChebyshevCollection(ChebyshevExpansion::dyadic_splitting<Container>(18, [](double x) { return cos(x); }, -PI*2.0, PI*2.0, 3, 1e-12, 8));
+        auto extrema = C2.get_extrema();
+        double xmin = C2.get_exps().front().xmin();
+        double xmax = C2.get_exps().back().xmax();
+        
+        // Build one-to-one portions, including the extrema points
+        auto points = extrema;
+        if (std::abs(points.front()-xmin) > 2.2e-13*(xmax-xmin)) {
+            points.insert(points.begin(), xmin);
+        }
+        if (std::abs(points.back() - xmax) > 2.2e-13*(xmax-xmin)) {
+            points.push_back(xmax);
+        }
+        for (auto i = 0; i < points.size()-1; ++i) {
+            double xmin = points[i], xmax = points[i + 1];
+            try {
+                auto inv = C2.make_inverse(18, xmin, xmax, 3, 1e-14, 8);
+
+                for (double x : Eigen::ArrayXd::LinSpaced(7, xmin, xmax)) {
+                    auto y = C2(x);
+                    auto appro = inv(y);
+                    auto err = std::abs(appro - x);
+                    CAPTURE(x); 
+                    CAPTURE(y);
+                    CAPTURE(appro);
+                    CAPTURE(err);
+                    CHECK(err < 1e-13);
+                }
+            }
+            catch(std::exception &e){
+                std::cout << xmin << "," << xmax << "::" << e.what() << std::endl;
+
+            }
+        }
     }
 }
 

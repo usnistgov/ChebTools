@@ -519,7 +519,7 @@ namespace ChebTools{
             // Check the sorting
             for (auto i = 0; i < m_exps.size(); ++i) {
                 if (m_exps[i].xmin() >= m_exps[i].xmax()) {
-                    throw std::invalid_argument("expansion w/ index " + std::to_string(i) + " is not sorted with xmax > xmin");
+                    throw std::invalid_argument("expansion w/ index " + std::to_string(i) + " is not sorted with xmax [" + std::to_string(m_exps[i].xmax()) + "] > xmin ["+ std::to_string(m_exps[i].xmin()) +"]");
                 }
                 if (i + 1 < m_exps.size() && m_exps[i + 1].xmin() <= m_exps[i].xmin()) {
                     throw std::invalid_argument("expansions are not sorted in increasing values of x");
@@ -528,6 +528,19 @@ namespace ChebTools{
         };
         auto & get_exps() const {
             return m_exps;
+        }
+
+        /**
+        * Get the value of the independent variable at the extrema for which dy/dx = 0
+        */
+        auto get_extrema() const {
+            std::vector<double> x;
+            for (auto& ex : m_exps) {
+                for (auto rt : ex.deriv(1).real_roots(true)) {
+                    x.push_back(rt);
+                }
+            }
+            return x;
         }
 
         auto operator ()(double x) const{
@@ -566,7 +579,7 @@ namespace ChebTools{
             }
         }
 
-        auto solve_for_x(double y) {
+        auto solve_for_x(double y) const {
             std::vector<double> solns;
             for (auto& ex : m_exps) {
                 bool only_in_domain = true;
@@ -590,11 +603,40 @@ namespace ChebTools{
         * @param max_refine_passes How many refinement passes are allowed
         */
         auto make_inverse(const std::size_t N, const double xmin, const double xmax,
-            const int Mnorm, const double tol, const int max_refine_passes = 8) {
-            auto yxmin = (*this)(xmin), yxmax = (*this)(xmax);
+            const int Mnorm, const double tol, const int max_refine_passes = 8, const bool force_endpoints = true) const {
+            auto yxmin = (*this)(xmin), yxmax = (*this)(xmax), xmin_ = xmin, xmax_ = xmax;
+            if (yxmin > yxmax) {
+                std::swap(yxmin, yxmax);
+                std::swap(xmin_, xmax_);
+            }
+            std::size_t counter = 0;
+
+            // These are the values of y at the Chebyshev-Lobatto nodes for the inverse function
+            Eigen::ArrayXd ynodes = ((yxmax - yxmin) * ChebTools::get_CLnodes(N).array() + (yxmax + yxmin)) * 0.5;
+            // A small fudge factor is needed because there is a tiny loss in precision in calculation of ynodes
+            // so it is not adequate to check direct float equality
+            auto ytol = 2.2e-14*(ynodes.maxCoeff() - ynodes.minCoeff());
+
             auto f = [&](double y) {
-                // Solve for values of x given this value of y
-                auto xsolns = solve_for_x(y);
+                auto is_in_range = [](double x1, double x2, double xA) { return xA >= x1 && xA <= x2; };
+                std::vector<double> xsolns;
+                
+                // If a value of y precisely matches a value at the node, return the value of x at the node
+                // This is important if the value of y is an extremum
+                if (std::abs(y-ynodes[0]) < ytol) { xsolns = {xmax_}; }
+                else if (std::abs(y-ynodes[ynodes.size()-1]) < ytol) { xsolns = {xmin_}; }
+                else {
+                    // Solve for values of x given this value of y
+                    for (auto& ex : m_exps) {
+                        bool only_in_domain = true;
+                        if (is_in_range(ex.xmin(), ex.xmax(), xmin) || is_in_range(ex.xmin(), ex.xmax(), xmax)) {
+                            for (auto& rt : (ex - y).real_roots(only_in_domain)) {
+                                xsolns.emplace_back(rt);
+                            }
+                        }
+                    }
+                }
+                counter++;
                 decltype(xsolns) good_solns;
                 for (auto & xsoln : xsolns) {
                     if (xsoln >= xmin && xsoln <= xmax) {
@@ -605,7 +647,7 @@ namespace ChebTools{
                     return good_solns.front();
                 }
                 else {
-                    throw std::invalid_argument("function is not one-to-one");
+                    throw std::invalid_argument("function is not one-to-one for y: " + std::to_string(y));
                 }
             };
             auto exps = ChebyshevExpansion::dyadic_splitting<Container>(N, f, yxmin, yxmax, Mnorm, tol, max_refine_passes);
