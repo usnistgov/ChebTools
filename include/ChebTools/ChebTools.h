@@ -334,7 +334,7 @@ namespace ChebTools{
         *
         * @param yval Given value for which value of x is to be obtained
         */
-        double monotonic_solvex(double yval);
+        double monotonic_solvex(double yval) const;
 
         /**
         * @brief Subdivide the original interval into a set of subintervals that are linearly spaced

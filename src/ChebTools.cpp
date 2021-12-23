@@ -656,7 +656,7 @@ namespace ChebTools {
         //}
         //return roots;
     }
-    double ChebyshevExpansion::monotonic_solvex(double y) {
+    double ChebyshevExpansion::monotonic_solvex(double y) const {
         /*
         Function is known to be monotonic, so we can shortcut some of the solving steps used
         We don't use the eigenvalue method because it is too slow
