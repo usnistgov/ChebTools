@@ -526,7 +526,13 @@ namespace ChebTools{
                 }
             }
         };
-        auto & get_exps() const {
+        /// Get a const reference to the set of expansions
+        const auto & get_exps() const {
+            return m_exps;
+        }
+
+        /// Get a mutable reference to the set of expansions
+        auto& get_exps_mutable() {
             return m_exps;
         }
 
