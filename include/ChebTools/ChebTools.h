@@ -636,7 +636,7 @@ namespace ChebTools{
                     // Solve for values of x given this value of y
                     for (auto& ex : m_exps) {
                         if (assume_monotonic) {
-                            auto& yvals = ex.get_node_function_values();
+                            auto yvals = ex.get_node_function_values();
                             auto ymin = yvals(0), ymax = yvals(yvals.size() - 1);
                             if (ymin > ymax) {
                                 std::swap(ymin, ymax);
