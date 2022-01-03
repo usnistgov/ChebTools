@@ -685,7 +685,7 @@ TEST_CASE("root finding corner cases", "[roots]") {
         SECTION("C-L nodes") {
             auto ynodes = ce.get_node_function_values();
             auto xnodes = ce.get_nodes_realworld();
-            auto xtol = 1e-14;
+            auto xtol = 1e-13;
             for (auto i = 0; i < xnodes.size(); ++i) {
                 auto y = ynodes[i], x = xnodes[i];
                 auto roots = (ce - y).real_roots(false /*only_in_domain*/);
