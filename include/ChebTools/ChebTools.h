@@ -662,11 +662,15 @@ namespace ChebTools{
                         good_solns.push_back(xsoln);
                     }
                 }
-                if (good_solns.size() == 1) {
+                auto Ngood_solns = good_solns.size();
+                if (Ngood_solns == 1) {
                     return good_solns.front();
                 }
+                else if (Ngood_solns == 0) {
+                    throw std::invalid_argument("No solutions found for y: " + std::to_string(y));
+                }
                 else {
-                    throw std::invalid_argument("function is not one-to-one for y: " + std::to_string(y));
+                    throw std::invalid_argument("Multiple solutions (is not one-to-one) for y: " + std::to_string(y));
                 }
             };
             auto exps = ChebyshevExpansion::dyadic_splitting<Container>(N, f, yxmin, yxmax, Mnorm, tol, max_refine_passes);
