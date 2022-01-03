@@ -70,6 +70,9 @@ void init_ChebTools(py::module &m){
         .def("__call__", [](const ChebyshevCollection& c, const double x) { return c(x); }, py::is_operator())
         .def("integrate", &ChebyshevCollection::integrate)
         .def("get_exps", &ChebyshevCollection::get_exps)
+        .def("get_extrema", &ChebyshevCollection::get_extrema)
+        .def("solve_for_x", &ChebyshevCollection::solve_for_x)
+        .def("make_inverse", &ChebyshevCollection::make_inverse)
         ;
 }
 
