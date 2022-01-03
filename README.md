@@ -4,7 +4,7 @@ Chebyshev-basis expansions, and more broadly, orthogonal polynomial expansions, 
 
 The primary motivation for the development of ``ChebTools`` is the need for a highly optimized and fast C++11 library for working with Chebyshev expansions.  Particularly, in order to approximate numerical functions with well-behaved interpolation functions.
 
-Automatic tests status on TravisCI: [![Build Status](https://travis-ci.org/usnistgov/ChebTools.svg?branch=master)](https://travis-ci.org/usnistgov/ChebTools)
+Automatic tests on github actions: [![build and run tests](https://github.com/usnistgov/ChebTools/actions/workflows/runcatch.yml/badge.svg)](https://github.com/usnistgov/ChebTools/actions/workflows/runcatch.yml)
 
 Paper about ChebTools in JOSS: [![DOI](http://joss.theoj.org/papers/10.21105/joss.00569/status.svg)](https://doi.org/10.21105/joss.00569)
 
