@@ -685,9 +685,11 @@ TEST_CASE("root finding corner cases", "[roots]") {
         SECTION("C-L nodes") {
             auto ynodes = ce.get_node_function_values();
             auto xnodes = ce.get_nodes_realworld();
+            auto xtol = 1e-15;
             for (auto i = 0; i < xnodes.size(); ++i) {
                 auto y = ynodes[i], x = xnodes[i];
-                auto roots = (ce - y).real_roots(only_in_domain);
+                auto roots = (ce - y).real_roots(false /*only_in_domain*/);
+                std::remove_if(roots.begin(), roots.end(), [&](double x) { return x  < 0 - xtol || x > EIGEN_PI / 2 + xtol; });
                 auto roots2 = (ce - y).real_roots2(only_in_domain);
                 auto rootsmono = ce.monotonic_solvex(y);
                 CAPTURE(y);
