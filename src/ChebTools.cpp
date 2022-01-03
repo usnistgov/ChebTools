@@ -688,6 +688,14 @@ namespace ChebTools {
         // Determine if the function is monotonically increasing or decreasing
         auto ynodes = get_node_function_values();
         auto nodes = get_nodes_n11();
+
+        // Check if the input is equal to (to within numerical precision) an endpoint
+        auto ytol = 1e-14 * (ynodes.maxCoeff() - ynodes.minCoeff());
+        if (std::abs(ynodes[0] - y) < ytol)
+            return unscale_x(nodes[0]);
+        if (std::abs(ynodes[ynodes.size()-1] - y) < ytol)
+            return unscale_x(nodes[ynodes.size() - 1]);
+
         bool increasing = ynodes[ynodes.size() - 1] > ynodes[0]; // Nodes go from 1 to -1 (stuck with this), but increasing says whether the value at the last *index* (x=-1) is greater than that of the first index (x=1).
         if (increasing) {
             if (y > ynodes[ynodes.size() - 1]) {

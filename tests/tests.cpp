@@ -300,12 +300,30 @@ TEST_CASE("Integrate f(x) with collection", "")
 
 TEST_CASE("Inverse functions with collection", "")
 {
+    SECTION("Check sin function inversion") {
+        using namespace ChebTools;
+        using Container = std::vector<ChebyshevExpansion>;
+        auto fx = [](double x) { return sin(x); };
+        double PI = EIGEN_PI;
+        auto cc = ChebyshevCollection(ChebyshevExpansion::dyadic_splitting<Container>(18, fx, -PI / 2, PI / 2, 3, 1e-10, 12));
+        for (auto x : Eigen::ArrayXd::LinSpaced(101, -0.5, 0.5)) {
+            auto y = sin(x);
+            auto asins = cc.solve_for_x(y);
+            auto exact = asin(y);
+            auto appro = asins.front();
+            auto err = std::abs((appro - exact) / exact);
+            CAPTURE(err);
+            CAPTURE(exact);
+            if (std::abs(exact) > 1e-16) {
+                CHECK(err < 1e-13);
+            }
+        }
+    }
     SECTION("Non-default range for sin") {
         using namespace ChebTools;
         using Container = std::vector<ChebyshevExpansion>;
-        auto C2 = ChebyshevCollection(ChebyshevExpansion::dyadic_splitting<Container>(18, [](double x) { return sin(x); }, -11, 10, 3, 1e-10, 8));
-
-        auto inv = C2.make_inverse(18, -0.51, 0.5, 3, 1e-12, 8);
+        auto cc = ChebyshevCollection(ChebyshevExpansion::dyadic_splitting<Container>(18, [](double x) { return sin(x); }, -11, 10.0, 3, 1e-10, 12));
+        auto inv = cc.make_inverse(18, -0.5, 0.5, 3, 1e-12, 8, false);
         
         auto appro = inv(0.1);
         auto exact = asin(0.1);
@@ -647,7 +665,6 @@ TEST_CASE("product commutativity with simple multiplication", "") {
 }
 
 TEST_CASE("root finding corner cases", "[roots]") {
-    double error;
     SECTION("sin(x) at edges") {
         auto ce = ChebTools::ChebyshevExpansion::factory(10, [](double x) { return sin(x); }, 0, EIGEN_PI / 2);
         bool only_in_domain = true;

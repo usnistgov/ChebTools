@@ -624,14 +624,14 @@ namespace ChebTools{
             // so it is not adequate to check direct float equality
             auto ytol = 2.2e-14*(ynodes.maxCoeff() - ynodes.minCoeff());
 
-            auto f = [&](double y) {
-                auto ranges_overlap = [](double x1, double x2, double y1, double y2) { return x1 <= y2 && y1 <= x2; };
+            auto get_xsolns = [&](double y) {
                 std::vector<double> xsolns;
-                
+                auto ranges_overlap = [](double x1, double x2, double y1, double y2) { return x1 <= y2 && y1 <= x2; };
+
                 // If a value of y precisely matches a value at the node, return the value of x at the node
-                // This is important if the value of y is an extremum
-                if (std::abs(y-ynodes[0]) < ytol && assume_monotonic) { xsolns = {xmax_}; }
-                else if (std::abs(y-ynodes[ynodes.size()-1]) < ytol && assume_monotonic) { xsolns = {xmin_}; }
+                // This is important if the value of y is an extremum of y(x)
+                if (std::abs(y - ynodes[0]) < ytol && assume_monotonic) { xsolns = { xmax_ }; }
+                else if (std::abs(y - ynodes[ynodes.size() - 1]) < ytol && assume_monotonic) { xsolns = { xmin_ }; }
                 else {
                     // Solve for values of x given this value of y
                     for (auto& ex : m_exps) {
@@ -646,8 +646,8 @@ namespace ChebTools{
                             }
                         }
                         else {
-                            bool only_in_domain = true;
-                                if (ranges_overlap(ex.xmin(), ex.xmax(), xmin, xmax)) {
+                            if (ranges_overlap(ex.xmin(), ex.xmax(), xmin, xmax)) {
+                                bool only_in_domain = true;
                                 for (auto& rt : (ex - y).real_roots2(only_in_domain)) {
                                     xsolns.emplace_back(rt);
                                 }
@@ -655,10 +655,18 @@ namespace ChebTools{
                         }
                     }
                 }
+                return xsolns;
+            };
+
+            auto f = [&](double y) {
+                
+                auto xsolns = get_xsolns(y);
+                auto xtol = 1e-14*(xmax - xmin);
+                
                 counter++;
                 decltype(xsolns) good_solns;
                 for (auto & xsoln : xsolns) {
-                    if (xsoln >= xmin && xsoln <= xmax) {
+                    if (xsoln >= xmin-xtol && xsoln <= xmax+xtol) {
                         good_solns.push_back(xsoln);
                     }
                 }
