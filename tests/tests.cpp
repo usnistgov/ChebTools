@@ -646,6 +646,43 @@ TEST_CASE("product commutativity with simple multiplication", "") {
     CHECK(err < 1e-14);
 }
 
+TEST_CASE("root finding corner cases", "[roots]") {
+    double error;
+    SECTION("sin(x) at edges") {
+        auto ce = ChebTools::ChebyshevExpansion::factory(10, [](double x) { return sin(x); }, 0, EIGEN_PI / 2);
+        bool only_in_domain = true;
+        SECTION("0") {
+            auto roots = ce.real_roots(only_in_domain);
+            auto roots2 = ce.real_roots2(only_in_domain);
+            auto rootsmono = ce.monotonic_solvex(0);
+            CHECK(rootsmono == Approx(roots2.front()));
+            CHECK(rootsmono == Approx(0));
+        }
+        SECTION("1") {
+            auto roots = (ce-1).real_roots(only_in_domain);
+            auto roots2 = (ce-1).real_roots2(only_in_domain);
+            auto rootsmono = ce.monotonic_solvex(1.0);
+            CHECK(rootsmono == Approx(roots2.front()));
+            CHECK(rootsmono == Approx(EIGEN_PI/2));
+        }
+        SECTION("C-L nodes") {
+            auto ynodes = ce.get_node_function_values();
+            auto xnodes = ce.get_nodes_realworld();
+            for (auto i = 0; i < xnodes.size(); ++i) {
+                auto y = ynodes[i], x = xnodes[i];
+                auto roots = (ce - y).real_roots(only_in_domain);
+                auto roots2 = (ce - y).real_roots2(only_in_domain);
+                auto rootsmono = ce.monotonic_solvex(y);
+                CAPTURE(y);
+                CAPTURE(x);
+                CHECK((roots.size() > 0 && rootsmono == Approx(roots.front()))); 
+                CHECK((roots2.size() > 0 && rootsmono == Approx(roots2.front())));
+                CHECK(rootsmono == Approx(x));
+            }
+        }
+    }
+}
+
 
 //some corner cases if someone wanted to try and initialize a linear ChebyshevExpansion
 TEST_CASE("corner cases with linear ChebyshevExpansion",""){

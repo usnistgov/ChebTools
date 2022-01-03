@@ -515,6 +515,7 @@ namespace ChebTools {
         auto N = m_c.size()-1;
         auto Ndegree_scaled = N*2;
         Eigen::VectorXd xscaled = get_CLnodes(Ndegree_scaled), yy = y_Clenshaw_xscaled(xscaled);
+        double ytol = 1e-14*(yy.maxCoeff()-yy.minCoeff());
         
         // a,b,c can also be obtained by solving the matrix system:
         // [x_k^2, x_k, 1] = [b_k] for k in 1,2,3
@@ -526,6 +527,12 @@ namespace ChebTools {
             double a = ((x_3 - x_2)*y_1 - (x_3 - x_1)*y_2 + (x_2 - x_1)*y_3) / d;
             double b = (-(POW2(x_3) - POW2(x_2))*y_1 + (POW2(x_3) - POW2(x_1))*y_2 - (POW2(x_2) - POW2(x_1))*y_3) / d;
             double c = ((x_3 - x_2)*x_2*x_3*y_1 - (x_3 - x_1)*x_1*x_3*y_2 + (x_2 - x_1)*x_2*x_1*y_3) / d;
+
+            // Check if precisely at a nodal value
+            if (std::abs(y_1) < ytol) {
+                roots.push_back(((m_xmax - m_xmin) * x_1 + (m_xmax + m_xmin)) / 2.0);
+                continue;
+            }
 
             // Discriminant of quadratic
             double D = b*b - 4*a*c;
