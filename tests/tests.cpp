@@ -694,8 +694,10 @@ TEST_CASE("root finding corner cases", "[roots]") {
                 auto rootsmono = ce.monotonic_solvex(y);
                 CAPTURE(y);
                 CAPTURE(x);
-                CHECK((roots.size() > 0 && rootsmono == Approx(roots.front()))); 
-                CHECK((roots2.size() > 0 && rootsmono == Approx(roots2.front())));
+                CHECK(roots.size() > 0);
+                CHECK((roots.size() > 0 && x == Approx(roots.front()))); 
+                CHECK(roots2.size() > 0);
+                CHECK((roots2.size() > 0 && x == Approx(roots2.front())));
                 CHECK(rootsmono == Approx(x));
             }
         }
