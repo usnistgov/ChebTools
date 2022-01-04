@@ -556,6 +556,23 @@ namespace ChebTools{
             return m_exps[i].y(x);
         };
 
+        // Search for desired expansion, but first check the given hinted index
+        // to short circuit the interval bisection if possible
+        auto get_hinted_index(double x, const int i) const {
+            if (i < 0 || i > m_exps.size()-1){
+                return get_index(x);
+            }
+            else{
+                const auto& exinit = m_exps[i];
+                if (x >= exinit.xmin() && x <= exinit.xmax()) {
+                    return i;
+                }
+                else {
+                    return get_index(x);
+                }
+            }
+        }
+
         auto integrate(double xmin, double xmax) const {
             // Bisection to find the expansions we need
             auto imin = get_index(xmin), imax = get_index(xmax);

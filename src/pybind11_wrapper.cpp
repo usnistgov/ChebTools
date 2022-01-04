@@ -73,6 +73,7 @@ void init_ChebTools(py::module &m){
         .def("get_extrema", &ChebyshevCollection::get_extrema)
         .def("solve_for_x", &ChebyshevCollection::solve_for_x)
         .def("make_inverse", &ChebyshevCollection::make_inverse)
+        .def("get_hinted_index", &ChebyshevCollection::get_hinted_index)
         ;
 }
 
