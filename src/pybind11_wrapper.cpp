@@ -26,6 +26,7 @@ void init_ChebTools(py::module &m){
     m.def("dyadic_splitting", &ChebyshevExpansion::dyadic_splitting<std::vector<ChebyshevExpansion>>);
     m.def("Eigen_nbThreads", []() { return Eigen::nbThreads(); });
     m.def("Eigen_setNbThreads", [](int Nthreads) { return Eigen::setNbThreads(Nthreads); });
+    m.def("make_Taylor_extrapolator", &make_Taylor_extrapolator);
 
     py::class_<ChebyshevExpansion>(m, "ChebyshevExpansion")
         .def(py::init<const std::vector<double> &, double, double>())
@@ -74,6 +75,12 @@ void init_ChebTools(py::module &m){
         .def("solve_for_x", &ChebyshevCollection::solve_for_x)
         .def("make_inverse", &ChebyshevCollection::make_inverse)
         .def("get_hinted_index", &ChebyshevCollection::get_hinted_index)
+        ;
+
+    using TE = TaylorExtrapolator<Eigen::ArrayXd>;
+    py::class_<TE>(m, "TaylorExtrapolator")
+        .def("__call__", [](const TE& c, const Eigen::ArrayXd &x) { return c(x); }, py::is_operator())
+        .def("__call__", [](const TE& c, const double& x) { return c(x); }, py::is_operator())
         ;
 }
 

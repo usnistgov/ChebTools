@@ -703,5 +703,41 @@ namespace ChebTools{
         }
     };
 
+    /// A small class that implements a Taylor expansion around a particular point
+    template<typename CoefType>
+    class TaylorExtrapolator {
+    private:
+        const CoefType coef; ///< The coefficients: c = {f(x), f'(x), f''(x), f'''(x), ...}
+        const double x0; ///< Point around which the derivatives are taken
+        const int degree; ///< The degree of the expansion
+    public:
+
+        /***
+        * @param coef The coefficients, the values of the function and its derivatives at the point x, c = {f(x), f'(x), f''(x), f'''(x)}
+        * @param x The point around which the expansion is based
+        */
+        TaylorExtrapolator(const CoefType &coef, double x) : coef(coef), x0(x), degree(static_cast<int>(coef.size()-1)){}
+
+        template<typename XType>
+        XType operator()(const XType &x) const {
+            auto factorial = [](auto x) { return tgamma(x + 1); };
+            auto dx = x - x0;
+            XType o = 0.0*x;
+            for (auto n = 0; n <= degree; ++n) {
+                o += coef[n] * pow(dx, n) / factorial(n);
+            }
+            return o;
+        }
+    };
+
+    /// A factory function to make a Taylor extrapolator from a Chebyshev expansion of given degree around the position x
+    static auto make_Taylor_extrapolator(const ChebyshevExpansion &ce, double x, int degree) {
+        Eigen::ArrayXd c(degree + 1);
+        for (auto n = 0; n <= degree; ++n) {
+            c[n] = ce.deriv(n).y(x);
+        }
+        return TaylorExtrapolator<decltype(c)>(c, x);
+    }
+
 }; /* namespace ChebTools */
 #endif

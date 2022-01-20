@@ -622,6 +622,21 @@ TEST_CASE("FFT and DCT", "")
     
 }
 
+TEST_CASE("Extrapolation with Taylor series", "[extrapolation]")
+{
+    auto n = 21;
+    auto f = [](double x) { return exp(x); };
+    auto ce = ChebTools::ChebyshevExpansion::factory(n, f, -1, 1);
+    auto tay = ChebTools::make_Taylor_extrapolator(ce, 0.8, 8);
+
+    auto x = 2.0;
+    auto exact = f(x);
+    auto approx = tay(x);
+
+    CHECK(std::abs(exact-approx) < 1e-4);
+
+}
+
 TEST_CASE("Constant value y=x with generation from factory", "")
 {
     Eigen::VectorXd x1(1); x1 << 0.5;
