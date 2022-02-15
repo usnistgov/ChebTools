@@ -39,17 +39,21 @@ else()
         endif()
     endif()
 
-    # Also build monolithic exe
-    add_executable(ChebToolsMonolith "${CMAKE_CURRENT_SOURCE_DIR}/main.cpp" ${SOURCES})
-    if (OPENMP_NEEDED)
-        target_link_libraries(ChebToolsMonolith PUBLIC OpenMP::OpenMP_CXX)
+    if (NOT CHEBTOOLS_NO_MONOLITH)
+        # Also build monolithic exe
+        add_executable(ChebToolsMonolith "${CMAKE_CURRENT_SOURCE_DIR}/main.cpp" ${SOURCES})
+        if (OPENMP_NEEDED)
+            target_link_libraries(ChebToolsMonolith PUBLIC OpenMP::OpenMP_CXX)
+        endif()
     endif()
     
-    # Also build Catch testing module
-    include_directories("${CMAKE_CURRENT_SOURCE_DIR}/externals/Catch/single_include")
-    add_executable(ChebToolsCatchTests "${CMAKE_CURRENT_SOURCE_DIR}/tests/tests.cpp" ${SOURCES})
-    if (OPENMP_NEEDED)
-        target_link_libraries(ChebToolsCatchTests PUBLIC OpenMP::OpenMP_CXX)
+    if (NOT CHEBTOOLS_NO_CATCH)
+        # Also build Catch testing module
+        include_directories("${CMAKE_CURRENT_SOURCE_DIR}/externals/Catch/single_include")
+        add_executable(ChebToolsCatchTests "${CMAKE_CURRENT_SOURCE_DIR}/tests/tests.cpp" ${SOURCES})
+        if (OPENMP_NEEDED)
+            target_link_libraries(ChebToolsCatchTests PUBLIC OpenMP::OpenMP_CXX)
+        endif()
     endif()
     
 endif()
