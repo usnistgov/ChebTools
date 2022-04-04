@@ -15,7 +15,7 @@ using namespace ChebTools;
 template<typename vectype>
 auto Clenshaw1D(const vectype &c, double ind){
     int N = static_cast<int>(c.size()) - 1;
-    vectype::Scalar u_k = 0, u_kp1 = 0, u_kp2 = 0;
+    typename vectype::Scalar u_k = 0, u_kp1 = 0, u_kp2 = 0;
     for (int k = N; k >= 0; --k){
         // Do the recurrent calculation
         u_k = 2.0*ind*u_kp1 - u_kp2 + c[k];
@@ -30,7 +30,7 @@ auto Clenshaw1D(const vectype &c, double ind){
 template<typename MatType, int Cols = MatType::ColsAtCompileTime>
 auto Clenshaw1DByRow(const MatType& c, double ind) {
     int N = static_cast<int>(c.rows()) - 1;
-    static Eigen::Array<MatType::Scalar, 1, Cols> u_k, u_kp1, u_kp2;
+    static Eigen::Array<typename MatType::Scalar, 1, Cols> u_k, u_kp1, u_kp2;
     // Not statically sized    
     if constexpr (Cols < 0) {
         int M = static_cast<int>(c.rows());
