@@ -28,6 +28,6 @@ jobs:
           CIBW_ARCHS: auto64
           MACOSX_DEPLOYMENT_TARGET: 10.15
 
-      # - uses: actions/upload-artifact@v2
-      #   with:
-      #     path: ./wheelhouse/*.whl
+      - uses: actions/upload-artifact@v2
+        with:
+          path: ./wheelhouse/*.whl
