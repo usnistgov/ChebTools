@@ -29,14 +29,16 @@ double Clenshaw2D(const Mat& a, double x, double y, vectype& b) {
     return Clenshaw1D(b, x);
 }
 
-template<typename MatType, int Rows = MatType::RowsAtCompileTime, int Cols = MatType::ColsAtCompileTime>
+template<typename MatType, int Cols = MatType::ColsAtCompileTime>
 auto Clenshaw1DByRow(const MatType& c, double ind) {
     int N = static_cast<int>(c.rows()) - 1;
-    Eigen::Array<double, 1, Cols> u_k, u_kp1, u_kp2; // static so that they are pre-allocated
+    static Eigen::Array<double, 1, Cols> u_k, u_kp1, u_kp2;
+    // Not statically sized    
     if constexpr (Cols < 0) {
-        u_k.resizeLike(c); 
-        u_kp1.resizeLike(c);
-        u_kp2.resizeLike(c);
+        int M = c.rows();
+        u_k.resize(M); 
+        u_kp1.resize(M);
+        u_kp2.resize(M);
     }
     u_k.setZero(); u_kp1.setZero(); u_kp2.setZero();
     
@@ -56,6 +58,34 @@ template<typename MatType>
 double Clenshaw2DEigen(const MatType& a, double x, double y) {
     auto b = Clenshaw1DByRow(a, y);
     return Clenshaw1D(b.matrix(), x);
+}
+
+template<int Rows, int Cols>
+void test_Eigen(int M){
+    using MatType = Eigen::Array<double, Rows, Cols>;
+    MatType aa; 
+    if constexpr ((Rows < 0) || (Cols < 0)) {
+        aa.resize(M + 1, M + 1);
+    }
+    else{
+        aa.resize(M + 1, M + 1);
+    }
+    aa.fill(0.0);
+    for (auto i = 0; i < M + 1; ++i) {
+        for (auto j = 0; j < M + 1; ++j) {
+            aa(i, j) = i + j;
+        }
+    }
+    int N = 1000 * 1000;
+    volatile auto r = 0.0, x = 0.1, y = 0.7;
+    auto startTime = std::chrono::system_clock::now();
+    for (int i = 0; i < N; ++i) {
+        auto v = Clenshaw2DEigen(aa, x, y);
+        r += v;
+    }
+    auto endTime = std::chrono::system_clock::now();
+    auto elap_us = std::chrono::duration<double>(endTime - startTime).count() / N * 1e6;
+    std::cout << elap_us << " us/call. (Eigen-powered) value:" << (r / N) << std::endl;
 }
 
 int main(){
@@ -80,31 +110,11 @@ int main(){
         }
         auto endTime = std::chrono::system_clock::now();
         auto elap_us = std::chrono::duration<double>(endTime - startTime).count() / N * 1e6;
-        std::cout << elap_us << " us/call. value:" << (r / N) << " val: " << std::endl;
+        std::cout << elap_us << " us/call. value:" << (r / N) << std::endl;
     }
-    {
-        constexpr int Rows = M + 1;// Eigen::Dynamic;
-        constexpr int Cols = Eigen::Dynamic;
-        using MatType = Eigen::Array<double, Rows, Cols>;
-        MatType aa; 
-        if constexpr ((Rows < 0) || (Cols < 0)) {
-            aa.resize(M + 1, M + 1);
-        }
-        aa.fill(0.0);
-        for (auto i = 0; i < M + 1; ++i) {
-            for (auto j = 0; j < M + 1; ++j) {
-                aa(i, j) = i + j;
-            }
-        }
-        int N = 1000 * 1000;
-        volatile auto r = 0.0, x = 0.1, y = 0.7;
-        auto startTime = std::chrono::system_clock::now();
-        for (int i = 0; i < N; ++i) {
-            auto v = Clenshaw2DEigen(aa, x, y);
-            r += v;
-        }
-        auto endTime = std::chrono::system_clock::now();
-        auto elap_us = std::chrono::duration<double>(endTime - startTime).count() / N * 1e6;
-        std::cout << elap_us << " us/call. (Eigen-powered) value:" << (r / N) << " val: " << std::endl;
-    }
+    std::cout  << "Dynamic:" << std::endl;
+    test_Eigen<Eigen::Dynamic, Eigen::Dynamic>(M);
+
+    std::cout  << "Static:" << std::endl;
+    test_Eigen<M+1, M+1>(M);
 }
