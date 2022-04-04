@@ -10,7 +10,7 @@ from setuptools import setup, Extension
 from setuptools.command.build_ext import build_ext
 from distutils.version import LooseVersion
 
-VERSION = '1.9.0'
+VERSION = '1.10.0'
 with open('src/ChebToolsVersion.hpp','w') as fp:
     fp.write(f'#include <string>\nconst std::string CHEBTOOLSVERSION = "{VERSION}";')
 
