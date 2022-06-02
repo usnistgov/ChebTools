@@ -827,13 +827,18 @@ namespace ChebTools {
         }
     }
     ChebyshevExpansion ChebyshevExpansion::factoryf(const std::size_t N, const Eigen::VectorXd &f, const double xmin, const double xmax) {
+        if (f.size() != N+1){
+            throw std::invalid_argument("Size of f [" + std::to_string(f.size()) + "] does not equal N+1 with N of "+std::to_string(N));
+        }
         // Step 3: Get coefficients for the L matrix from the library of coefficients
         const Eigen::MatrixXd &L = l_matrix_library.get(N);
         // Step 4: Obtain coefficients from vector - matrix product
         return ChebyshevExpansion(L*f, xmin, xmax);
     }
     ChebyshevExpansion ChebyshevExpansion::factoryfFFT(const std::size_t N, const Eigen::VectorXd& f, const double xmin, const double xmax) {
-
+        if (f.size() != N+1){
+            throw std::invalid_argument("Size of f [" + std::to_string(f.size()) + "] does not equal N+1 with N of "+std::to_string(N));
+        }
         Eigen::VectorXd valsUnitDisc(2 * f.size() - 2);
         // Starting at x = 1, going to -1, then the same nodes, not including x=-1 and x=1, in the opposite order
         valsUnitDisc.head(f.size()) = f;
