@@ -43,6 +43,7 @@ extrema = f.deriv(1).real_roots(only_in_domain)
 * 1.8: Added ``__version__`` attribute
 * 1.9: Added the ability to construct inverse functions
 * 1.10: Added 2D evaluation functions in ``double`` and ``complex<double>`` options (useful for model optimization with complex step derivatives)
+* 1.10.1: Repaired universal2 binary wheels on Mac
 
 ## License
 
