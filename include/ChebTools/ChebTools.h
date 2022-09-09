@@ -728,6 +728,12 @@ namespace ChebTools{
             }
             return o;
         }
+
+        auto get_coef(){
+            return coef;
+        }
+
+
     };
 
     /// A factory function to make a Taylor extrapolator from a Chebyshev expansion of given degree around the position x

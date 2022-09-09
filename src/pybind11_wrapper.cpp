@@ -127,6 +127,7 @@ void init_ChebTools(py::module &m){
     py::class_<TE>(m, "TaylorExtrapolator")
         .def("__call__", [](const TE& c, const Eigen::ArrayXd &x) { return c(x); }, py::is_operator())
         .def("__call__", [](const TE& c, const double& x) { return c(x); }, py::is_operator())
+        .def("get_coef", &TaylorExtrapolator<Eigen::ArrayXd>::get_coef)
         ;
 
     m.def("Clenshaw2DEigen", &Clenshaw2DEigen<Eigen::Ref<const Eigen::ArrayXXd>>);
