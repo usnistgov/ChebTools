@@ -549,7 +549,18 @@ namespace ChebTools{
             return x;
         }
 
+        /**
+         * \brief Obtain the value from the expansion
+         * Throws if input value is outside the range of the collection
+         */
         auto operator ()(double x) const{
+            auto xmin = m_exps[0].xmin(), xmax = m_exps.back().xmax()
+            if (x < xmin){
+                throw std::invalid_argument("Provided value of " + std::to_string(x) + " is less than xmin of "+ std::to_string(xmin));
+            }
+            if (x > xmax){
+                throw std::invalid_argument("Provided value of " + std::to_string(x) + " is greater than xmax of "+ std::to_string(xmax));
+            }
             // Bisection to find the expansion we need
             auto i = get_index(x);
             // Evaluate the expansion
