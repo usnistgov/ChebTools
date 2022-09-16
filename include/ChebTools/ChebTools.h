@@ -554,7 +554,7 @@ namespace ChebTools{
          * Throws if input value is outside the range of the collection
          */
         auto operator ()(double x) const{
-            auto xmin = m_exps[0].xmin(), xmax = m_exps.back().xmax()
+            auto xmin = m_exps[0].xmin(), xmax = m_exps.back().xmax();
             if (x < xmin){
                 throw std::invalid_argument("Provided value of " + std::to_string(x) + " is less than xmin of "+ std::to_string(xmin));
             }
