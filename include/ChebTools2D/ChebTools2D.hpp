@@ -22,25 +22,6 @@ namespace ChebTools{
         return m_c[0] + xscaled * u_kp1 - u_kp2;
     }
 
-    /** Clenshaw method of Basu, templated
-    * Needed because of the treatment of the leading coefficients, which is non-standard
-    */
-    template <typename NumType, typename VecType>
-    double ClenshawBasu(NumType xscaled, const VecType& m_c) {
-        // See https://en.wikipedia.org/wiki/Clenshaw_algorithm#Special_case_for_Chebyshev_series
-        int Norder = static_cast<int>(m_c.size()) - 1;
-        NumType u_k = 0.0, u_kp1 = 0.0, u_kp2 = 0.0;
-        for (int k = Norder; k >= 0; --k) {
-            // Do the recurrent calculation
-            u_k = 2.0 * xscaled * u_kp1 - u_kp2 + m_c[k];
-            if (k > 0){
-                // Update the values
-                u_kp2 = u_kp1; u_kp1 = u_k;
-            }
-        }
-        return (u_k - u_kp2)/2.0;
-    }
-
     /// Evaluation of a Chebyshev expansion (you probably shouldn't use this function except for testing)
     template<typename Integer, typename ValType>
     auto TCheb(const Integer &n, const ValType &x){
@@ -56,7 +37,7 @@ namespace ChebTools{
     }
 
     namespace TwoD{
-       
+
         template<typename NumType>
         struct ChebyshevExpansion2DBounds{
             NumType xmin = -1, xmax = 1.0, ymin = -1.0, ymax = 1.0;
@@ -66,15 +47,15 @@ namespace ChebTools{
         template <typename CoeffMatType, int Rows = CoeffMatType::RowsAtCompileTime, int Cols = CoeffMatType::ColsAtCompileTime>
         class ChebyshevExpansion2D{
         private:
-            
+
             using NumType = typename CoeffMatType::value_type;
-            using ArrayType = Eigen::Array<NumType, Eigen::Dynamic, 1>; 
+            using ArrayType = Eigen::Array<NumType, Eigen::Dynamic, 1>;
 
             const CoeffMatType mat;
             const ChebyshevExpansion2DBounds<NumType> bounds;
             const std::size_t Nx, Ny;
             bool _resize_required = false;
-            
+
         public:
             auto get_mat(){ return mat; };
             auto get_bounds(){ return bounds; };
@@ -91,12 +72,12 @@ namespace ChebTools{
             }
             /// Scale input x value in [-1,1] into real-world values
             template <typename T>
-            auto unscalex(const T &xn11) const {    
+            auto unscalex(const T &xn11) const {
                 return (xn11 * (bounds.xmax - bounds.xmin) + (bounds.xmax + bounds.xmin)) / 2;
             }
             /// Scale input y value from real-world into [-1,1]
             template <typename T>
-            auto scaley(const T &y) const {    
+            auto scaley(const T &y) const {
                 return (2 * y - (bounds.ymax + bounds.ymin)) / (bounds.ymax - bounds.ymin);
             }
             /// Scale input y value in [-1,1] into real-world values
@@ -122,13 +103,13 @@ namespace ChebTools{
                 auto m = Nx, n = Ny;
                 ArrayType b; b.resize(m + 1);
                 for (auto i = 0; i < b.size(); ++i) {
-                    b[i] = ClenshawBasu(yscaled, mat.row(i));
+                    b[i] = Clenshaw(yscaled, mat.row(i));
                 }
-                return ClenshawBasu(xscaled, b);
+                return Clenshaw(xscaled, b);
             }
 
             // This naive implementation is a one-to-one translation of Eq. 11 of Basu, SIAM, 1973
-            // It can be accelerated by moving the function evaluations at the tensor products of the roots 
+            // It can be accelerated by moving the function evaluations at the tensor products of the roots
             // into an outer matrix
             template<typename Integer, typename Function>
             static auto build_matrix_naive(Integer m, Integer n, Function f){
@@ -150,6 +131,14 @@ namespace ChebTools{
                     }
                 }
                 CoeffMatType c = 4.0/((m+1.0)*(n+1.0))*a;
+                // Modify the coefficients to match the standard form.
+                // Needed because of the treatment of the leading coefficients, which is non-standard
+                if (c.rows() > 0) {
+                    c.row(0) *= 0.5;
+                }
+                if (c.cols() > 0) {
+                    c.col(0) *= 0.5;
+                }
                 return c;
             }
 
@@ -157,10 +146,10 @@ namespace ChebTools{
             template<typename Integer, typename Function>
             static auto build_matrix(Integer m, Integer n, Function f, const ChebyshevExpansion2DBounds<NumType> &bounds){
 
-                auto unscalex_ = [&bounds](const auto &xn11) {    
+                auto unscalex_ = [&bounds](const auto &xn11) {
                     return (xn11 * (bounds.xmax - bounds.xmin) + (bounds.xmax + bounds.xmin)) / 2;
                 };
-                auto unscaley_ = [&bounds](const auto &yn11) {    
+                auto unscaley_ = [&bounds](const auto &yn11) {
                     return (yn11 * (bounds.ymax - bounds.ymin) + (bounds.ymax + bounds.ymin)) / 2;
                 };
                 ArrayType xroots_n11 = get_xroots(m), yroots_n11 = get_yroots(n);
@@ -190,13 +179,21 @@ namespace ChebTools{
                     }
                 }
                 CoeffMatType c = 4.0/((m+1)*(n+1))*a;
+                // Modify the coefficients to match the standard form.
+                // Needed because of the treatment of the leading coefficients, which is non-standard
+                if (c.rows() > 0) {
+                    c.row(0) *= 0.5;
+                }
+                if (c.cols() > 0) {
+                    c.col(0) *= 0.5;
+                }
                 return c;
             }
 
             template<typename T>
             static auto factory(
-                    const std::function<T(T, T)> &f, 
-                    const std::tuple<std::size_t, std::size_t> &orders, 
+                    const std::function<T(T, T)> &f,
+                    const std::tuple<std::size_t, std::size_t> &orders,
                     const std::optional<ChebyshevExpansion2DBounds<T>> bounds_ = std::nullopt
             )
             {
