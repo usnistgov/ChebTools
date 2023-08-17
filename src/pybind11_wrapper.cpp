@@ -10,6 +10,9 @@
 #include "ChebToolsVersion.hpp"
 
 namespace py = pybind11;
+
+using namespace py::literals;
+
 using namespace ChebTools;
 
 template<typename vectype>
@@ -68,8 +71,8 @@ void init_ChebTools(py::module &m){
     m.def("eigenvalues_upperHessenberg", &eigenvalues_upperHessenberg);
     m.def("factoryfDCT", &ChebyshevExpansion::factoryf); 
     m.def("factoryfFFT", &ChebyshevExpansion::factoryfFFT);
-    m.def("generate_Chebyshev_expansion", &ChebyshevExpansion::factory<std::function<double(double)> >);
-    m.def("dyadic_splitting", &ChebyshevExpansion::dyadic_splitting<std::vector<ChebyshevExpansion>>);
+    m.def("generate_Chebyshev_expansion", &ChebyshevExpansion::factory<std::function<double(double)> >, "N"_a, "func"_a, "xmin"_a, "xmax"_a);
+    m.def("dyadic_splitting", &ChebyshevExpansion::dyadic_splitting<std::vector<ChebyshevExpansion>>, "N"_a, "func"_a, "xmin"_a, "xmax"_a, "M"_a, "tol"_a, "max_refine_passes"_a = 8, py::arg_v("callback", std::nullopt, "None") );
     m.def("Eigen_nbThreads", []() { return Eigen::nbThreads(); });
     m.def("Eigen_setNbThreads", [](int Nthreads) { return Eigen::setNbThreads(Nthreads); });
     m.def("make_Taylor_extrapolator", &make_Taylor_extrapolator);

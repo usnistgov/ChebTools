@@ -4,6 +4,7 @@
 #include "Eigen/Dense"
 #include <vector>
 #include <queue>
+#include <optional>
 
 namespace ChebTools{
 
@@ -442,7 +443,7 @@ namespace ChebTools{
         template<typename Container = std::deque<ChebyshevExpansion>>
         static auto dyadic_splitting(const std::size_t N, const std::function<double(double)>& func, const double xmin, const double xmax, 
             const int M, const double tol, const int max_refine_passes = 8, 
-            const std::function<void(int, const Container&)>&callback = {}) -> Container
+            const std::optional<std::function<void(int, const Container&)>>& callback = std::nullopt) -> Container
         {
             
             // Convenience function to get the M-element norm
@@ -482,8 +483,8 @@ namespace ChebTools{
                         all_converged = false;
                     }
                 }
-                if (callback != nullptr) {
-                    callback(refine_pass, expansions);
+                if (callback) {
+                    callback.value()(refine_pass, expansions);
                 }
                 if (all_converged) { break; }
             }
