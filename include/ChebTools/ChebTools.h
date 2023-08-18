@@ -5,6 +5,8 @@
 #include <vector>
 #include <queue>
 #include <optional>
+#include <sstream>
+#include <iomanip>
 
 namespace ChebTools{
 
@@ -556,11 +558,17 @@ namespace ChebTools{
          */
         auto operator ()(double x) const{
             auto xmin = m_exps[0].xmin(), xmax = m_exps.back().xmax();
-            if (x < xmin){
-                throw std::invalid_argument("Provided value of " + std::to_string(x) + " is less than xmin of "+ std::to_string(xmin));
+            auto my_to_string = [](const double double_value, int digits = 20){
+                std::ostringstream oss;
+                oss << std::setprecision(digits) << double_value;
+                return oss.str();
+            };
+            const double EPSILON10 = std::numeric_limits<double>::epsilon()*10;
+            if (x < xmin*(1-EPSILON10)){
+                throw std::invalid_argument("Provided value of " + my_to_string(x) + " is less than xmin of "+ my_to_string(xmin));
             }
-            if (x > xmax){
-                throw std::invalid_argument("Provided value of " + std::to_string(x) + " is greater than xmax of "+ std::to_string(xmax));
+            if (x > xmax*(1+EPSILON10)){
+                throw std::invalid_argument("Provided value of " + my_to_string(x) + " is greater than xmax of "+ my_to_string(xmax));
             }
             // Bisection to find the expansion we need
             auto i = get_index(x);
