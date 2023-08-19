@@ -62,7 +62,7 @@ class CMakeBuild(build_ext):
         cmake_args.append('-DCHEBTOOLS_NO_MONOLITH=ON')
         cmake_args.append('-DCHEBTOOLS_NO_CATCH=ON')
         subprocess.check_call(['cmake', ext.sourcedir] + cmake_args, cwd=self.build_temp, env=env)
-        subprocess.check_call(['cmake', '--build', '.'] + build_args, cwd=self.build_temp)
+        subprocess.check_call(['cmake', '--build', '.', '--target','ChebTools'] + build_args, cwd=self.build_temp)
 
 setup(
     name='ChebTools',
