@@ -8,6 +8,7 @@ set(CMAKE_CXX_STANDARD 17)
 
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/externals/Eigen")
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/include")
+add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/externals/Catch")
 
 set(SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/ChebTools.cpp" "${CMAKE_CURRENT_SOURCE_DIR}/src/speed_tests.cpp")
 
@@ -50,11 +51,12 @@ else()
     
     if (NOT CHEBTOOLS_NO_CATCH)
         # Also build Catch testing module
-        include_directories("${CMAKE_CURRENT_SOURCE_DIR}/externals/Catch/single_include")
+        include_directories("${CMAKE_CURRENT_SOURCE_DIR}/externals/Catch")
         add_executable(ChebToolsCatchTests "${CMAKE_CURRENT_SOURCE_DIR}/tests/tests.cpp" ${SOURCES})
         if (OPENMP_NEEDED)
             target_link_libraries(ChebToolsCatchTests PUBLIC OpenMP::OpenMP_CXX)
         endif()
+        target_link_libraries(ChebToolsCatchTests PUBLIC Catch2WithMain)
     endif()
     
 endif()

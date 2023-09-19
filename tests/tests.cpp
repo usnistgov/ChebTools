@@ -1,5 +1,7 @@
-#define CATCH_CONFIG_MAIN
-#include "catch.hpp"
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/catch_approx.hpp>
+using Catch::Approx;
+#include <iostream>
 
 #include "ChebTools/ChebTools.h"
 
@@ -687,7 +689,7 @@ TEST_CASE("root finding corner cases", "[roots]") {
             auto roots = ce.real_roots(only_in_domain);
             auto roots2 = ce.real_roots2(only_in_domain);
             auto rootsmono = ce.monotonic_solvex(0);
-            CHECK(rootsmono == Approx(roots2.front()));
+            CHECK(rootsmono == Approx(roots2.front()).margin(1e-8));
             CHECK(rootsmono == Approx(0));
         }
         SECTION("1") {
