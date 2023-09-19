@@ -40,6 +40,49 @@ double binomialCoefficient(const double n, const double k) {
 
 namespace ChebTools {
 
+    /// A class to hold the monomial coefficients corresponding to Chebyshev basis functions
+    /// They do not depend on the expansion, so it makes sense to hold them in a data structure;
+
+    class MonomialCoefficients{
+    private:
+        std::unordered_map<int, Eigen::ArrayXd> store;
+        
+        Eigen::ArrayXd calc_coeffs(int n){
+            Eigen::ArrayXd c(n+1);
+            for (auto k = 0; k <= floor(n/2.0); ++k){
+                c[n-2*k] = pow(-1.0, k)*exp2(n-2*k-1)*static_cast<double>(n)/static_cast<double>(n-k)*binomialCoefficient(n-k, k);
+            }
+            return c;
+        }
+    public:
+        auto get_coeffs(int n){
+            if (store.find(n) == store.end()){
+                store[n] = calc_coeffs(n);
+            }
+            return store[n];
+        }
+    };
+    MonomialCoefficients monomial_coefficients_library;
+
+    Eigen::ArrayXd get_monomial_from_Cheb_basis(int n){
+        return monomial_coefficients_library.get_coeffs(n);
+    }
+
+    std::size_t count_sign_changes(const Eigen::ArrayXd &a, const double reltol){
+        std::size_t changes = 0;
+        auto tol = reltol*a.abs().maxCoeff();
+        
+        // Need to ignore missing coefficients entirely
+        double previous_nonzero_value = a[0];
+        for (auto i = 1; i < a.size()-1; ++i){
+            if (std::abs(a[i]) > tol){
+                changes += (a[i]*previous_nonzero_value < 0);
+                previous_nonzero_value = a[i];
+            }
+        }
+        return changes;
+    };
+
     inline bool ValidNumber(double x){
         // Idea from http://www.johndcook.com/IEEE_exceptions_in_cpp.html
         return (x <= DBL_MAX && x >= -DBL_MAX);
@@ -393,6 +436,49 @@ namespace ChebTools {
         const auto Ndegree = m_c.size()-1;
         const Eigen::MatrixXd &V = l_matrix_library.get(Ndegree);
         return ChebyshevExpansion(V*f(get_node_function_values()).matrix(), xmin(), xmax());
+    }
+    Eigen::ArrayXd ChebyshevExpansion::to_monomial_increasing() const {
+        Eigen::ArrayXd c = coef();
+        Eigen::Index N = c.size() - 1; // N is the degree of A
+        Eigen::ArrayXd out(N+1); out.setZero();
+        out[0] = c[0];
+        for (auto i = 1; i <= N; ++i){
+            out.head(i+1) += c(i)*get_monomial_from_Cheb_basis(i);
+        }
+        return out;
+    }
+    bool ChebyshevExpansion::has_real_roots_Descartes(const double reltol) const {
+        
+        // Turn derivative expansion into polynomial
+        // as monomial-basis in increasing order
+        auto coefderiv_mono = to_monomial_increasing();
+    
+        // Optimized Polynomial Taylor shift using the Horner method
+        // See: http://www.hvks.com/Numerical/Downloads/HVE%20Polynomial%20Taylor%20shifting.pdf
+        auto shift_poly_Horner = [](const Eigen::ArrayXd& a_decreasing, double shift){
+            int n = a_decreasing.size()-1;
+            Eigen::ArrayXd a = a_decreasing;
+            if (shift == 0) return a; // No shift, no change
+            for (int j = 1; j <= n; ++j){
+                for (int i = 1; i <= n - j + 1; ++i){
+                    a[i] += shift*a[i - 1];
+                }
+            }
+            return a;
+        };
+        
+        Eigen::ArrayXd coeff_shift_xmin = shift_poly_Horner(coefderiv_mono.reverse(), -1).reverse();
+        Eigen::ArrayXd coeff_shift_xmax = shift_poly_Horner(coefderiv_mono.reverse(), 1).reverse();
+//        std::cout << coeff_shift_xmin << std::endl;
+//        std::cout << coeff_shift_xmax << std::endl;
+        int N_changes_xmin = count_sign_changes(coeff_shift_xmin, reltol); // Number of roots in [-1, inf)
+        int N_changes_xmax = count_sign_changes(coeff_shift_xmax, reltol); // Number of roots in [1, inf)
+        
+        // Difference between these two are the number of roots inside [-1,1]
+        int N_changes_n11 = N_changes_xmax - N_changes_xmin;
+        
+        // If the same, there are no additional extrema in [-1, 1], and the function is monotonic
+        return (N_changes_n11 != 0);
     }
     bool ChebyshevExpansion::is_monotonic() const {
         auto yvals = get_node_function_values();

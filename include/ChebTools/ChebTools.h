@@ -61,6 +61,25 @@ namespace ChebTools{
     Eigen::VectorXd eigenvalues_upperHessenberg(const Eigen::MatrixXd &A, bool balance);
 
     /**
+    \brief Calculate the monomial expansion, with coefficients in increasing order, obtained
+     from a Chebyshev basis function \f$T_n(x)\f$. The coefficients \f$c_i\f$ are for \f$y=sum_ic_ix^i\f$. You could sum up these
+     terms to build a monomial from a Chebyshev expansion
+     
+    Equations from Mason and Handscombe, Chapter 2, Eqs. 2.16 and 2.18
+     
+    \param n The n-th Chebyshev basis function of the first kind
+     */
+    Eigen::ArrayXd get_monomial_from_Cheb_basis(int n);
+
+    /**
+    \brief Given a set of monomial expansion coefficients, determine how many sign changes are present,
+    to be used in Descartes' rule.
+    \param c_increasing The coefficients, in increasing order
+    \param reltol The relative threshold, relative to the largest coefficient, that indicates that a coefficient is considered to be equal to zero for purposes of determining sign of a coefficient
+    */
+    std::size_t count_sign_changes(const Eigen::ArrayXd &, const double reltol);
+
+    /**
     * @brief This is the main underlying object that makes all of the code of ChebTools work.
     *
     * This class has accessor methods for getting things from the object, and static factory
@@ -161,6 +180,10 @@ namespace ChebTools{
         Eigen::VectorXd get_node_function_values() const;
         /// Return true if the function values at the Chebyshev-Lobatto nodes are monotonic with the independent variable
         bool is_monotonic() const;
+        /// Return true if Descartes' rules for the monomial formed of the derivative coefficients indicates no extrema are possible
+        bool has_real_roots_Descartes(const double) const;
+        /// Get the coefficients of a monomial-basis polynomial in decreasing order
+        Eigen::ArrayXd to_monomial_increasing() const;
 
         // ******************************************************************
         // ***********************      OPERATORS     ***********************

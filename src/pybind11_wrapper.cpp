@@ -75,7 +75,9 @@ void init_ChebTools(py::module &m){
     m.def("dyadic_splitting", &ChebyshevExpansion::dyadic_splitting<std::vector<ChebyshevExpansion>>, "N"_a, "func"_a, "xmin"_a, "xmax"_a, "M"_a, "tol"_a, "max_refine_passes"_a = 8, py::arg_v("callback", std::nullopt, "None") );
     m.def("Eigen_nbThreads", []() { return Eigen::nbThreads(); });
     m.def("Eigen_setNbThreads", [](int Nthreads) { return Eigen::setNbThreads(Nthreads); });
-    m.def("make_Taylor_extrapolator", &make_Taylor_extrapolator);
+    m.def("get_monomial_from_Cheb_basis", &get_monomial_from_Cheb_basis);
+    m.def("count_sign_changes", &count_sign_changes);
+
 
     py::class_<ChebyshevExpansion>(m, "ChebyshevExpansion")
         .def(py::init<const std::vector<double> &, double, double>())
@@ -102,6 +104,8 @@ void init_ChebTools(py::module &m){
         .def("real_roots", &ChebyshevExpansion::real_roots)
         .def("real_roots_time", &ChebyshevExpansion::real_roots_time)
         .def("real_roots_approx", &ChebyshevExpansion::real_roots_approx)
+        .def("has_real_roots_Descartes", &ChebyshevExpansion::has_real_roots_Descartes)
+        .def("to_monomial_increasing", &ChebyshevExpansion::to_monomial_increasing)
         .def("subdivide", &ChebyshevExpansion::subdivide)
         .def("real_roots_intervals", &ChebyshevExpansion::real_roots_intervals)
         .def("deriv", &ChebyshevExpansion::deriv)

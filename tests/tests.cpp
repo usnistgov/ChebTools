@@ -765,3 +765,35 @@ TEST_CASE("corner cases with linear ChebyshevExpansion",""){
     CHECK(linCheb.coef().size()==3);
   }
 }
+
+TEST_CASE("monomial from Chebyshev")
+{
+    auto c = ChebTools::get_monomial_from_Cheb_basis(6);
+    CAPTURE(c);
+    // increasing degree
+    CHECK(c[6] == 32);
+    CHECK(c[0] == -1);
+}
+
+TEST_CASE("Check monotonicity with Descartes' rule")
+{
+    // y=(x-0.5)^2 is not monotonic in [-1, 1], has extremum at x=0.5
+    auto cnonmono = ChebTools::ChebyshevExpansion::factory(3, [](double x){ return (x-0.5)*(x-0.5); }, -1, 1);
+    CHECK(!cnonmono.is_monotonic());
+    auto aa = cnonmono.to_monomial_increasing();
+//    std::cout << aa << std::endl;
+    CHECK(aa[0] == Approx(0.25));
+    CHECK(aa[1] == Approx(-1));
+    CHECK(aa[2] == Approx(1));
+    CHECK(ChebTools::count_sign_changes(aa, 1e-10) == 2);
+    CHECK(cnonmono.deriv(1).has_real_roots_Descartes(1e-10));
+    
+    // x^1 is monotonic in [-1, 1]
+    auto cmono = ChebTools::ChebyshevExpansion::from_powxn(1, -1, 1);
+    CHECK(cmono.is_monotonic());
+    CHECK(!cmono.deriv(1).has_real_roots_Descartes(1e-10));
+    auto bb = cmono.deriv(1).to_monomial_increasing();
+    CHECK(ChebTools::count_sign_changes(bb, 1e-12) == 0);
+//    std::cout << bb << std::endl;
+    CHECK(bb[0] == 1);
+}
