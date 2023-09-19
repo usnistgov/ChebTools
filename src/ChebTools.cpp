@@ -9,6 +9,7 @@
 #include <iostream>
 #include <map>
 #include <limits>
+#include <unordered_map>
 
 #ifndef DBL_EPSILON
 #define DBL_EPSILON std::numeric_limits<double>::epsilon()
