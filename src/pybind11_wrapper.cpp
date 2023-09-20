@@ -104,6 +104,7 @@ void init_ChebTools(py::module &m){
         .def("real_roots", &ChebyshevExpansion::real_roots)
         .def("real_roots_time", &ChebyshevExpansion::real_roots_time)
         .def("real_roots_approx", &ChebyshevExpansion::real_roots_approx)
+        .def("is_monotonic", &ChebyshevExpansion::is_monotonic)
         .def("has_real_roots_Descartes", &ChebyshevExpansion::has_real_roots_Descartes)
         .def("to_monomial_increasing", &ChebyshevExpansion::to_monomial_increasing)
         .def("subdivide", &ChebyshevExpansion::subdivide)
