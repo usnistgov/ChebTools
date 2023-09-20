@@ -524,6 +524,7 @@ namespace ChebTools{
     private:
         Container m_exps;
 
+    public:
         /// Return the index of the expansion that is desired
         int get_index(double x) const {
             int iL = 0, iR = static_cast<int>(m_exps.size()) - 1, iM;
@@ -538,8 +539,7 @@ namespace ChebTools{
             }
             return (x < m_exps[iL].xmax()) ? iL : iR;
         };
-
-    public:
+    
         ChebyshevCollection(const Container & exps) : m_exps(exps) {
 
             // Check the sorting
