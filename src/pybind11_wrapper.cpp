@@ -123,11 +123,12 @@ void init_ChebTools(py::module &m){
     py::class_<ChebyshevCollection>(m, "ChebyshevCollection")
         .def(py::init<const Container&>())
         .def("__call__", [](const ChebyshevCollection& c, const double x) { return c(x); }, py::is_operator())
+        .def("y_unsafe", &ChebyshevCollection::y_unsafe)
         .def("integrate", &ChebyshevCollection::integrate)
         .def("get_exps", &ChebyshevCollection::get_exps)
         .def("get_extrema", &ChebyshevCollection::get_extrema)
         .def("solve_for_x", &ChebyshevCollection::solve_for_x)
-        .def("make_inverse", &ChebyshevCollection::make_inverse)
+        .def("make_inverse", &ChebyshevCollection::make_inverse, "N"_a, "xmin"_a, "xmax"_a, "M"_a, "tol"_a, "max_refine_passes"_a, "assume_monotonic"_a = false, "unsafe_evaluation"_a = false)
         .def("get_index", &ChebyshevCollection::get_index)
         .def("get_hinted_index", &ChebyshevCollection::get_hinted_index)
         ;

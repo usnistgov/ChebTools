@@ -7,6 +7,7 @@
 #include <optional>
 #include <sstream>
 #include <iomanip>
+#include <iostream>
 
 namespace ChebTools{
 
@@ -577,6 +578,19 @@ namespace ChebTools{
 
         /**
          * \brief Obtain the value from the expansion
+         * No errors if input value is outside the range of the collection, *WATCH OUT*
+         */
+        auto y_unsafe(double x) const{
+            auto xmin = m_exps[0].xmin(), 
+                 xmax = m_exps.back().xmax();
+            // Bisection to find the expansion we need
+            auto i = get_index(x);
+            // Evaluate the expansion
+            return m_exps[i].y(x);
+        };
+
+        /**
+         * \brief Obtain the value from the expansion
          * Throws if input value is outside the range of the collection
          */
         auto operator ()(double x) const{
@@ -586,17 +600,15 @@ namespace ChebTools{
                 oss << std::setprecision(digits) << double_value;
                 return oss.str();
             };
-            const double EPSILON10 = std::numeric_limits<double>::epsilon()*10;
-            if (x < xmin*(1-EPSILON10)){
-                throw std::invalid_argument("Provided value of " + my_to_string(x) + " is less than xmin of "+ my_to_string(xmin));
+            const double tol = std::numeric_limits<double>::epsilon()*100*(xmax-xmin);
+            double xmin_fuzzed = xmin*(1-tol), xmax_fuzzed = xmax*(1+tol);
+            if (x < xmin_fuzzed){
+                throw std::invalid_argument("Provided value of " + my_to_string(x) + " is less than fuzzed xmin of "+ my_to_string(xmin_fuzzed));
             }
-            if (x > xmax*(1+EPSILON10)){
-                throw std::invalid_argument("Provided value of " + my_to_string(x) + " is greater than xmax of "+ my_to_string(xmax));
+            if (x > xmax_fuzzed){
+                throw std::invalid_argument("Provided value of " + my_to_string(x) + " is greater than fuzzed xmax of "+ my_to_string(xmax_fuzzed));
             }
-            // Bisection to find the expansion we need
-            auto i = get_index(x);
-            // Evaluate the expansion
-            return m_exps[i].y(x);
+            return y_unsafe(x);
         };
 
         // Search for desired expansion, but first check the given hinted index
@@ -669,8 +681,15 @@ namespace ChebTools{
         * @param max_refine_passes How many refinement passes are allowed
         */
         auto make_inverse(const std::size_t N, const double xmin, const double xmax,
-            const int Mnorm, const double tol, const int max_refine_passes = 8, const bool assume_monotonic = true) const {
-            auto yxmin = (*this)(xmin), yxmax = (*this)(xmax), xmin_ = xmin, xmax_ = xmax;
+            const int Mnorm, const double tol, const int max_refine_passes = 8, const bool assume_monotonic = true, const bool unsafe_evaluation=false) const {
+            double xmin_ = xmin, xmax_ = xmax;
+            double yxmin, yxmax;
+            if (unsafe_evaluation){
+                yxmin = (*this).y_unsafe(xmin); yxmax = (*this).y_unsafe(xmax);
+            }
+            else{
+                yxmin = (*this)(xmin); yxmax = (*this)(xmax);
+            }
             if (yxmin > yxmax) {
                 std::swap(yxmin, yxmax);
                 std::swap(xmin_, xmax_);
@@ -711,6 +730,11 @@ namespace ChebTools{
                                 for (auto& rt : (ex - y).real_roots2(only_in_domain)) {
                                     xsolns.emplace_back(rt);
                                 }
+                                bool no_solns = xsolns.empty();
+                                if (no_solns){
+                                    if (std::abs(y - ynodes[0]) < ytol) { xsolns.push_back(xmax_); }
+                                    if (std::abs(y - ynodes[ynodes.size() - 1]) < ytol) { xsolns.push_back(xmin_); }
+                                }
                             }
                         }
                     }
@@ -735,10 +759,13 @@ namespace ChebTools{
                     return good_solns.front();
                 }
                 else if (Ngood_solns == 0) {
-                    throw std::invalid_argument("No solutions found for y: " + std::to_string(y));
+                    throw std::invalid_argument("No good solutions found for y: " + std::to_string(y) + "; " + std::to_string(xsolns.size()) + " solutions had been found");
                 }
                 else {
-                    throw std::invalid_argument("Multiple solutions (is not one-to-one) for y: " + std::to_string(y));
+                    for (auto soln : xsolns){
+                        std::cout << soln << std::endl;
+                    }
+                    throw std::invalid_argument("Multiple solutions (is not one-to-one) for y: " + std::to_string(y) + "; " + std::to_string(Ngood_solns) + " solutions found");
                 }
             };
             auto exps = ChebyshevExpansion::dyadic_splitting<Container>(N, f, yxmin, yxmax, Mnorm, tol, max_refine_passes);
