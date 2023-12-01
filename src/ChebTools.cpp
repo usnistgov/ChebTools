@@ -9,6 +9,7 @@
 #include <iostream>
 #include <map>
 #include <limits>
+#include <unordered_map>
 
 #ifndef DBL_EPSILON
 #define DBL_EPSILON std::numeric_limits<double>::epsilon()
@@ -39,6 +40,49 @@ double binomialCoefficient(const double n, const double k) {
 }
 
 namespace ChebTools {
+
+    /// A class to hold the monomial coefficients corresponding to Chebyshev basis functions
+    /// They do not depend on the expansion, so it makes sense to hold them in a data structure;
+
+    class MonomialCoefficients{
+    private:
+        std::unordered_map<int, Eigen::ArrayXd> store;
+        
+        Eigen::ArrayXd calc_coeffs(int n){
+            Eigen::ArrayXd c(n+1);
+            for (auto k = 0; k <= floor(n/2.0); ++k){
+                c[n-2*k] = pow(-1.0, k)*exp2(n-2*k-1)*static_cast<double>(n)/static_cast<double>(n-k)*binomialCoefficient(n-k, k);
+            }
+            return c;
+        }
+    public:
+        auto get_coeffs(int n){
+            if (store.find(n) == store.end()){
+                store[n] = calc_coeffs(n);
+            }
+            return store[n];
+        }
+    };
+    MonomialCoefficients monomial_coefficients_library;
+
+    Eigen::ArrayXd get_monomial_from_Cheb_basis(int n){
+        return monomial_coefficients_library.get_coeffs(n);
+    }
+
+    std::size_t count_sign_changes(const Eigen::ArrayXd &a, const double reltol){
+        std::size_t changes = 0;
+        auto tol = reltol*a.abs().maxCoeff();
+        
+        // Need to ignore missing coefficients entirely
+        double previous_nonzero_value = a[0];
+        for (auto i = 1; i < a.size()-1; ++i){
+            if (std::abs(a[i]) > tol){
+                changes += (a[i]*previous_nonzero_value < 0);
+                previous_nonzero_value = a[i];
+            }
+        }
+        return changes;
+    };
 
     inline bool ValidNumber(double x){
         // Idea from http://www.johndcook.com/IEEE_exceptions_in_cpp.html
@@ -394,6 +438,49 @@ namespace ChebTools {
         const Eigen::MatrixXd &V = l_matrix_library.get(Ndegree);
         return ChebyshevExpansion(V*f(get_node_function_values()).matrix(), xmin(), xmax());
     }
+    Eigen::ArrayXd ChebyshevExpansion::to_monomial_increasing() const {
+        Eigen::ArrayXd c = coef();
+        Eigen::Index N = c.size() - 1; // N is the degree of A
+        Eigen::ArrayXd out(N+1); out.setZero();
+        out[0] = c[0];
+        for (auto i = 1; i <= N; ++i){
+            out.head(i+1) += c(i)*get_monomial_from_Cheb_basis(i);
+        }
+        return out;
+    }
+    bool ChebyshevExpansion::has_real_roots_Descartes(const double reltol) const {
+        
+        // Turn derivative expansion into polynomial
+        // as monomial-basis in increasing order
+        auto coefderiv_mono = to_monomial_increasing();
+    
+        // Optimized Polynomial Taylor shift using the Horner method
+        // See: http://www.hvks.com/Numerical/Downloads/HVE%20Polynomial%20Taylor%20shifting.pdf
+        auto shift_poly_Horner = [](const Eigen::ArrayXd& a_decreasing, double shift){
+            int n = a_decreasing.size()-1;
+            Eigen::ArrayXd a = a_decreasing;
+            if (shift == 0) return a; // No shift, no change
+            for (int j = 1; j <= n; ++j){
+                for (int i = 1; i <= n - j + 1; ++i){
+                    a[i] += shift*a[i - 1];
+                }
+            }
+            return a;
+        };
+        
+        Eigen::ArrayXd coeff_shift_xmin = shift_poly_Horner(coefderiv_mono.reverse(), -1).reverse();
+        Eigen::ArrayXd coeff_shift_xmax = shift_poly_Horner(coefderiv_mono.reverse(), 1).reverse();
+//        std::cout << coeff_shift_xmin << std::endl;
+//        std::cout << coeff_shift_xmax << std::endl;
+        int N_changes_xmin = count_sign_changes(coeff_shift_xmin, reltol); // Number of roots in [-1, inf)
+        int N_changes_xmax = count_sign_changes(coeff_shift_xmax, reltol); // Number of roots in [1, inf)
+        
+        // Difference between these two are the number of roots inside [-1,1]
+        int N_changes_n11 = N_changes_xmax - N_changes_xmin;
+        
+        // If the same, there are no additional extrema in [-1, 1], and the function is monotonic
+        return (N_changes_n11 != 0);
+    }
     bool ChebyshevExpansion::is_monotonic() const {
         auto yvals = get_node_function_values();
         auto N = yvals.size();
@@ -515,6 +602,7 @@ namespace ChebTools {
         auto N = m_c.size()-1;
         auto Ndegree_scaled = N*2;
         Eigen::VectorXd xscaled = get_CLnodes(Ndegree_scaled), yy = y_Clenshaw_xscaled(xscaled);
+        double ytol = 1e-14*(yy.maxCoeff()-yy.minCoeff());
         
         // a,b,c can also be obtained by solving the matrix system:
         // [x_k^2, x_k, 1] = [b_k] for k in 1,2,3
@@ -526,6 +614,12 @@ namespace ChebTools {
             double a = ((x_3 - x_2)*y_1 - (x_3 - x_1)*y_2 + (x_2 - x_1)*y_3) / d;
             double b = (-(POW2(x_3) - POW2(x_2))*y_1 + (POW2(x_3) - POW2(x_1))*y_2 - (POW2(x_2) - POW2(x_1))*y_3) / d;
             double c = ((x_3 - x_2)*x_2*x_3*y_1 - (x_3 - x_1)*x_1*x_3*y_2 + (x_2 - x_1)*x_2*x_1*y_3) / d;
+
+            // Check if precisely at a nodal value
+            if (std::abs(y_1) < ytol) {
+                roots.push_back(((m_xmax - m_xmin) * x_1 + (m_xmax + m_xmin)) / 2.0);
+                continue;
+            }
 
             // Discriminant of quadratic
             double D = b*b - 4*a*c;
@@ -656,7 +750,7 @@ namespace ChebTools {
         //}
         //return roots;
     }
-    double ChebyshevExpansion::monotonic_solvex(double y) {
+    double ChebyshevExpansion::monotonic_solvex(double y) const {
         /*
         Function is known to be monotonic, so we can shortcut some of the solving steps used
         We don't use the eigenvalue method because it is too slow
@@ -681,6 +775,14 @@ namespace ChebTools {
         // Determine if the function is monotonically increasing or decreasing
         auto ynodes = get_node_function_values();
         auto nodes = get_nodes_n11();
+
+        // Check if the input is equal to (to within numerical precision) an endpoint
+        auto ytol = 1e-14 * (ynodes.maxCoeff() - ynodes.minCoeff());
+        if (std::abs(ynodes[0] - y) < ytol)
+            return unscale_x(nodes[0]);
+        if (std::abs(ynodes[ynodes.size()-1] - y) < ytol)
+            return unscale_x(nodes[ynodes.size() - 1]);
+
         bool increasing = ynodes[ynodes.size() - 1] > ynodes[0]; // Nodes go from 1 to -1 (stuck with this), but increasing says whether the value at the last *index* (x=-1) is greater than that of the first index (x=1).
         if (increasing) {
             if (y > ynodes[ynodes.size() - 1]) {
@@ -812,13 +914,18 @@ namespace ChebTools {
         }
     }
     ChebyshevExpansion ChebyshevExpansion::factoryf(const std::size_t N, const Eigen::VectorXd &f, const double xmin, const double xmax) {
+        if (f.size() != N+1){
+            throw std::invalid_argument("Size of f [" + std::to_string(f.size()) + "] does not equal N+1 with N of "+std::to_string(N));
+        }
         // Step 3: Get coefficients for the L matrix from the library of coefficients
         const Eigen::MatrixXd &L = l_matrix_library.get(N);
         // Step 4: Obtain coefficients from vector - matrix product
         return ChebyshevExpansion(L*f, xmin, xmax);
     }
     ChebyshevExpansion ChebyshevExpansion::factoryfFFT(const std::size_t N, const Eigen::VectorXd& f, const double xmin, const double xmax) {
-
+        if (f.size() != N+1){
+            throw std::invalid_argument("Size of f [" + std::to_string(f.size()) + "] does not equal N+1 with N of "+std::to_string(N));
+        }
         Eigen::VectorXd valsUnitDisc(2 * f.size() - 2);
         // Starting at x = 1, going to -1, then the same nodes, not including x=-1 and x=1, in the opposite order
         valsUnitDisc.head(f.size()) = f;

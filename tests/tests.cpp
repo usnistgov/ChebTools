@@ -1,5 +1,7 @@
-#define CATCH_CONFIG_MAIN
-#include "catch.hpp"
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/catch_approx.hpp>
+using Catch::Approx;
+#include <iostream>
 
 #include "ChebTools/ChebTools.h"
 
@@ -271,6 +273,108 @@ TEST_CASE("Integrate y=exp(x)", "")
     }
 }
 
+TEST_CASE("Integrate f(x) with collection", "")
+{
+    SECTION("Default range for exponential function") {
+        using namespace ChebTools;
+        using Container = std::vector<ChebyshevExpansion>;
+        auto C1 = ChebyshevExpansion::dyadic_splitting<Container>(18, [](double x) { return exp(x); }, -1, 1, 3, 1e-10, 8);
+        auto C2 = ChebyshevCollection(C1);
+        double appro = C2.integrate(-0.3, 0.7);
+        double exact = exp(0.7) - exp(-0.3);
+        auto err = std::abs((appro - exact) / exact);
+        CAPTURE(err);
+        CHECK(err < 1e-15);
+    }
+
+    SECTION("Non-default range for cos") {
+        using namespace ChebTools;
+        using Container = std::vector<ChebyshevExpansion>;
+        auto C1 = ChebyshevExpansion::dyadic_splitting<Container>(18, [](double x) { return cos(x); }, -10, 10, 3, 1e-10, 8);
+        auto C2 = ChebyshevCollection(C1);
+        auto appro = C2.integrate(-0.9, 0.7);
+        auto exact = sin(0.7) - sin(-0.9);
+        auto err = std::abs((appro - exact) / exact);
+        CAPTURE(err);
+        CHECK(err < 1e-15);
+    }
+}
+
+TEST_CASE("Inverse functions with collection", "")
+{
+    SECTION("Check sin function inversion") {
+        using namespace ChebTools;
+        using Container = std::vector<ChebyshevExpansion>;
+        auto fx = [](double x) { return sin(x); };
+        double PI = EIGEN_PI;
+        auto cc = ChebyshevCollection(ChebyshevExpansion::dyadic_splitting<Container>(18, fx, -PI / 2, PI / 2, 3, 1e-10, 12));
+        for (auto x : Eigen::ArrayXd::LinSpaced(101, -0.5, 0.5)) {
+            auto y = sin(x);
+            auto asins = cc.solve_for_x(y);
+            auto exact = asin(y);
+            auto appro = asins.front();
+            auto err = std::abs((appro - exact) / exact);
+            CAPTURE(err);
+            CAPTURE(exact);
+            if (std::abs(exact) > 1e-16) {
+                CHECK(err < 1e-13);
+            }
+        }
+    }
+    SECTION("Non-default range for sin") {
+        using namespace ChebTools;
+        using Container = std::vector<ChebyshevExpansion>;
+        auto cc = ChebyshevCollection(ChebyshevExpansion::dyadic_splitting<Container>(18, [](double x) { return sin(x); }, -11, 10.0, 3, 1e-10, 12));
+        auto inv = cc.make_inverse(18, -0.5, 0.5, 3, 1e-12, 8, false);
+        
+        auto appro = inv(0.1);
+        auto exact = asin(0.1);
+
+        auto err = std::abs((appro - exact) / exact);
+        CAPTURE(err);
+        CHECK(err < 1e-13);
+    }
+    SECTION("cos(x) over two periods") {
+        using namespace ChebTools;
+        using Container = std::vector<ChebyshevExpansion>;
+        double PI = EIGEN_PI;
+        auto C2 = ChebyshevCollection(ChebyshevExpansion::dyadic_splitting<Container>(18, [](double x) { return cos(x); }, -PI*2.0, PI*2.0, 3, 1e-12, 8));
+        auto extrema = C2.get_extrema();
+        double xmin = C2.get_exps().front().xmin();
+        double xmax = C2.get_exps().back().xmax();
+        
+        // Build one-to-one portions, including the extrema points
+        auto points = extrema;
+        if (std::abs(points.front()-xmin) > 2.2e-13*(xmax-xmin)) {
+            points.insert(points.begin(), xmin);
+        }
+        if (std::abs(points.back() - xmax) > 2.2e-13*(xmax-xmin)) {
+            points.push_back(xmax);
+        }
+        for (auto i = 0; i < points.size()-1; ++i) {
+            double xmin = points[i], xmax = points[i + 1];
+            try {
+                auto inv = C2.make_inverse(18, xmin, xmax, 3, 1e-14, 8);
+
+                for (double x : Eigen::ArrayXd::LinSpaced(7, xmin, xmax)) {
+                    auto y = C2(x);
+                    auto appro = inv(y);
+                    auto err = std::abs(appro - x);
+                    CAPTURE(x); 
+                    CAPTURE(y);
+                    CAPTURE(appro);
+                    CAPTURE(err);
+                    CHECK(err < 1e-13);
+                }
+            }
+            catch(std::exception &e){
+                std::cout << xmin << "," << xmax << "::" << e.what() << std::endl;
+
+            }
+        }
+    }
+}
+
 TEST_CASE("Sums of expansions", "")
 {
     Eigen::VectorXd c4(4); c4 << 1, 2, 3, 4;
@@ -520,6 +624,21 @@ TEST_CASE("FFT and DCT", "")
     
 }
 
+TEST_CASE("Extrapolation with Taylor series", "[extrapolation]")
+{
+    auto n = 21;
+    auto f = [](double x) { return exp(x); };
+    auto ce = ChebTools::ChebyshevExpansion::factory(n, f, -1, 1);
+    auto tay = ChebTools::make_Taylor_extrapolator(ce, 0.8, 8);
+
+    auto x = 2.0;
+    auto exact = f(x);
+    auto approx = tay(x);
+
+    CHECK(std::abs(exact-approx) < 1e-4);
+
+}
+
 TEST_CASE("Constant value y=x with generation from factory", "")
 {
     Eigen::VectorXd x1(1); x1 << 0.5;
@@ -560,6 +679,46 @@ TEST_CASE("product commutativity with simple multiplication", "") {
     double err = (c0.array() - c1.array()).cwiseAbs().sum();
     CAPTURE(err);
     CHECK(err < 1e-14);
+}
+
+TEST_CASE("root finding corner cases", "[roots]") {
+    SECTION("sin(x) at edges") {
+        auto ce = ChebTools::ChebyshevExpansion::factory(10, [](double x) { return sin(x); }, 0, EIGEN_PI / 2);
+        bool only_in_domain = true;
+        SECTION("0") {
+            auto roots = ce.real_roots(only_in_domain);
+            auto roots2 = ce.real_roots2(only_in_domain);
+            auto rootsmono = ce.monotonic_solvex(0);
+            CHECK(rootsmono == Approx(roots2.front()).margin(1e-8));
+            CHECK(rootsmono == Approx(0));
+        }
+        SECTION("1") {
+            auto roots = (ce-1).real_roots(only_in_domain);
+            auto roots2 = (ce-1).real_roots2(only_in_domain);
+            auto rootsmono = ce.monotonic_solvex(1.0);
+            CHECK(rootsmono == Approx(roots2.front()));
+            CHECK(rootsmono == Approx(EIGEN_PI/2));
+        }
+        SECTION("C-L nodes") {
+            auto ynodes = ce.get_node_function_values();
+            auto xnodes = ce.get_nodes_realworld();
+            auto xtol = 1e-13;
+            for (auto i = 1; i < xnodes.size()-1; ++i) {
+                auto y = ynodes[i], x = xnodes[i];
+                auto roots = (ce - y).real_roots(false /*only_in_domain*/);
+                roots.erase(std::remove_if(roots.begin(), roots.end(), [&](double x) { return (x  < 0 - xtol) || (x > EIGEN_PI / 2 + xtol); }), roots.end());
+                auto roots2 = (ce - y).real_roots2(only_in_domain);
+                auto rootsmono = ce.monotonic_solvex(y);
+                CAPTURE(y);
+                CAPTURE(x);
+                CHECK(roots.size() > 0);
+                CHECK((roots.size() > 0 && x == Approx(roots.front()))); 
+                CHECK(roots2.size() > 0);
+                CHECK((roots2.size() > 0 && x == Approx(roots2.front())));
+                CHECK(rootsmono == Approx(x));
+            }
+        }
+    }
 }
 
 
@@ -605,4 +764,36 @@ TEST_CASE("corner cases with linear ChebyshevExpansion",""){
     CHECK(roots==0);
     CHECK(linCheb.coef().size()==3);
   }
+}
+
+TEST_CASE("monomial from Chebyshev")
+{
+    auto c = ChebTools::get_monomial_from_Cheb_basis(6);
+    CAPTURE(c);
+    // increasing degree
+    CHECK(c[6] == 32);
+    CHECK(c[0] == -1);
+}
+
+TEST_CASE("Check monotonicity with Descartes' rule")
+{
+    // y=(x-0.5)^2 is not monotonic in [-1, 1], has extremum at x=0.5
+    auto cnonmono = ChebTools::ChebyshevExpansion::factory(3, [](double x){ return (x-0.5)*(x-0.5); }, -1, 1);
+    CHECK(!cnonmono.is_monotonic());
+    auto aa = cnonmono.to_monomial_increasing();
+//    std::cout << aa << std::endl;
+    CHECK(aa[0] == Approx(0.25));
+    CHECK(aa[1] == Approx(-1));
+    CHECK(aa[2] == Approx(1));
+    CHECK(ChebTools::count_sign_changes(aa, 1e-10) == 2);
+    CHECK(cnonmono.deriv(1).has_real_roots_Descartes(1e-10));
+    
+    // x^1 is monotonic in [-1, 1]
+    auto cmono = ChebTools::ChebyshevExpansion::from_powxn(1, -1, 1);
+    CHECK(cmono.is_monotonic());
+    CHECK(!cmono.deriv(1).has_real_roots_Descartes(1e-10));
+    auto bb = cmono.deriv(1).to_monomial_increasing();
+    CHECK(ChebTools::count_sign_changes(bb, 1e-12) == 0);
+//    std::cout << bb << std::endl;
+    CHECK(bb[0] == 1);
 }

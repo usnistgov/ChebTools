@@ -4,7 +4,7 @@ Chebyshev-basis expansions, and more broadly, orthogonal polynomial expansions, 
 
 The primary motivation for the development of ``ChebTools`` is the need for a highly optimized and fast C++11 library for working with Chebyshev expansions.  Particularly, in order to approximate numerical functions with well-behaved interpolation functions.
 
-Automatic tests status on TravisCI: [![Build Status](https://travis-ci.org/usnistgov/ChebTools.svg?branch=master)](https://travis-ci.org/usnistgov/ChebTools)
+Automatic tests on github actions: [![build and run tests](https://github.com/usnistgov/ChebTools/actions/workflows/runcatch.yml/badge.svg)](https://github.com/usnistgov/ChebTools/actions/workflows/runcatch.yml)
 
 Paper about ChebTools in JOSS: [![DOI](http://joss.theoj.org/papers/10.21105/joss.00569/status.svg)](https://doi.org/10.21105/joss.00569)
 
@@ -39,6 +39,12 @@ extrema = f.deriv(1).real_roots(only_in_domain)
 * 1.3: Added ``is_monotonic`` function to ascertain whether the nodes are monotonically increasing or decreasing
 * 1.4: Added dyadic splitting into intervals (C++ only for now)
 * 1.5: Added FFT-based function for getting expansion coefficient values from nodal values
+* 1.7: Added ``ChebyshevCollection`` container class for fast evaluation of collection of expansions (generated from dyadic splitting maybe?)
+* 1.8: Added ``__version__`` attribute
+* 1.9: Added the ability to construct inverse functions
+* 1.10: Added 2D evaluation functions in ``double`` and ``complex<double>`` options (useful for model optimization with complex step derivatives)
+* 1.10.1: Repaired universal2 binary wheels on Mac
+* 1.11: Exposed ``get_coef`` function for Taylor series extrapolator
 
 ## License
 

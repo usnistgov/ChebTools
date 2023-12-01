@@ -16,7 +16,10 @@ jobs:
     - name: cmake config
       run: cd build && cmake .. -DCMAKE_BUILD_TYPE=Release
     - name: cmake make
-      run: cmake --build build
+      run: cmake --build build --target ChebToolsCatchTests
     # run tests
     - name: run Catch tests
       run: build/ChebToolsCatchTests
+    - name: build python interface
+      run: python setup.py build
+

@@ -4,6 +4,9 @@
 #include "Eigen/Dense"
 #include <vector>
 #include <queue>
+#include <optional>
+#include <sstream>
+#include <iomanip>
 
 namespace ChebTools{
 
@@ -56,6 +59,25 @@ namespace ChebTools{
 
     Eigen::VectorXcd eigenvalues(const Eigen::MatrixXd &A, bool balance);
     Eigen::VectorXd eigenvalues_upperHessenberg(const Eigen::MatrixXd &A, bool balance);
+
+    /**
+    \brief Calculate the monomial expansion, with coefficients in increasing order, obtained
+     from a Chebyshev basis function \f$T_n(x)\f$. The coefficients \f$c_i\f$ are for \f$y=sum_ic_ix^i\f$. You could sum up these
+     terms to build a monomial from a Chebyshev expansion
+     
+    Equations from Mason and Handscombe, Chapter 2, Eqs. 2.16 and 2.18
+     
+    \param n The n-th Chebyshev basis function of the first kind
+     */
+    Eigen::ArrayXd get_monomial_from_Cheb_basis(int n);
+
+    /**
+    \brief Given a set of monomial expansion coefficients, determine how many sign changes are present,
+    to be used in Descartes' rule.
+    \param c_increasing The coefficients, in increasing order
+    \param reltol The relative threshold, relative to the largest coefficient, that indicates that a coefficient is considered to be equal to zero for purposes of determining sign of a coefficient
+    */
+    std::size_t count_sign_changes(const Eigen::ArrayXd &, const double reltol);
 
     /**
     * @brief This is the main underlying object that makes all of the code of ChebTools work.
@@ -158,6 +180,10 @@ namespace ChebTools{
         Eigen::VectorXd get_node_function_values() const;
         /// Return true if the function values at the Chebyshev-Lobatto nodes are monotonic with the independent variable
         bool is_monotonic() const;
+        /// Return true if Descartes' rules for the monomial formed of the derivative coefficients indicates no extrema are possible
+        bool has_real_roots_Descartes(const double) const;
+        /// Get the coefficients of a monomial-basis polynomial in decreasing order
+        Eigen::ArrayXd to_monomial_increasing() const;
 
         // ******************************************************************
         // ***********************      OPERATORS     ***********************
@@ -334,7 +360,7 @@ namespace ChebTools{
         *
         * @param yval Given value for which value of x is to be obtained
         */
-        double monotonic_solvex(double yval);
+        double monotonic_solvex(double yval) const;
 
         /**
         * @brief Subdivide the original interval into a set of subintervals that are linearly spaced
@@ -439,16 +465,17 @@ namespace ChebTools{
             return s;
         }
 
+        template<typename Container = std::deque<ChebyshevExpansion>>
         static auto dyadic_splitting(const std::size_t N, const std::function<double(double)>& func, const double xmin, const double xmax, 
             const int M, const double tol, const int max_refine_passes = 8, 
-            const std::function<void(int, const std::deque<ChebyshevExpansion>&)>&callback = {}) 
+            const std::optional<std::function<void(int, const Container&)>>& callback = std::nullopt) -> Container
         {
             
             // Convenience function to get the M-element norm
             auto get_err = [M](const ChebyshevExpansion& ce) { return ce.coef().tail(M).norm() / ce.coef().head(M).norm(); };
             
             // Start off with the full domain from xmin to xmax
-            std::deque<ChebyshevExpansion> expansions;
+            Container expansions;
             expansions.emplace_back(ChebyshevExpansion::factory(N, func, xmin, xmax));
 
             // Now enter into refinement passes
@@ -481,14 +508,285 @@ namespace ChebTools{
                         all_converged = false;
                     }
                 }
-                if (callback != nullptr) {
-                    callback(refine_pass, expansions);
+                if (callback) {
+                    callback.value()(refine_pass, expansions);
                 }
                 if (all_converged) { break; }
             }
             return expansions;
         }
     };
+
+
+    class ChebyshevCollection {
+    public:
+        using Container = std::vector<ChebyshevExpansion>;
+    private:
+        Container m_exps;
+
+    public:
+        /// Return the index of the expansion that is desired
+        int get_index(double x) const {
+            int iL = 0, iR = static_cast<int>(m_exps.size()) - 1, iM;
+            while (iR - iL > 1) {
+                iM = midpoint_Knuth(iL, iR);
+                if (x >= m_exps[iM].xmin()) {
+                    iL = iM;
+                }
+                else {
+                    iR = iM;
+                }
+            }
+            return (x < m_exps[iL].xmax()) ? iL : iR;
+        };
+    
+        ChebyshevCollection(const Container & exps) : m_exps(exps) {
+
+            // Check the sorting
+            for (auto i = 0; i < m_exps.size(); ++i) {
+                if (m_exps[i].xmin() >= m_exps[i].xmax()) {
+                    throw std::invalid_argument("expansion w/ index " + std::to_string(i) + " is not sorted with xmax [" + std::to_string(m_exps[i].xmax()) + "] > xmin ["+ std::to_string(m_exps[i].xmin()) +"]");
+                }
+                if (i + 1 < m_exps.size() && m_exps[i + 1].xmin() <= m_exps[i].xmin()) {
+                    throw std::invalid_argument("expansions are not sorted in increasing values of x");
+                }
+            }
+        };
+        /// Get a const reference to the set of expansions
+        const auto & get_exps() const {
+            return m_exps;
+        }
+
+        /// Get a mutable reference to the set of expansions
+        auto& get_exps_mutable() {
+            return m_exps;
+        }
+
+        /**
+        * Get the value of the independent variable at the extrema for which dy/dx = 0
+        */
+        auto get_extrema() const {
+            std::vector<double> x;
+            for (auto& ex : m_exps) {
+                for (auto rt : ex.deriv(1).real_roots(true)) {
+                    x.push_back(rt);
+                }
+            }
+            return x;
+        }
+
+        /**
+         * \brief Obtain the value from the expansion
+         * Throws if input value is outside the range of the collection
+         */
+        auto operator ()(double x) const{
+            auto xmin = m_exps[0].xmin(), xmax = m_exps.back().xmax();
+            auto my_to_string = [](const double double_value, int digits = 20){
+                std::ostringstream oss;
+                oss << std::setprecision(digits) << double_value;
+                return oss.str();
+            };
+            const double EPSILON10 = std::numeric_limits<double>::epsilon()*10;
+            if (x < xmin*(1-EPSILON10)){
+                throw std::invalid_argument("Provided value of " + my_to_string(x) + " is less than xmin of "+ my_to_string(xmin));
+            }
+            if (x > xmax*(1+EPSILON10)){
+                throw std::invalid_argument("Provided value of " + my_to_string(x) + " is greater than xmax of "+ my_to_string(xmax));
+            }
+            // Bisection to find the expansion we need
+            auto i = get_index(x);
+            // Evaluate the expansion
+            return m_exps[i].y(x);
+        };
+
+        // Search for desired expansion, but first check the given hinted index
+        // to short circuit the interval bisection if possible
+        auto get_hinted_index(double x, const int i) const {
+            if (i < 0 || i > m_exps.size()-1){
+                return get_index(x);
+            }
+            else{
+                const auto& exinit = m_exps[i];
+                if (x >= exinit.xmin() && x <= exinit.xmax()) {
+                    return i;
+                }
+                else {
+                    return get_index(x);
+                }
+            }
+        }
+
+        auto integrate(double xmin, double xmax) const {
+            // Bisection to find the expansions we need
+            auto imin = get_index(xmin), imax = get_index(xmax);
+            if (imax == imin) {
+                auto I = m_exps[imin].integrate(1);
+                return I.y(xmax) - I.y(xmin);
+            }
+            else {
+                // All the intervals between the two ones containing the limits (non-inclusive)
+                // contribute the full amount, integrating from xmin to xmax
+                double s = 0;
+                for (auto i = imin + 1; i < imax; ++i) {
+                    auto I = m_exps[i].integrate(1);
+                    s += I.y(I.xmax()) - I.y(I.xmin());
+                }
+                // Bottom is from value to right edge
+                {
+                    auto I = m_exps[imin].integrate(1);
+                    s += I.y(I.xmax()) - I.y(xmin);
+                }
+                // Top is from value to left edge
+                {
+                    auto I = m_exps[imax].integrate(1);
+                    s += I.y(xmax) - I.y(I.xmin());
+                }
+                return s;
+            }
+        }
+
+        auto solve_for_x(double y) const {
+            std::vector<double> solns;
+            for (auto& ex : m_exps) {
+                bool only_in_domain = true;
+                for (auto& rt : (ex - y).real_roots2(only_in_domain)) {
+                    solns.emplace_back(rt);
+                }
+            }
+            return solns;
+        }
+
+        /** 
+        * @brief Make an inverse collection for x(y) from this collection
+        *
+        * The definition is based upon values of x because y might be multi-valued and it is required that the domain [xmin, xmax] is a one-to-one function
+        *
+        * @param N The degree of the expansions
+        * @param xmin The minimum value of \f$x\f$ for the expansion
+        * @param xmax The maximum value of \f$x\f$ for the expansion
+        * @param Mnorm Norms have the first and last Mnorm elements
+        * @param tol The tolerance to say the expansion is converged
+        * @param max_refine_passes How many refinement passes are allowed
+        */
+        auto make_inverse(const std::size_t N, const double xmin, const double xmax,
+            const int Mnorm, const double tol, const int max_refine_passes = 8, const bool assume_monotonic = true) const {
+            auto yxmin = (*this)(xmin), yxmax = (*this)(xmax), xmin_ = xmin, xmax_ = xmax;
+            if (yxmin > yxmax) {
+                std::swap(yxmin, yxmax);
+                std::swap(xmin_, xmax_);
+            }
+            std::size_t counter = 0;
+
+            // These are the values of y at the Chebyshev-Lobatto nodes for the inverse function
+            // in the first pass
+            Eigen::ArrayXd ynodes = ((yxmax - yxmin) * ChebTools::get_CLnodes(N).array() + (yxmax + yxmin)) * 0.5;
+            // A small fudge factor is needed because there is a tiny loss in precision in calculation of ynodes
+            // so it is not adequate to check direct float equality
+            auto ytol = 2.2e-14*(ynodes.maxCoeff() - ynodes.minCoeff());
+
+            auto get_xsolns = [&](double y) {
+                std::vector<double> xsolns;
+                auto ranges_overlap = [](double x1, double x2, double y1, double y2) { return x1 <= y2 && y1 <= x2; };
+
+                // If a value of y precisely matches a value at the node, return the value of x at the node
+                // This is important if the value of y is an extremum of y(x)
+                if (std::abs(y - ynodes[0]) < ytol && assume_monotonic) { xsolns = { xmax_ }; }
+                else if (std::abs(y - ynodes[ynodes.size() - 1]) < ytol && assume_monotonic) { xsolns = { xmin_ }; }
+                else {
+                    // Solve for values of x given this value of y
+                    for (auto& ex : m_exps) {
+                        if (assume_monotonic) {
+                            auto yvals = ex.get_node_function_values();
+                            auto ymin = yvals(0), ymax = yvals(yvals.size() - 1);
+                            if (ymin > ymax) {
+                                std::swap(ymin, ymax);
+                            }
+                            if (y >= ymin && y <= ymax) {
+                                xsolns.emplace_back(ex.monotonic_solvex(y));
+                            }
+                        }
+                        else {
+                            if (ranges_overlap(ex.xmin(), ex.xmax(), xmin, xmax)) {
+                                bool only_in_domain = true;
+                                for (auto& rt : (ex - y).real_roots2(only_in_domain)) {
+                                    xsolns.emplace_back(rt);
+                                }
+                            }
+                        }
+                    }
+                }
+                return xsolns;
+            };
+
+            auto f = [&](double y) {
+                
+                auto xsolns = get_xsolns(y);
+                auto xtol = 1e-14*(xmax - xmin);
+                
+                counter++;
+                decltype(xsolns) good_solns;
+                for (auto & xsoln : xsolns) {
+                    if (xsoln >= xmin-xtol && xsoln <= xmax+xtol) {
+                        good_solns.push_back(xsoln);
+                    }
+                }
+                auto Ngood_solns = good_solns.size();
+                if (Ngood_solns == 1) {
+                    return good_solns.front();
+                }
+                else if (Ngood_solns == 0) {
+                    throw std::invalid_argument("No solutions found for y: " + std::to_string(y));
+                }
+                else {
+                    throw std::invalid_argument("Multiple solutions (is not one-to-one) for y: " + std::to_string(y));
+                }
+            };
+            auto exps = ChebyshevExpansion::dyadic_splitting<Container>(N, f, yxmin, yxmax, Mnorm, tol, max_refine_passes);
+            return ChebyshevCollection(exps);
+        }
+    };
+
+    /// A small class that implements a Taylor expansion around a particular point
+    template<typename CoefType>
+    class TaylorExtrapolator {
+    private:
+        const CoefType coef; ///< The coefficients: c = {f(x), f'(x), f''(x), f'''(x), ...}
+        const double x0; ///< Point around which the derivatives are taken
+        const int degree; ///< The degree of the expansion
+    public:
+
+        /***
+        * @param coef The coefficients, the values of the function and its derivatives at the point x, c = {f(x), f'(x), f''(x), f'''(x)}
+        * @param x The point around which the expansion is based
+        */
+        TaylorExtrapolator(const CoefType &coef, double x) : coef(coef), x0(x), degree(static_cast<int>(coef.size()-1)){}
+
+        template<typename XType>
+        XType operator()(const XType &x) const {
+            auto factorial = [](auto x) { return tgamma(x + 1); };
+            auto dx = x - x0;
+            XType o = 0.0*x;
+            for (auto n = 0; n <= degree; ++n) {
+                o += coef[n] * pow(dx, n) / factorial(n);
+            }
+            return o;
+        }
+
+        auto get_coef(){
+            return coef;
+        }
+
+
+    };
+
+    /// A factory function to make a Taylor extrapolator from a Chebyshev expansion of given degree around the position x
+    static auto make_Taylor_extrapolator(const ChebyshevExpansion &ce, double x, int degree) {
+        Eigen::ArrayXd c(degree + 1);
+        for (auto n = 0; n <= degree; ++n) {
+            c[n] = ce.deriv(n).y(x);
+        }
+        return TaylorExtrapolator<decltype(c)>(c, x);
+    }
 
 }; /* namespace ChebTools */
 #endif
