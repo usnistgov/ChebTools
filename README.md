@@ -45,6 +45,7 @@ extrema = f.deriv(1).real_roots(only_in_domain)
 * 1.10: Added 2D evaluation functions in ``double`` and ``complex<double>`` options (useful for model optimization with complex step derivatives)
 * 1.10.1: Repaired universal2 binary wheels on Mac
 * 1.11: Exposed ``get_coef`` function for Taylor series extrapolator
+* 1.12.0: Switched interface for python to nanobind. Dropped pypy wheels. 
 
 ## License
 
