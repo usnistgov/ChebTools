@@ -48,7 +48,8 @@ else()
     endif()
 
     if (CHEBTOOLS_NANOBIND)
-        find_package(Python COMPONENTS Interpreter Development REQUIRED)
+
+        find_package(Python COMPONENTS Interpreter Development.Module REQUIRED) # from https://github.com/pypa/cibuildwheel/issues/639#issuecomment-1397443143
         if (CHEBTOOLS_PYBIND11)
             message(FATAL_ERROR "only one python binding can be enabled")
         endif()
