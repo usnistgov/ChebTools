@@ -7,3 +7,6 @@
 [submodule "externals/Eigen"]
 	path = externals/Eigen
 	url = https://gitlab.com/libeigen/eigen.git
+[submodule "externals/nanobind"]
+	path = externals/nanobind
+	url = https://github.com/wjakob/nanobind

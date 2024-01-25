@@ -423,8 +423,8 @@ namespace ChebTools{
         *
         * See Boyd, SIAM review, 2013, http://dx.doi.org/10.1137/110838297, Appendix A.
         */
-        template<class double_function>
-        static ChebyshevExpansion factory(const std::size_t N, double_function func, const double xmin, const double xmax)
+        template<typename double_function>
+        static ChebyshevExpansion factory(const std::size_t N, const double_function& func, const double xmin, const double xmax)
         {
             // Get the precalculated Chebyshev-Lobatto nodes
             const Eigen::VectorXd & x_nodes_n11 = get_CLnodes(N);

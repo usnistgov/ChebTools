@@ -19,6 +19,7 @@ class CMakeExtension(Extension):
         Extension.__init__(self, name, sources=[])
         self.sourcedir = os.path.abspath(sourcedir)
 
+os.environ['MACOSX_DEPLOYMENT_TARGET'] = '14.0'
 
 class CMakeBuild(build_ext):
     def run(self):
@@ -61,6 +62,7 @@ class CMakeBuild(build_ext):
 
         cmake_args.append('-DCHEBTOOLS_NO_MONOLITH=ON')
         cmake_args.append('-DCHEBTOOLS_NO_CATCH=ON')
+        cmake_args.append('-DCHEBTOOLS_NO_PYBIND11=ON')
         subprocess.check_call(['cmake', ext.sourcedir] + cmake_args, cwd=self.build_temp, env=env)
         subprocess.check_call(['cmake', '--build', '.', '--target','ChebTools'] + build_args, cwd=self.build_temp)
 
