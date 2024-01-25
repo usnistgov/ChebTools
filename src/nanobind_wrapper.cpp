@@ -140,8 +140,8 @@ void init_ChebTools(nb::module_ &m){
     m.def("get_monomial_from_Cheb_basis", &get_monomial_from_Cheb_basis);
     m.def("count_sign_changes", &count_sign_changes);
 
-//     m.def("Clenshaw2DEigen", &Clenshaw2DEigen<Eigen::Ref<const Eigen::ArrayXXd>>);
-//     m.def("Clenshaw2DEigencomplex", &Clenshaw2DEigen<Eigen::Ref<const Eigen::ArrayXXcd>>);
+    m.def("Clenshaw2DEigen", &Clenshaw2DEigen<Eigen::Ref<const Eigen::ArrayXXd>>);
+    m.def("Clenshaw2DEigencomplex", &Clenshaw2DEigen<Eigen::Ref<const Eigen::ArrayXXcd>>);
 }
 
 NB_MODULE(ChebTools, m) {
