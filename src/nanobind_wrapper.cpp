@@ -62,15 +62,6 @@ auto Clenshaw2DEigen(const MatType& a, double x, double y) {
     return Clenshaw1D(b.matrix(), x);
 }
 
-int func_arg(const std::function<int(int)> &f) {
-    return f(10);
-}
-
-template<typename FUNCTION, typename RETURN>
-auto func_garg(const FUNCTION &f) -> RETURN {
-    return f(10.0);
-}
-
 void init_ChebTools(nb::module_ &m){
 
     nb::class_<ChebyshevExpansion>(m, "ChebyshevExpansion")
@@ -148,9 +139,6 @@ void init_ChebTools(nb::module_ &m){
     m.def("Eigen_setNbThreads", [](int Nthreads) { return Eigen::setNbThreads(Nthreads); });
     m.def("get_monomial_from_Cheb_basis", &get_monomial_from_Cheb_basis);
     m.def("count_sign_changes", &count_sign_changes);
-
-    m.def("func_arg", &func_arg);
-    m.def("func_garg", &func_garg<std::function<double(double)>, double>);
 
 //     m.def("Clenshaw2DEigen", &Clenshaw2DEigen<Eigen::Ref<const Eigen::ArrayXXd>>);
 //     m.def("Clenshaw2DEigencomplex", &Clenshaw2DEigen<Eigen::Ref<const Eigen::ArrayXXcd>>);

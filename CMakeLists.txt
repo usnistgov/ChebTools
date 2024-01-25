@@ -16,6 +16,9 @@ if (MSVC)
     list(APPEND SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/externals/Eigen/debug/msvc/eigen.natvis")
 endif()
 
+option(CHEBTOOLS_NANOBIND False "")
+option(CHEBTOOLS_PYBIND11 False "")
+
 set(OPENMP_NEEDED False)
 if (OPENMP_NEEDED)
     # Check for the existence of OpenMP and enable it as needed
@@ -31,8 +34,8 @@ if (CHEBTOOLS_STATIC_LIBRARY OR NISTFIT_PYBIND11)
         target_link_libraries(ChebTools PUBLIC OpenMP::OpenMP_CXX)
     endif()
 else()
-    if (NOT CHEBTOOLS_NO_PYBIND11)
-        if (NOT CHEBTOOLS_NO_NANOBIND)
+    if (CHEBTOOLS_PYBIND11)
+        if (CHEBTOOLS_NANOBIND)
             message(FATAL_ERROR "only one python binding can be enabled")
         endif()
         # Build pybind11 python module
@@ -44,9 +47,9 @@ else()
         endif()
     endif()
 
-    if (NOT CHEBTOOLS_NO_NANOBIND)
+    if (CHEBTOOLS_NANOBIND)
         find_package(Python COMPONENTS Interpreter Development REQUIRED)
-        if (NOT CHEBTOOLS_NO_PYBIND11)
+        if (CHEBTOOLS_PYBIND11)
             message(FATAL_ERROR "only one python binding can be enabled")
         endif()
         # Build nanobind python module
