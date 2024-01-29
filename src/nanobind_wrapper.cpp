@@ -150,7 +150,5 @@ void init_ChebTools(nb::module_ &m){
 NB_MODULE(ChebTools, m) {
     m.doc() = "C++ tools for working with Chebyshev expansions";
     m.attr("__version__") = CHEBTOOLSVERSION;
-    m.def("Eigen_nbThreads", []() { return Eigen::nbThreads(); });
-    m.def("Eigen_setNbThreads", [](int Nthreads) { return Eigen::setNbThreads(Nthreads); });
     init_ChebTools(m);
 }
