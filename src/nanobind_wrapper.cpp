@@ -87,6 +87,7 @@ void init_ChebTools(nb::module_ &m){
         .def("y", (double (ChebyshevExpansion::*)(const double) const) &ChebyshevExpansion::y)
         .def("y_Clenshaw", &ChebyshevExpansion::y_Clenshaw)
         .def("real_roots", &ChebyshevExpansion::real_roots)
+        .def("real_roots2", &ChebyshevExpansion::real_roots2)
         .def("real_roots_time", &ChebyshevExpansion::real_roots_time)
         .def("real_roots_approx", &ChebyshevExpansion::real_roots_approx)
         .def("is_monotonic", &ChebyshevExpansion::is_monotonic)
