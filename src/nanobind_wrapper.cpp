@@ -103,6 +103,7 @@ void init_ChebTools(nb::module_ &m){
         .def("get_nodes_n11", nb::overload_cast<>(&ChebyshevExpansion::get_nodes_n11, nb::const_), "Get the Chebyshev-Lobatto nodes in [-1,1]")
         .def("get_nodes_realworld", nb::overload_cast<>(&ChebyshevExpansion::get_nodes_realworld, nb::const_), "Get the Chebyshev-Lobatto nodes in [xmin, xmax]")
         .def("get_node_function_values", &ChebyshevExpansion::get_node_function_values)
+        .def("cache_nodal_function_values", &ChebyshevExpansion::cache_nodal_function_values)
         .def("monotonic_solvex", &ChebyshevExpansion::monotonic_solvex)
         ;
 
