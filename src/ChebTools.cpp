@@ -1016,25 +1016,37 @@ namespace ChebTools {
     }
 
     Eigen::VectorXd eigenvalues_upperHessenberg(const Eigen::MatrixXd &A, bool balance){
-        Eigen::VectorXd roots(A.cols());
+        
         Eigen::RealSchur<Eigen::MatrixXd> schur;
 
         if (balance) {
             Eigen::MatrixXd Abalanced, D;
             balance_matrix(A, Abalanced, D);
-            schur.computeFromHessenberg(Abalanced, Eigen::MatrixXd::Zero(Abalanced.rows(), Abalanced.cols()), false);
+            schur.computeFromHessenberg(Abalanced, Eigen::MatrixXd::Identity(A.rows(), A.cols()), false);
         }
         else {
-            schur.computeFromHessenberg(A, Eigen::MatrixXd::Zero(A.rows(), A.cols()), false);
+            schur.computeFromHessenberg(A, Eigen::MatrixXd::Identity(A.rows(), A.cols()), false);
         }
 
         const Eigen::MatrixXd &T = schur.matrixT();
+        
+        Eigen::VectorXd roots(A.cols());
         Eigen::Index j = 0;
         for (int i = 0; i < T.cols(); ++i) {
-            if (i+1 < T.cols()-1 && std::abs(T(i+1,i)) > DBL_EPSILON){
-                // Nope, this is a 2x2 block, keep moving
-                i += 1;
+            
+            if (i == T.cols()-1 || T(i+1,i) == 0){
+                // This is a real 1x1 block, if it were the second row in a 2x2 block it
+                // would have been skipped in the next conditional
+                roots(j) = T(i, i); j++;
             }
+            else {
+                // Nope, this is a 2x2 block, keep moving, skip the next row too
+                i++;
+            }
+        }
+        roots.conservativeResize(j);
+        return roots;
+    }
             else{
                 // This is a 1x1 block, keep this (real) eigenvalue
                 roots(j) = T(i, i);
