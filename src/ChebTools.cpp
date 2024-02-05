@@ -1047,13 +1047,34 @@ namespace ChebTools {
         roots.conservativeResize(j);
         return roots;
     }
+
+    Eigen::MatrixXd Schur_matrixT(const Eigen::MatrixXd &A, bool balance){
+        Eigen::RealSchur<Eigen::MatrixXd> schur;
+        if (balance) {
+            Eigen::MatrixXd Abalanced, D;
+            balance_matrix(A, Abalanced, D);
+            schur.computeFromHessenberg(Abalanced, Eigen::MatrixXd::Identity(A.rows(), A.cols()), false);
+        }
+        else {
+            schur.computeFromHessenberg(A, Eigen::MatrixXd::Identity(A.rows(), A.cols()), false);
+        }
+        
+        return schur.matrixT();
+    }
+    std::vector<double> Schur_realeigenvalues(const Eigen::MatrixXd &T){
+        std::vector<double> roots;
+        for (int i = 0; i < T.cols(); ++i) {
+            if (i == T.cols()-1 || T(i+1,i) == 0){
+                // This is a real 1x1 block, if it were the second row in a 2x2 block it
+                // would have been skipped in the next conditional
+                roots.push_back(T(i, i));
+            }
             else{
-                // This is a 1x1 block, keep this (real) eigenvalue
-                roots(j) = T(i, i);
-                j++;
+                // this is the upper left element of a 2x2 block,
+                // keep moving, skip the next row too
+                i += 1;
             }
         }
-        roots.conservativeResize(j-1);
         return roots;
     }
 

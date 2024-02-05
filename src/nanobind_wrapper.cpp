@@ -135,7 +135,9 @@ void init_ChebTools(nb::module_ &m){
     m.def("eigs_speed_test", &eigs_speed_test);
     m.def("eigenvalues", &eigenvalues);
     m.def("eigenvalues_upperHessenberg", &eigenvalues_upperHessenberg);
-    m.def("factoryfDCT", &ChebyshevExpansion::factoryf); 
+    m.def("Schur_matrixT", &Schur_matrixT);
+    m.def("Schur_realeigenvalues", &Schur_realeigenvalues);
+    m.def("factoryfDCT", &ChebyshevExpansion::factoryf);
     m.def("factoryfFFT", &ChebyshevExpansion::factoryfFFT);
     m.def("generate_Chebyshev_expansion", &ChebyshevExpansion::factory<std::function<double(double)> >, "N"_a, "func"_a, "xmin"_a, "xmax"_a);
     m.def("dyadic_splitting", &ChebyshevExpansion::dyadic_splitting<std::vector<ChebyshevExpansion>>, "N"_a, "func"_a, "xmin"_a, "xmax"_a, "M"_a, "tol"_a, "max_refine_passes"_a = 8, "callback"_a=nb::none());
