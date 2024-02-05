@@ -353,6 +353,8 @@ namespace ChebTools{
         * solver in numpy tends to be more reliable.
         */
         std::vector<double> real_roots(bool only_in_domain = true) const ;
+        
+        std::vector<double> real_roots_UH(bool only_in_domain = true) const ;
         /**
         * @brief The second-generation rootfinder of ChebyshevExpansions
         * @param only_in_domain True: only keep roots that are in the domain of the expansion. False: all real roots
