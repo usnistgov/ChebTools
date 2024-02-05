@@ -60,6 +60,8 @@ namespace ChebTools{
 
     Eigen::VectorXcd eigenvalues(const Eigen::MatrixXd &A, bool balance);
     Eigen::VectorXd eigenvalues_upperHessenberg(const Eigen::MatrixXd &A, bool balance);
+    Eigen::MatrixXd Schur_matrixT(const Eigen::MatrixXd &A, bool balance);
+    std::vector<double> Schur_realeigenvalues(const Eigen::MatrixXd &T);
 
     /**
     \brief Calculate the monomial expansion, with coefficients in increasing order, obtained
