@@ -146,6 +146,8 @@ namespace ChebTools{
         double xmin() const{ return m_xmin; }
         /// Get the maximum value of \f$x\f$ for the expansion
         double xmax() const{ return m_xmax; }
+        /// Get the midpoint value of \f$x\f$ for the expansion
+        double xmid() const{ return (m_xmin + m_xmax)/2; }
         /// Go from a value in [xmin,xmax] to a value in [-1,1]
         double scale_x(const double x) const {
             return (2 * x - (m_xmax + m_xmin)) / (m_xmax - m_xmin);
