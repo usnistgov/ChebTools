@@ -520,6 +520,24 @@ namespace ChebTools{
             }
             return expansions;
         }
+        
+        auto split_apart(double xmid, int Ndeg, bool check_bounds=true) const{
+            if (check_bounds && (xmid > xmax() || xmid < xmin())){
+                throw std::invalid_argument("xmid is not in xmin <= xmid <= xmax");
+            }
+            auto nodes_n11 = get_CLnodes(Ndeg);
+            
+            auto xleft = ((xmid - xmin()) * nodes_n11.array() + (xmid + xmin())) * 0.5;
+            auto yleft = y(xleft);
+            auto left = ChebyshevExpansion::factoryf(Ndeg, yleft, xmin(), xmid);
+            left.cache_nodal_function_values(left.get_node_function_values());
+            
+            auto xright = ((xmax() - xmid) * nodes_n11.array() + (xmax() + xmid)) * 0.5;
+            auto yright = y(xright);
+            auto right = ChebyshevExpansion::factoryf(Ndeg, yright, xmid, xmax());
+            right.cache_nodal_function_values(right.get_node_function_values());
+            return std::make_tuple(left, right);
+        }
     };
 
 
