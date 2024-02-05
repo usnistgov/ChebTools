@@ -95,7 +95,7 @@ namespace ChebTools{
         double m_xmin, m_xmax;
 
         vectype m_recurrence_buffer;
-        vectype m_nodal_value_cache;
+        Eigen::ArrayXd m_nodal_value_cache;
         void resize() {
             m_recurrence_buffer.resize(m_c.size());
         }
@@ -143,6 +143,11 @@ namespace ChebTools{
         /// Cache nodal function values
         void cache_nodal_function_values(vectype values) {
             m_nodal_value_cache = values;
+        }
+        
+        /// Direct access to nodal function values
+        const Eigen::ArrayXd& get_cached_node_function_values() const {
+            return m_nodal_value_cache;
         }
         /// Get the minimum value of \f$x\f$ for the expansion
         double xmin() const{ return m_xmin; }
