@@ -579,17 +579,18 @@ namespace ChebTools {
 
     Eigen::MatrixXd ChebyshevExpansion::companion_matrix(const Eigen::VectorXd &coeffs) const {
         Eigen::VectorXd new_mc = reduce_zeros(coeffs);
-        std::size_t Norder = new_mc.size() - 1;
-        Eigen::MatrixXd A = Eigen::MatrixXd::Zero(Norder, Norder);
-        // c_wrap wraps the first 0...Norder elements of the coefficient vector
-        Eigen::Map<const Eigen::VectorXd> c_wrap(&(new_mc[0]), Norder);
+        return companion_matrix_noreduce(new_mc);
+    }
+    Eigen::MatrixXd ChebyshevExpansion::companion_matrix_noreduce(const Eigen::ArrayXd &coeffs) const {
+        std::size_t Ndeg = coeffs.size() - 1;
+        Eigen::MatrixXd A = Eigen::MatrixXd::Zero(Ndeg, Ndeg);
         // First row
         A(0, 1) = 1;
         // Last row
-        A.row(Norder - 1) = -c_wrap / (2.0*new_mc(Norder));
-        A(Norder - 1, Norder - 2) += 0.5;
+        A.row(Ndeg-1) = -coeffs.head(Ndeg)/(2.0*coeffs(Ndeg));
+        A(Ndeg - 1, Ndeg - 2) += 0.5;
         // All the other rows
-        for (int j = 1; j < Norder - 1; ++j) {
+        for (int j = 1; j < Ndeg - 1; ++j) {
             A(j, j - 1) = 0.5;
             A(j, j + 1) = 0.5;
         }
@@ -731,22 +732,22 @@ namespace ChebTools {
           }
         }
         return roots;
-
-        //// The companion matrix is definitely lower Hessenberg, so we can skip the Hessenberg
-        //// decomposition, and get the real eigenvalues directly.  These eigenvalues are defined
-        //// in the domain [-1, 1], but it might also include values outside [-1, 1]
-        //Eigen::VectorXd real_eigs = eigenvalues_upperHessenberg(companion_matrix().transpose(), /* balance = */ true);
-        //
-        //std::vector<double> roots;
-        //for (Eigen::Index i = 0; i < real_eigs.size(); ++i){
-        //    double val_n11 = real_eigs(i);
-        //    const bool is_in_domain = (val_n11 >= -1.0 && val_n11 <= 1.0);
-        //    // Keep it if it is in domain, or if you just want all real roots
-        //    if (!only_in_domain || is_in_domain){
-        //        // Rescale back into real-world values in [xmin,xmax] from [-1,1]
-        //        double x = ((m_xmax - m_xmin)*val_n11 + (m_xmax + m_xmin)) / 2.0;
-        //        roots.push_back(x);
-        //    }
+    
+    //// The companion matrix is definitely lower Hessenberg, so we can skip the Hessenberg
+    //// decomposition, and get the real eigenvalues directly.  These eigenvalues are defined
+    //// in the domain [-1, 1], but it might also include values outside [-1, 1]
+    //Eigen::VectorXd real_eigs = eigenvalues_upperHessenberg(companion_matrix().transpose(), /* balance = */ true);
+    //
+    //std::vector<double> roots;
+    //for (Eigen::Index i = 0; i < real_eigs.size(); ++i){
+    //    double val_n11 = real_eigs(i);
+    //    const bool is_in_domain = (val_n11 >= -1.0 && val_n11 <= 1.0);
+    //    // Keep it if it is in domain, or if you just want all real roots
+    //    if (!only_in_domain || is_in_domain){
+    //        // Rescale back into real-world values in [xmin,xmax] from [-1,1]
+    //        double x = ((m_xmax - m_xmin)*val_n11 + (m_xmax + m_xmin)) / 2.0;
+    //        roots.push_back(x);
+    //    }
     //}
     //return roots;
     }

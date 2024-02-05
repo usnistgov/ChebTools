@@ -338,6 +338,8 @@ namespace ChebTools{
         * See Boyd, SIAM review, 2013, http://dx.doi.org/10.1137/110838297, Appendix A.2
         */
         Eigen::MatrixXd companion_matrix(const Eigen::VectorXd &coeffs) const ;
+        
+        Eigen::MatrixXd companion_matrix_noreduce(const Eigen::ArrayXd &coeffs) const ;
         /**
         * @brief Return the real roots of the Chebyshev expansion
         * @param only_in_domain If true, only real roots that are within the domain
