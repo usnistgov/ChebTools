@@ -345,7 +345,7 @@ const Eigen::MatrixXd & get_Lmatrix(std::size_t N);
         Eigen::MatrixXd companion_matrix(const Eigen::VectorXd &coeffs) const ;
         
         Eigen::MatrixXd companion_matrix_noreduce(const Eigen::ArrayXd &coeffs) const ;
-        Eigen::MatrixXd companion_matrix_noreduce_transpose(const Eigen::ArrayXd &coeffs) const ;
+        Eigen::MatrixXd companion_matrix_noreduce_transposed(const Eigen::ArrayXd &coeffs) const ;
         /**
         * @brief Return the real roots of the Chebyshev expansion
         * @param only_in_domain If true, only real roots that are within the domain

@@ -587,8 +587,8 @@ namespace ChebTools {
     Eigen::MatrixXd ChebyshevExpansion::companion_matrix_noreduce(const Eigen::ArrayXd &coeffs) const {
         return rootfinding::companion_matrix(coeffs);
     }
-    Eigen::MatrixXd ChebyshevExpansion::companion_matrix_noreduce_transpose(const Eigen::ArrayXd &coeffs) const {
-        return rootfinding::companion_matrix_transpose(coeffs);
+    Eigen::MatrixXd ChebyshevExpansion::companion_matrix_noreduce_transposed(const Eigen::ArrayXd &coeffs) const {
+        return rootfinding::companion_matrix_transposed(coeffs);
     }
     std::vector<double> ChebyshevExpansion::real_roots2(bool only_in_domain) const {
         //vector of roots to be returned
