@@ -599,6 +599,12 @@ const Eigen::MatrixXd & get_Lmatrix(std::size_t N);
         auto& get_exps_mutable() {
             return m_exps;
         }
+        
+        /// Get the minimum value of the independent variable
+        auto get_xmin() const {return m_exps[0].xmin(); }
+        
+        /// Get the maximum value of the independent variable 
+        auto get_xmax() const {return m_exps.back().xmax(); }
 
         /**
         * Get the value of the independent variable at the extrema for which dy/dx = 0
