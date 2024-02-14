@@ -485,8 +485,8 @@ const Eigen::MatrixXd & get_Lmatrix(std::size_t N);
             return s;
         }
 
-        template<typename Container = std::deque<ChebyshevExpansion>>
-        static auto dyadic_splitting(const std::size_t N, const std::function<double(double)>& func, const double xmin, const double xmax, 
+        template<typename Container = std::vector<ChebyshevExpansion>>
+        static auto dyadic_splitting(const std::size_t N, const std::function<double(double)>& func, const double xmin, const double xmax,
             const int M, const double tol, const int max_refine_passes = 8, 
             const std::optional<std::function<void(int, const Container&)>>& callback = std::nullopt) -> Container
         {
