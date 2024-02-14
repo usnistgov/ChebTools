@@ -816,6 +816,15 @@ const Eigen::MatrixXd & get_Lmatrix(std::size_t N);
         }
     };
 
+    // A convenience function to return the results of dyadic splitting already in
+    // a ChebyshevCollection. All arguments are perfectly forwarded to the
+    // dyadic_splitting function
+    template<typename Container = std::vector<ChebyshevExpansion>, class... Args>
+    auto dyadic_splitting_coll(Args&&... args)
+    {
+        return ChebyshevCollection(ChebyshevExpansion::dyadic_splitting(std::forward<Args>(args)...));
+    }
+
     /// A small class that implements a Taylor expansion around a particular point
     template<typename CoefType>
     class TaylorExtrapolator {
