@@ -220,6 +220,7 @@ namespace ChebTools {
         }
     };
     static LMatrixLibrary l_matrix_library;
+    const Eigen::MatrixXd & get_Lmatrix(std::size_t N){ return l_matrix_library.get(N); }
 
     /**
     * @brief This class stores sets of U matrices (because they are a function only of the degree of the expansion)

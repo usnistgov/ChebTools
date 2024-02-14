@@ -60,6 +60,9 @@ namespace ChebTools{
     /// Get the Chebyshev-Lobatto nodes for an expansion of degree \f$N\f$
     const Eigen::VectorXd &get_CLnodes(std::size_t N);
 
+    /// Get the L
+const Eigen::MatrixXd & get_Lmatrix(std::size_t N);
+
     Eigen::VectorXcd eigenvalues(const Eigen::MatrixXd &A, bool balance);
     Eigen::VectorXd eigenvalues_upperHessenberg(const Eigen::MatrixXd &A, bool balance);
     Eigen::MatrixXd Schur_matrixT(const Eigen::MatrixXd &A, bool balance);
