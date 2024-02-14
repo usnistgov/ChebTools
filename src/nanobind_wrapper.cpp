@@ -119,6 +119,9 @@ void init_ChebTools(nb::module_ &m){
         .def("__call__", [](const ChebyshevCollection& c, const double x) { return c(x); }, nb::is_operator())
         .def("y_unsafe", &ChebyshevCollection::y_unsafe)
         .def("integrate", &ChebyshevCollection::integrate)
+        .def("get_xmin", &ChebyshevCollection::get_xmin)
+        .def("get_xmax", &ChebyshevCollection::get_xmax)
+    
         .def("get_exps", &ChebyshevCollection::get_exps)
         .def("get_extrema", &ChebyshevCollection::get_extrema)
         .def("solve_for_x", &ChebyshevCollection::solve_for_x)
