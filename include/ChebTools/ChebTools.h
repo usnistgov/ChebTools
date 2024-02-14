@@ -9,6 +9,8 @@
 #include <iomanip>
 #include <iostream>
 
+#include "ChebTools/roots.h"
+
 namespace ChebTools{
 
     // https://proquest.safaribooksonline.com/9780321637413

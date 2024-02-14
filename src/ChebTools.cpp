@@ -1,4 +1,6 @@
 #include "ChebTools/ChebTools.h"
+#include "ChebTools/roots.h"
+
 #include "Eigen/Dense"
 #include <unsupported/Eigen/FFT>
 
@@ -582,19 +584,10 @@ namespace ChebTools {
         return companion_matrix_noreduce(new_mc);
     }
     Eigen::MatrixXd ChebyshevExpansion::companion_matrix_noreduce(const Eigen::ArrayXd &coeffs) const {
-        std::size_t Ndeg = coeffs.size() - 1;
-        Eigen::MatrixXd A = Eigen::MatrixXd::Zero(Ndeg, Ndeg);
-        // First row
-        A(0, 1) = 1;
-        // Last row
-        A.row(Ndeg-1) = -coeffs.head(Ndeg)/(2.0*coeffs(Ndeg));
-        A(Ndeg - 1, Ndeg - 2) += 0.5;
-        // All the other rows
-        for (int j = 1; j < Ndeg - 1; ++j) {
-            A(j, j - 1) = 0.5;
-            A(j, j + 1) = 0.5;
-        }
-        return A;
+        return rootfinding::companion_matrix(coeffs);
+    }
+    Eigen::MatrixXd ChebyshevExpansion::companion_matrix_noreduce_transpose(const Eigen::ArrayXd &coeffs) const {
+        return rootfinding::companion_matrix_transpose(coeffs);
     }
     std::vector<double> ChebyshevExpansion::real_roots2(bool only_in_domain) const {
         //vector of roots to be returned
