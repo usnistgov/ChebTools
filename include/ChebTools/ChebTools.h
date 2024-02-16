@@ -605,6 +605,16 @@ const Eigen::MatrixXd & get_Lmatrix(std::size_t N);
         
         /// Get the maximum value of the independent variable 
         auto get_xmax() const {return m_exps.back().xmax(); }
+        
+        /**
+         \brief Return if a value is in a slightly expanded value of [xmin-tol, xmax+tol]
+         \param x The value to be checked
+         \param epsilon, with \f$tol=epsilon*(xmax-xmin)\f$
+         */
+        bool fuzzed_contains(double x, double epsilon) const {
+            double tol = epsilon*(get_xmax()-get_xmin());
+            return x >= get_xmin()-tol && x <= get_xmax()+ tol;
+        }
 
         /**
         * Get the value of the independent variable at the extrema for which dy/dx = 0
