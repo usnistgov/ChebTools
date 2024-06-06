@@ -26,6 +26,22 @@ if (OPENMP_NEEDED)
     find_package(OpenMP)
 endif()
 
+# Single-source the version, either from scikit, or from parsing the pyproject.toml
+if (SKBUILD)
+    add_definitions("-DCHEBTOOLSVERSION=\"${SKBUILD_PROJECT_VERSION_FULL}\"")
+else()
+    file(READ "pyproject.toml" TOML_CONTENT)
+    set(REG "version = \"([0-9]+\\.[0-9]+\\.[0-9]+)\"")
+    string(REGEX MATCH "${REG}" VERSION_MATCH "${TOML_CONTENT}")
+    if (NOT VERSION_MATCH)
+        message(FATAL_ERROR "Can't parse the version")
+    else()
+        string(REGEX REPLACE "${REG}" "\\1" PROJECT_VERSION_FULL "${VERSION_MATCH}")
+        message(STATUS "Version: ${PROJECT_VERSION_FULL}")
+        add_definitions("-DCHEBTOOLSVERSION=\"${PROJECT_VERSION_FULL}\"")
+    endif()
+endif()
+
 if (CHEBTOOLS_STATIC_LIBRARY OR NISTFIT_PYBIND11)
     add_library(ChebTools STATIC ${SOURCES})
     # Add target include directories for easy linking with other applications

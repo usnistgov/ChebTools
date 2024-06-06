@@ -10,8 +10,6 @@
 #include <nanobind/stl/tuple.h>
 #include <nanobind/eigen/dense.h>
 
-#include "ChebToolsVersion.hpp"
-
 namespace nb = nanobind;
 
 using namespace nb::literals;
