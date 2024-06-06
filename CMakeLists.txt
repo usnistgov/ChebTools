@@ -64,7 +64,6 @@ else()
     endif()
 
     if (CHEBTOOLS_NANOBIND)
-
         find_package(Python COMPONENTS Interpreter Development.Module REQUIRED) # from https://github.com/pypa/cibuildwheel/issues/639#issuecomment-1397443143
         if (CHEBTOOLS_PYBIND11)
             message(FATAL_ERROR "only one python binding can be enabled")
@@ -72,10 +71,11 @@ else()
         # Build nanobind python module
         add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/externals/nanobind")
         nanobind_add_module(ChebTools "${CMAKE_CURRENT_SOURCE_DIR}/src/nanobind_wrapper.cpp" ${SOURCES})
-        # target_compile_definitions(ChebTools PUBLIC -DNANOBIND)
         if (OPENMP_NEEDED)
             target_link_libraries(ChebTools PUBLIC OpenMP::OpenMP_CXX)
         endif()
+        message(STATUS "Added nanobind interface")
+        install(TARGETS ChebTools LIBRARY DESTINATION ChebTools)
     endif()
 
     if (NOT CHEBTOOLS_NO_MONOLITH)
