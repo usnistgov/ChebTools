@@ -71,6 +71,21 @@ else()
         # Build nanobind python module
         add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/externals/nanobind")
         nanobind_add_module(ChebTools "${CMAKE_CURRENT_SOURCE_DIR}/src/nanobind_wrapper.cpp" ${SOURCES})
+        set(NAME ChebTools)
+        nanobind_add_stub(
+          ChebTools_stub
+          MODULE ChebTools
+          OUTPUT "${CMAKE_SOURCE_DIR}/src/ChebTools/ChebTools.pyi"
+          PYTHON_PATH $<TARGET_FILE_DIR:ChebTools>
+          DEPENDS ChebTools
+          MARKER_FILE py.typed
+          VERBOSE
+        )
+        # Install directive for scikit-build-core for the stubs
+        install(FILES "${CMAKE_SOURCE_DIR}/src/ChebTools/ChebTools.pyi" DESTINATION ${NAME})
+        install(FILES "${CMAKE_CURRENT_BINARY_DIR}/py.typed" DESTINATION ${NAME})
+        unset(NAME)
+
         if (OPENMP_NEEDED)
             target_link_libraries(ChebTools PUBLIC OpenMP::OpenMP_CXX)
         endif()
