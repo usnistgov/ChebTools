@@ -88,6 +88,7 @@ jobs:
 
           echo "Using TWINE_REPOSITORY=$TWINE_REPOSITORY"
           echo "TWINE_REPOSITORY=$TWINE_REPOSITORY" >> $GITHUB_ENV
+          echo "TWINE_USERNAME=__token__" >> $GITHUB_ENV
           echo "TWINE_PASSWORD=$TWINE_PASSWORD" >> $GITHUB_ENV
 
           python -m twine upload --skip-existing Python/*.whl Python/*.tar.gz
