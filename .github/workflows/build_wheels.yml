@@ -75,6 +75,10 @@ jobs:
           du -sh
 
       - name: Install Python dependencies and upload
+        env:
+          TWINE_NON_INTERACTIVE: true 
+          TWINE_USERNAME: __token__ 
+
         run: |
           python -m pip install --upgrade pip
           pip install setuptools wheel twine requests packaging
@@ -88,7 +92,6 @@ jobs:
 
           echo "Using TWINE_REPOSITORY=$TWINE_REPOSITORY"
           echo "TWINE_REPOSITORY=$TWINE_REPOSITORY" >> $GITHUB_ENV
-          echo "TWINE_USERNAME=__token__" >> $GITHUB_ENV
           echo "TWINE_PASSWORD=$TWINE_PASSWORD" >> $GITHUB_ENV
 
-          python -m twine upload --skip-existing Python/*.whl Python/*.tar.gz
+          python -m twine upload -r testpypi --skip-existing Python/*.whl Python/*.tar.gz
