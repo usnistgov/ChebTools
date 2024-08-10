@@ -39,3 +39,44 @@ jobs:
           path: |
             ./wheelhouse/*.whl
             ./wheelhouse/*.tar.gz
+
+  upload_python_bindings_to_pypi:
+    needs: [build_wheels]
+    name: Upload to PyPi
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.12.x
+
+      - name: Download ALL wheels
+        uses: actions/download-artifact@v4
+        with:
+          name: Python
+          path: Python
+
+      - name: Display structure of downloaded files
+        run: |
+          set -x
+          ls -R
+          du -sh
+
+      - name: Install Python dependencies and upload
+        run: |
+          python -m pip install --upgrade pip
+          pip install setuptools wheel twine requests packaging
+          if [[ "$GITHUB_REF" == *"refs/tags"* ]]; then
+            TWINE_REPOSITORY=pypi
+            TWINE_PASSWORD=${{ secrets.PYPI_TOKEN }}
+          else
+            TWINE_REPOSITORY=testpypi
+            TWINE_PASSWORD=${{ secrets.TESTPYPI_TOKEN }}
+          fi;
+
+          echo "Using TWINE_REPOSITORY=$TWINE_REPOSITORY"
+          echo "TWINE_REPOSITORY=$TWINE_REPOSITORY" >> $GITHUB_ENV
+          echo "TWINE_PASSWORD=$TWINE_PASSWORD" >> $GITHUB_ENV
+
+          python -m twine upload --skip-existing Python/*.whl Python/*.tar.gz
