@@ -8,6 +8,7 @@ on:
     types:
       - published
       - edited
+      - released
 
 jobs:
   build_wheels:
@@ -55,7 +56,7 @@ jobs:
      - name: Merge Artifacts
        uses: actions/upload-artifact/merge@v4
        with:
-         name: artifact
+         name: dist
          pattern: artifact-*
 
   upload_python_bindings_to_testpypi:
@@ -73,7 +74,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: artifact
-          path: Python
+          path: dist
 
       - name: Display structure of downloaded files
         run: |
@@ -90,13 +91,14 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install setuptools wheel twine requests packaging
-          python -m twine upload -r testpypi --skip-existing Python/*.whl Python/*.tar.gz
+          python -m twine upload -r testpypi --skip-existing dist/*.whl dist/*.tar.gz
 
   upload_to_pypi:
     name: Upload to pypi if release
     needs: [merge_wheels]
     runs-on: ubuntu-latest
-    if: github.event_name == 'release' && github.event.action == 'published'
+    if: github.event_name == 'release' 
+    #&& (github.event.action == 'published' || github.event.action == 'edited')
 
     steps:
     - uses: actions/setup-python@v5
@@ -108,4 +110,4 @@ jobs:
     - uses: pypa/gh-action-pypi-publish@release/v1
       with:
         user: __token__
-        password: ${{ secrets.TESTPYPI_TOKEN }}
+        password: ${{ secrets.PYPI_TOKEN }}
