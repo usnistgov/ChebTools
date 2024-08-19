@@ -92,17 +92,6 @@ jobs:
           pip install setuptools wheel twine requests packaging
           python -m twine upload -r testpypi --skip-existing Python/*.whl Python/*.tar.gz
 
-      - name: Upload to pypi (release)
-        env:
-          TWINE_NON_INTERACTIVE: true 
-          TWINE_USERNAME: __token__ 
-          TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
-
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install setuptools wheel twine requests packaging
-          python -m twine upload --skip-existing Python/*.whl Python/*.tar.gz
-
   upload_to_pypi:
     name: Upload to pypi if release
     needs: [merge_wheels]
@@ -119,4 +108,4 @@ jobs:
     - uses: pypa/gh-action-pypi-publish@release/v1
       with:
         user: __token__
-        password: ${{ secrets.PYPI_TOKEN }}
+        password: ${{ secrets.TESTPYPI_TOKEN }}
