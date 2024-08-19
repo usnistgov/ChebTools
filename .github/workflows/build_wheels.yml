@@ -1,6 +1,12 @@
 name: Build
 
-on: [push, pull_request]
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+  release:
+    types:
+      - published
 
 jobs:
   build_wheels:
@@ -41,7 +47,7 @@ jobs:
             ./wheelhouse/*.whl
             ./wheelhouse/*.tar.gz
 
-  merge:
+  merge_wheels:
    runs-on: ubuntu-latest
    needs: build_wheels
    steps:
@@ -52,7 +58,7 @@ jobs:
          pattern: artifact-*
 
   upload_python_bindings_to_testpypi:
-    needs: [merge]
+    needs: [merge_wheels]
     name: Upload to PyPi
     runs-on: ubuntu-latest
     steps:
