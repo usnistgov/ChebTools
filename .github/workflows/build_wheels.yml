@@ -59,41 +59,62 @@ jobs:
          name: dist
          pattern: artifact-*
 
-  upload_python_bindings_to_testpypi:
+  # upload_python_bindings_to_testpypi:
+  #   needs: [merge_wheels]
+  #   name: Upload to PyPi
+  #   runs-on: ubuntu-latest
+  #   steps:
+
+  #     - name: Set up Python
+  #       uses: actions/setup-python@v4
+  #       with:
+  #         python-version: 3.12.x
+
+  #     - name: Download ALL wheels
+  #       uses: actions/download-artifact@v4
+  #       with:
+  #         name: dist
+  #         path: dist
+
+  #     - name: Display structure of downloaded files
+  #       run: |
+  #         set -x
+  #         ls -R
+  #         du -sh
+
+  #     - name: Upload to testpypi (always)
+  #       env:
+  #         TWINE_NON_INTERACTIVE: true 
+  #         TWINE_USERNAME: __token__ 
+  #         TWINE_PASSWORD: ${{ secrets.TESTPYPI_TOKEN }}
+
+  #       run: |
+  #         python -m pip install --upgrade pip
+  #         pip install setuptools wheel twine requests packaging
+  #         python -m twine upload -r testpypi --skip-existing dist/*.whl dist/*.tar.gz
+
+  testpypi-publish:
+    name: Upload release to TestPyPI
     needs: [merge_wheels]
-    name: Upload to PyPi
     runs-on: ubuntu-latest
+    environment:
+      name: testpypi
+    permissions:
+      id-token: write  # IMPORTANT: this permission is mandatory for trusted publishing
     steps:
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: 3.12.x
-
       - name: Download ALL wheels
         uses: actions/download-artifact@v4
         with:
-          name: artifact
           path: dist
 
-      - name: Display structure of downloaded files
-        run: |
-          set -x
-          ls -R
-          du -sh
+      - name: Publish package distributions to TestPyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
+          password: ${{ secrets.TESTPYPI_TOKEN }}
+          skip-existing: true
 
-      - name: Upload to testpypi (always)
-        env:
-          TWINE_NON_INTERACTIVE: true 
-          TWINE_USERNAME: __token__ 
-          TWINE_PASSWORD: ${{ secrets.TESTPYPI_TOKEN }}
-
-        run: |
-          python -m pip install --upgrade pip
-          pip install setuptools wheel twine requests packaging
-          python -m twine upload -r testpypi --skip-existing dist/*.whl dist/*.tar.gz
-
-  upload_to_pypi:
+  pypi-publish:
     name: Upload to pypi if release
     needs: [merge_wheels]
     runs-on: ubuntu-latest
@@ -111,3 +132,4 @@ jobs:
       with:
         user: __token__
         password: ${{ secrets.PYPI_TOKEN }}
+        skip-existing: false
