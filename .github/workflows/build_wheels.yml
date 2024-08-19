@@ -97,7 +97,7 @@ jobs:
   #         python -m twine upload -r testpypi --skip-existing dist/*.whl dist/*.tar.gz
 
   testpypi-publish:
-    name: Upload release to TestPyPI
+    name: Upload to TestPyPI
     needs: [merge_wheels]
     runs-on: ubuntu-latest
     environment:
@@ -108,6 +108,7 @@ jobs:
     - name: Download ALL wheels
       uses: actions/download-artifact@v4
       with:
+        name: dist
         path: dist
 
     - name: Display structure of downloaded files
@@ -124,7 +125,7 @@ jobs:
         skip-existing: true
 
   pypi-publish:
-    name: Upload to pypi if release
+    name: Upload to PyPI if release
     needs: [merge_wheels]
     runs-on: ubuntu-latest
     permissions:
@@ -137,6 +138,7 @@ jobs:
 
     - uses: actions/download-artifact@v4
       with:
+        name: dist
         path: dist
 
     - name: Display structure of downloaded files
