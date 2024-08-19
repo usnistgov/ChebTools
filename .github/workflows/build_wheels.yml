@@ -101,8 +101,9 @@ jobs:
       name: pypi
     permissions:
       id-token: write  # IMPORTANT: this permission is mandatory for trusted publishing
-    if: github.event_name == 'release' 
-    #&& (github.event.action == 'published' || github.event.action == 'edited')
+
+    # Run if release and either published or edited actions are fired
+    if: github.event_name == 'release' && contains(fromJSON('["published", "edited"]'), github.event.action)
 
     steps:
     - uses: actions/setup-python@v5
