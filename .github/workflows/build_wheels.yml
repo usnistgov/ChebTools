@@ -117,9 +117,9 @@ jobs:
         du -sh
 
     - name: Publish package distributions to TestPyPI
-      uses: pypa/gh-action-pypi-publish@release/v1
+      uses: pypa/gh-action-pypi-publish@release/v1.9
       with:
-        repository_url: https://test.pypi.org/legacy/
+        repository-url: https://test.pypi.org/legacy/
         password: ${{ secrets.TESTPYPI_TOKEN }}
         skip-existing: true
 
@@ -145,7 +145,7 @@ jobs:
         ls -R
         du -sh
 
-    - uses: pypa/gh-action-pypi-publish@release/v1
+    - uses: pypa/gh-action-pypi-publish@release/v1.9
       with:
         password: ${{ secrets.PYPI_TOKEN }}
         skip-existing: false
