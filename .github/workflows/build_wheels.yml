@@ -42,6 +42,9 @@ jobs:
           CIBW_ENVIRONMENT_MACOS: MACOSX_DEPLOYMENT_TARGET=10.15
           CIBW_SKIP: "*musllinux* *pypy* *pp* *cp36* *cp37* *cp38*"
 
+      - name: Check wheels
+        run: python -m twine check wheelhouse/*.whl
+
       - uses: actions/upload-artifact@v4
         with:
           name: artifact-${{ matrix.os }}
@@ -135,6 +138,12 @@ jobs:
     - uses: actions/download-artifact@v4
       with:
         path: dist
+
+    - name: Display structure of downloaded files
+      run: |
+        set -x
+        ls -R
+        du -sh
 
     - uses: pypa/gh-action-pypi-publish@release/v1
       with:
