@@ -51,7 +51,7 @@ jobs:
          name: artifact
          pattern: artifact-*
 
-  upload_python_bindings_to_pypi:
+  upload_python_bindings_to_testpypi:
     needs: [merge]
     name: Upload to PyPi
     runs-on: ubuntu-latest
@@ -74,7 +74,7 @@ jobs:
           ls -R
           du -sh
 
-      - name: Install Python dependencies and upload
+      - name: Upload to testpypi (always)
         env:
           TWINE_NON_INTERACTIVE: true 
           TWINE_USERNAME: __token__ 
@@ -83,16 +83,33 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install setuptools wheel twine requests packaging
-          if [[ "$GITHUB_REF" == *"refs/tags"* ]]; then
-            TWINE_REPOSITORY=pypi
-            # TWINE_PASSWORD=${{ secrets.PYPI_TOKEN }}
-          else
-            TWINE_REPOSITORY=testpypi
-            # TWINE_PASSWORD=${{ secrets.TESTPYPI_TOKEN }}
-          fi;
-
-          echo "Using TWINE_REPOSITORY=$TWINE_REPOSITORY"
-          echo "TWINE_REPOSITORY=$TWINE_REPOSITORY" >> $GITHUB_ENV
-          # echo "TWINE_PASSWORD=$TWINE_PASSWORD" >> $GITHUB_ENV
-
           python -m twine upload -r testpypi --skip-existing Python/*.whl Python/*.tar.gz
+
+      - name: Upload to pypi (release)
+        env:
+          TWINE_NON_INTERACTIVE: true 
+          TWINE_USERNAME: __token__ 
+          TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install setuptools wheel twine requests packaging
+          python -m twine upload --skip-existing Python/*.whl Python/*.tar.gz
+
+  upload_to_pypi:
+    name: Upload to pypi if release
+    needs: [merge_wheels]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release' && github.event.action == 'published'
+
+    steps:
+    - uses: actions/setup-python@v5
+
+    - uses: actions/download-artifact@v4
+      with:
+        path: dist
+
+    - uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        user: __token__
+        password: ${{ secrets.PYPI_TOKEN }}
