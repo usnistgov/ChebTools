@@ -47,7 +47,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: artifact-${{ matrix.os }}
+          name: dist-${{ matrix.os }}
           path: |
             ./wheelhouse/*.whl
             ./wheelhouse/*.tar.gz
@@ -60,41 +60,7 @@ jobs:
        uses: actions/upload-artifact/merge@v4
        with:
          name: dist
-         pattern: artifact-*
-
-  # upload_python_bindings_to_testpypi:
-  #   needs: [merge_wheels]
-  #   name: Upload to PyPi
-  #   runs-on: ubuntu-latest
-  #   steps:
-
-  #     - name: Set up Python
-  #       uses: actions/setup-python@v4
-  #       with:
-  #         python-version: 3.12.x
-
-  #     - name: Download ALL wheels
-  #       uses: actions/download-artifact@v4
-  #       with:
-  #         name: dist
-  #         path: dist
-
-  #     - name: Display structure of downloaded files
-  #       run: |
-  #         set -x
-  #         ls -R
-  #         du -sh
-
-  #     - name: Upload to testpypi (always)
-  #       env:
-  #         TWINE_NON_INTERACTIVE: true 
-  #         TWINE_USERNAME: __token__ 
-  #         TWINE_PASSWORD: ${{ secrets.TESTPYPI_TOKEN }}
-
-  #       run: |
-  #         python -m pip install --upgrade pip
-  #         pip install setuptools wheel twine requests packaging
-  #         python -m twine upload -r testpypi --skip-existing dist/*.whl dist/*.tar.gz
+         pattern: dist-*
 
   testpypi-publish:
     name: Upload to TestPyPI
@@ -105,20 +71,18 @@ jobs:
     permissions:
       id-token: write  # IMPORTANT: this permission is mandatory for trusted publishing
     steps:
-    - name: Download ALL wheels
-      uses: actions/download-artifact@v4
+    - uses: actions/setup-python@v5
+    
+    - uses: actions/download-artifact@v4
       with:
-        name: dist
         path: dist
 
-    - name: Display structure of downloaded files
-      run: |
+    - run: |
         set -x
         ls -R
         du -sh
 
-    - name: Publish package distributions to TestPyPI
-      uses: pypa/gh-action-pypi-publish@release/v1.9
+    - uses: pypa/gh-action-pypi-publish@release/v1.9
       with:
         repository-url: https://test.pypi.org/legacy/
         password: ${{ secrets.TESTPYPI_TOKEN }}
@@ -138,7 +102,6 @@ jobs:
 
     - uses: actions/download-artifact@v4
       with:
-        name: dist
         path: dist
 
     - name: Display structure of downloaded files
