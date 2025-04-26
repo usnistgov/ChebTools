@@ -225,6 +225,7 @@ inline auto explicit_Chebyshev_3x3(const Eigen::Matrix<double, 3,3>& A3){
         throw std::invalid_argument("not lower Hessenberg");
     }
     std::complex<double> I{0,1.0};
+    auto sqrt3 = sqrt(3.0);
     auto F = cbrt1(-27*a31 - 4*pow(a33, 3) - 9*a33*(a32 + 1) + 27*a33 + sqrt1(-2*pow(3*a32 + 2*pow(a33, 2) + 3, 3) + pow(-27*a31 - 4.0*pow(a33, 3) - 9*a33*(a32 + 1) + 27*a33, 2)));
     std::complex<double> soln1 = (1.0/6.0)*(F*(-cbrt(2)*F + 2*a33) - pow(2, 2.0/3.0)*(3*a32 + 2*pow(a33, 2) + 3))/F;
     std::complex<double> soln2 = (1.0/12.0)*(F*(1.0 + sqrt(3)*I)*(cbrt(2)*F*(1.0 + sqrt(3)*I) + 4*a33) + 4*pow(2, 2.0/3.0)*(3*a32 + 2*pow(a33, 2) + 3))/(F*(1.0 + sqrt(3)*I));
