@@ -70,14 +70,14 @@ else()
         endif()
         # Build nanobind python module
         add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/externals/nanobind")
-        nanobind_add_module(ChebTools "${CMAKE_CURRENT_SOURCE_DIR}/src/nanobind_wrapper.cpp" ${SOURCES})
+        nanobind_add_module(ChebTools_ext "${CMAKE_CURRENT_SOURCE_DIR}/src/nanobind_wrapper.cpp" ${SOURCES})
         set(NAME ChebTools)
         nanobind_add_stub(
           ChebTools_stub
-          MODULE ChebTools
+          MODULE ChebTools_ext
           OUTPUT "${CMAKE_SOURCE_DIR}/src/ChebTools/ChebTools.pyi"
-          PYTHON_PATH $<TARGET_FILE_DIR:ChebTools>
-          DEPENDS ChebTools
+          PYTHON_PATH $<TARGET_FILE_DIR:ChebTools_ext>
+          DEPENDS ChebTools_ext
           MARKER_FILE py.typed
           VERBOSE
         )
@@ -90,7 +90,7 @@ else()
             target_link_libraries(ChebTools PUBLIC OpenMP::OpenMP_CXX)
         endif()
         message(STATUS "Added nanobind interface")
-        install(TARGETS ChebTools LIBRARY DESTINATION ChebTools)
+        install(TARGETS ChebTools_ext LIBRARY DESTINATION ChebTools)
     endif()
 
     if (NOT CHEBTOOLS_NO_MONOLITH)
