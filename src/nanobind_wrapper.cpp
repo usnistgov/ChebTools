@@ -156,7 +156,7 @@ void init_ChebTools(nb::module_ &m){
     m.def("Clenshaw2DEigencomplex", &Clenshaw2DEigen<Eigen::Ref<const Eigen::ArrayXXcd>>, "cmat"_a.noconvert(), "x"_a, "y"_a);
 }
 
-NB_MODULE(ChebTools, m) {
+NB_MODULE(ChebTools_ext, m) {
     m.doc() = "C++ tools for working with Chebyshev expansions";
     m.attr("__version__") = CHEBTOOLSVERSION;
     init_ChebTools(m);
